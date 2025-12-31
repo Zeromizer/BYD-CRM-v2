@@ -80,23 +80,27 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  border: none;
-  background: var(--bg-secondary);
+  border: none !important;
+  background: var(--bg-secondary) !important;
+  background-color: var(--bg-secondary) !important;
   border-radius: 8px;
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
   cursor: pointer;
   transition: all 0.15s;
+  padding: 0;
 }
 
 .header-icon-button svg {
   width: 20px;
   height: 20px;
+  color: inherit;
   stroke: currentColor;
 }
 
 .header-icon-button:hover {
-  background: var(--bg-hover);
-  color: var(--primary);
+  background: var(--bg-hover) !important;
+  background-color: var(--bg-hover) !important;
+  color: var(--primary) !important;
 }
 
 /* User Menu */

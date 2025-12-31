@@ -48,6 +48,7 @@ body {
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
   --bg-tertiary: #f1f5f9;
+  --bg-hover: #e2e8f0;
   --bg-overlay: rgba(0, 0, 0, 0.5);
 
   /* Colors - Text */
@@ -114,6 +115,7 @@ body {
   --bg-primary: #0f172a;
   --bg-secondary: #1e293b;
   --bg-tertiary: #334155;
+  --bg-hover: #475569;
   --bg-overlay: rgba(0, 0, 0, 0.7);
 
   /* Colors - Text */
