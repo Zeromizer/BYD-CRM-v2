@@ -58,7 +58,24 @@ export const useDocumentStore = create<DocumentState & DocumentActions>((set, ge
 
       if (error) throw error;
 
-      set({ templates: data as DocumentTemplate[], isLoading: false });
+      // Refresh signed URLs for templates with image_path
+      const templatesWithUrls = await Promise.all(
+        (data || []).map(async (template) => {
+          if (template.image_path) {
+            try {
+              const { data: urlData } = await supabase.storage
+                .from('document-templates')
+                .createSignedUrl(template.image_path, 3600);
+              return { ...template, image_url: urlData?.signedUrl || template.image_url };
+            } catch {
+              return template;
+            }
+          }
+          return template;
+        })
+      );
+
+      set({ templates: templatesWithUrls as DocumentTemplate[], isLoading: false });
     } catch (error) {
       set({ error: (error as Error).message, isLoading: false });
     }
@@ -73,6 +90,20 @@ export const useDocumentStore = create<DocumentState & DocumentActions>((set, ge
         .single();
 
       if (error) throw error;
+
+      // Refresh signed URL if template has image_path
+      if (data?.image_path) {
+        try {
+          const { data: urlData } = await supabase.storage
+            .from('document-templates')
+            .createSignedUrl(data.image_path, 3600);
+          if (urlData?.signedUrl) {
+            data.image_url = urlData.signedUrl;
+          }
+        } catch {
+          // Keep existing URL if refresh fails
+        }
+      }
 
       return data as DocumentTemplate;
     } catch (error) {
