@@ -81,16 +81,16 @@
   width: 40px;
   height: 40px;
   border: none;
-  background: transparent;
+  background: var(--bg-secondary);
   border-radius: 8px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .header-icon-button:hover {
   background: var(--bg-hover);
-  color: var(--text-primary);
+  color: var(--primary);
 }
 
 /* User Menu */
