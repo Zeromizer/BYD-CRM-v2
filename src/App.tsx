@@ -28,7 +28,7 @@ function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <BrowserRouter>
+        <BrowserRouter basename="/BYD-CRM-v2">
           <Routes>
             {/* Public routes */}
             <Route path="/auth" element={<AuthPage />} />
