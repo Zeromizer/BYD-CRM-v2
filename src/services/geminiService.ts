@@ -54,6 +54,10 @@ export async function extractIDWithGemini(
 
   onProgress?.({ stage: 'Processing with AI...', progress: 30 });
 
+  console.log('Calling extract-id Edge Function...');
+  console.log('Front image size:', frontImageData.length, 'chars');
+  console.log('Back image size:', backImageData?.length || 0, 'chars');
+
   const { data, error } = await supabase.functions.invoke('extract-id', {
     body: {
       type: 'id',
@@ -62,9 +66,12 @@ export async function extractIDWithGemini(
     },
   });
 
+  console.log('Edge Function response:', { data, error });
+
   onProgress?.({ stage: 'Parsing results...', progress: 80 });
 
   if (error) {
+    console.error('Edge Function error details:', error);
     throw new Error(error.message || 'Failed to process ID. Please try again.');
   }
 
