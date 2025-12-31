@@ -5,8 +5,8 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
-  // Base path - use '/' for root domain (zeromizer.github.io)
-  base: '/',
+  // Base path for GitHub Pages project site
+  base: '/BYD-CRM-v2/',
   plugins: [
     react(),
     nodePolyfills({

@@ -6,8 +6,11 @@
     <script>
       // Single Page App redirect for GitHub Pages
       // Redirects 404s to index.html with the path stored in sessionStorage
-      sessionStorage.setItem('redirect', window.location.pathname);
-      window.location.replace('/');
+      var basePath = '/BYD-CRM-v2';
+      var path = window.location.pathname;
+      // Store the path relative to base for the SPA router
+      sessionStorage.setItem('redirect', path.replace(basePath, '') || '/');
+      window.location.replace(basePath + '/');
     </script>
   </head>
   <body></body>
