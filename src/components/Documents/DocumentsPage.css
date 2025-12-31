@@ -1,0 +1,9 @@
+/**
+ * DocumentsPage Styles
+ */
+
+.documents-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
