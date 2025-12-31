@@ -199,8 +199,8 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
       cropY = (videoHeight - cropHeight) / 2;
     }
 
-    // Resize to max 1200px width to reduce payload size for Edge Function
-    const maxWidth = 1200;
+    // Resize to max 800px width to keep payload under 2MB for Edge Function
+    const maxWidth = 800;
     const scale = cropWidth > maxWidth ? maxWidth / cropWidth : 1;
     const outputWidth = Math.round(cropWidth * scale);
     const outputHeight = Math.round(cropHeight * scale);
@@ -213,8 +213,8 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
 
     ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, outputWidth, outputHeight);
 
-    // Use 0.8 quality to reduce file size
-    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    // Use 0.7 quality to reduce file size further
+    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.7);
 
     if (step === 'front') {
       setFrontImage(imageDataUrl);
