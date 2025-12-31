@@ -88,6 +88,12 @@
   transition: all 0.15s;
 }
 
+.header-icon-button svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+}
+
 .header-icon-button:hover {
   background: var(--bg-hover);
   color: var(--primary);
