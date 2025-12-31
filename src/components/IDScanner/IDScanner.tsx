@@ -199,15 +199,22 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
       cropY = (videoHeight - cropHeight) / 2;
     }
 
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
+    // Resize to max 1200px width to reduce payload size for Edge Function
+    const maxWidth = 1200;
+    const scale = cropWidth > maxWidth ? maxWidth / cropWidth : 1;
+    const outputWidth = Math.round(cropWidth * scale);
+    const outputHeight = Math.round(cropHeight * scale);
+
+    canvas.width = outputWidth;
+    canvas.height = outputHeight;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+    ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, outputWidth, outputHeight);
 
-    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+    // Use 0.8 quality to reduce file size
+    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
 
     if (step === 'front') {
       setFrontImage(imageDataUrl);

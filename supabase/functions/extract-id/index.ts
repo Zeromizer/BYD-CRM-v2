@@ -6,7 +6,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,16 +25,22 @@ serve(async (req: Request) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  console.log('Edge function called');
+
   try {
     const apiKey = Deno.env.get('GEMINI_API_KEY');
     if (!apiKey) {
+      console.error('GEMINI_API_KEY not found in secrets');
       return new Response(
         JSON.stringify({ error: 'Gemini API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    console.log('API key found');
 
-    const { type, frontImage, backImage } = await req.json() as ExtractIDRequest;
+    const body = await req.json() as ExtractIDRequest;
+    const { type, frontImage, backImage } = body;
+    console.log('Request type:', type, 'Front image size:', frontImage?.length || 0, 'Back image size:', backImage?.length || 0);
 
     if (!frontImage) {
       return new Response(
