@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Button, Modal } from '@/components/common';
+import { useToast } from '@/components/common';
 import {
   Plus,
   Edit2,
@@ -15,8 +16,11 @@ import {
   Search,
   MoreVertical,
   Copy,
+  Cloud,
+  RefreshCw,
 } from 'lucide-react';
 import { useDocumentStore } from '@/stores/useDocumentStore';
+import { supabase } from '@/lib/supabase';
 import type { DocumentTemplate, DocumentCategory } from '@/types';
 import './DocumentManager.css';
 
@@ -49,10 +53,20 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
     clearError,
   } = useDocumentStore();
 
+  const { success, error: toastError } = useToast();
+
   const [activeCategory, setActiveCategory] = useState<DocumentCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showSyncResultModal, setShowSyncResultModal] = useState(false);
+  const [syncResult, setSyncResult] = useState<{
+    processed: number;
+    pending: number;
+    failed: number;
+    message: string;
+  } | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -188,14 +202,60 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
     return colors[category] || '#64748b';
   };
 
+  const handleSyncOneDrive = async () => {
+    setIsSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-onedrive');
+
+      if (error) {
+        throw new Error(error.message || 'Sync failed');
+      }
+
+      if (data.success) {
+        setSyncResult({
+          processed: data.processed || 0,
+          pending: data.pending || 0,
+          failed: data.failed || 0,
+          message: data.message || 'Sync completed',
+        });
+        setShowSyncResultModal(true);
+
+        if (data.processed > 0) {
+          success(`${data.processed} document(s) synced successfully`);
+        } else if (data.pending > 0) {
+          success(`${data.pending} document(s) need review`);
+        } else {
+          success('No new documents to sync');
+        }
+      } else {
+        throw new Error(data.error || 'Sync failed');
+      }
+    } catch (err) {
+      console.error('Sync error:', err);
+      toastError(err instanceof Error ? err.message : 'Failed to sync OneDrive');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <div className="document-manager">
       {/* Header */}
       <div className="dm-header">
         <h2>Document Templates</h2>
-        <Button onClick={() => setShowCreateModal(true)} leftIcon={<Plus size={16} />}>
-          New Template
-        </Button>
+        <div className="dm-header-actions">
+          <Button
+            variant="outline"
+            onClick={handleSyncOneDrive}
+            isLoading={isSyncing}
+            leftIcon={isSyncing ? <RefreshCw size={16} className="spinning" /> : <Cloud size={16} />}
+          >
+            {isSyncing ? 'Syncing...' : 'Sync OneDrive'}
+          </Button>
+          <Button onClick={() => setShowCreateModal(true)} leftIcon={<Plus size={16} />}>
+            New Template
+          </Button>
+        </div>
       </div>
 
       {/* Error Display */}
@@ -443,6 +503,46 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
             </Button>
             <Button variant="danger" onClick={handleDeleteTemplate} isLoading={isSaving}>
               Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Sync Result Modal */}
+      <Modal
+        isOpen={showSyncResultModal}
+        onClose={() => setShowSyncResultModal(false)}
+        title="OneDrive Sync Complete"
+        size="sm"
+      >
+        <div className="sync-result">
+          {syncResult && (
+            <>
+              <div className="sync-stats">
+                <div className="sync-stat success">
+                  <span className="stat-value">{syncResult.processed}</span>
+                  <span className="stat-label">Processed</span>
+                </div>
+                <div className="sync-stat warning">
+                  <span className="stat-value">{syncResult.pending}</span>
+                  <span className="stat-label">Pending Review</span>
+                </div>
+                <div className="sync-stat danger">
+                  <span className="stat-value">{syncResult.failed}</span>
+                  <span className="stat-label">Failed</span>
+                </div>
+              </div>
+              <p className="sync-message">{syncResult.message}</p>
+              {syncResult.pending > 0 && (
+                <p className="sync-note">
+                  Documents pending review can be found in the customer-documents storage bucket under "pending-review".
+                </p>
+              )}
+            </>
+          )}
+          <div className="form-actions">
+            <Button onClick={() => setShowSyncResultModal(false)}>
+              Close
             </Button>
           </div>
         </div>
