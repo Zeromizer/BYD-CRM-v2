@@ -6,7 +6,7 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   // Set base path for GitHub Pages (repo name)
-  base: process.env.GITHUB_ACTIONS ? '/byd-crm-v2/' : '/',
+  base: process.env.GITHUB_ACTIONS ? '/BYD-CRM-v2/' : '/',
   plugins: [
     react(),
     nodePolyfills({
