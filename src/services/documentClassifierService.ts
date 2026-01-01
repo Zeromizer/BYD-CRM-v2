@@ -144,6 +144,70 @@ async function classifySingleFile(
     // Check if it's a supported file type
     const isImage = file.type.startsWith('image/');
     const isPdf = file.type === 'application/pdf' || name.toLowerCase().endsWith('.pdf');
+    const lowerName = name.toLowerCase();
+    const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+                    file.type === 'application/vnd.ms-excel' ||
+                    lowerName.endsWith('.xlsx') ||
+                    lowerName.endsWith('.xls');
+
+    // Excel files - classify based on filename since AI can't read them
+    if (isExcel) {
+      let docType: DocumentTypeId = 'other';
+      let docTypeName = 'Other Document';
+      let folder = 'Other';
+      let milestone: string = 'test_drive';
+      let confidence = 70;
+
+      // Try to identify document type from filename
+      if (lowerName.includes('invoice') || lowerName.includes('performa')) {
+        docType = 'payment_proof';
+        docTypeName = 'Payment Proof / Invoice';
+        folder = 'Payments';
+        milestone = 'registration';
+        confidence = 85;
+      } else if (lowerName.includes('loan') || lowerName.includes('finance')) {
+        docType = 'loan_application';
+        docTypeName = 'Loan Application';
+        folder = 'Finance';
+        milestone = 'close_deal';
+        confidence = 80;
+      } else if (lowerName.includes('insurance')) {
+        docType = 'insurance_quote';
+        docTypeName = 'Insurance Quote';
+        folder = 'Insurance';
+        milestone = 'registration';
+        confidence = 80;
+      } else if (lowerName.includes('vsa') || lowerName.includes('sales') || lowerName.includes('agreement')) {
+        docType = 'vsa';
+        docTypeName = 'Vehicle Sales Agreement';
+        folder = 'VSA';
+        milestone = 'close_deal';
+        confidence = 80;
+      } else if (lowerName.includes('trade') || lowerName.includes('valuation')) {
+        docType = 'trade_in_docs';
+        docTypeName = 'Trade-in Documents';
+        folder = 'Trade-In';
+        milestone = 'close_deal';
+        confidence = 80;
+      }
+
+      // Try to extract customer name from filename
+      const nameParts = name.replace(/[_-]/g, ' ').split(' ');
+      const customerName = nameParts.length >= 2 ? `${nameParts[0]} ${nameParts[1]}` : '';
+
+      console.log(`[classifySingleFile] Excel file classified by filename: ${docType}`);
+      return {
+        documentType: docType,
+        documentTypeName: docTypeName,
+        confidence: confidence,
+        folder: folder,
+        milestone: milestone,
+        customerName: customerName,
+        suggestedFilename: name,
+        summary: 'Excel file - classified based on filename',
+        signed: false,
+      };
+    }
 
     if (!isImage && !isPdf) {
       return {
@@ -197,40 +261,55 @@ async function classifySingleFile(
 }
 
 /**
- * Classify multiple documents in batch with parallel processing
+ * Classify multiple documents using parallel batch processing
+ * Processes files in small batches to balance speed vs API rate limits
  */
 export async function classifyDocuments(
   files: { file: File; name: string }[],
   onProgress?: (current: number, total: number, filename: string, result?: ClassificationResult) => void
 ): Promise<{ file: File; name: string; classification: ClassificationResult }[]> {
   const results: { file: File; name: string; classification: ClassificationResult }[] = [];
-  const CONCURRENCY = 3; // Process 3 documents in parallel
+  const BATCH_SIZE = 1; // Process 1 file at a time to stay under rate limit
+  const BATCH_DELAY = 1500; // 1.5 seconds between API calls
 
-  // Process files in batches of CONCURRENCY
-  for (let i = 0; i < files.length; i += CONCURRENCY) {
-    const batch = files.slice(i, i + CONCURRENCY);
-    const batchNames = batch.map(f => f.name).join(', ');
+  const totalBatches = Math.ceil(files.length / BATCH_SIZE);
+  console.log(`[Queue] Starting classification for ${files.length} files (${totalBatches} batches, size ${BATCH_SIZE})`);
+
+  // Process files in batches
+  for (let i = 0; i < files.length; i += BATCH_SIZE) {
+    const batch = files.slice(i, i + BATCH_SIZE);
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+
+    console.log(`[Queue] Processing batch ${batchNum}/${totalBatches}: ${batch.map(f => f.name).join(', ')}`);
 
     // Report progress for batch start
-    onProgress?.(i + 1, files.length, batchNames);
+    onProgress?.(i + 1, files.length, batch.map(f => f.name).join(', '));
 
     // Process batch in parallel
     const batchPromises = batch.map(({ file, name }) => classifySingleFile(file, name));
     const batchResults = await Promise.all(batchPromises);
 
     // Add results and report progress
-    for (let j = 0; j < batchResults.length; j++) {
-      const result = batchResults[j];
+    for (const result of batchResults) {
       results.push(result);
-      onProgress?.(i + j + 1, files.length, result.name, result.classification);
+      onProgress?.(results.length, files.length, result.name, result.classification);
     }
 
-    // Delay between files to avoid rate limiting
-    if (i + CONCURRENCY < files.length) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+    // Check if batch had API calls (images/PDFs need API, Excel files don't)
+    const hadApiCalls = batch.some(({ file, name }) => {
+      const isImage = file.type.startsWith('image/');
+      const isPdf = file.type === 'application/pdf' || name.toLowerCase().endsWith('.pdf');
+      return isImage || isPdf;
+    });
+
+    // Delay between batches (only if API calls were made and more batches remain)
+    if (hadApiCalls && i + BATCH_SIZE < files.length) {
+      console.log(`[Queue] Waiting ${BATCH_DELAY}ms before next batch...`);
+      await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
     }
   }
 
+  console.log(`[Queue] Completed classification for ${results.length} files`);
   return results;
 }
 
