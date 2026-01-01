@@ -48,7 +48,7 @@ export function InlineTaskForm({
   const [text, setText] = useState('');
   const [priority, setPriority] = useState<Priority>('medium');
   const [dueDate, setDueDate] = useState('');
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(customer?.id || '');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(customer?.id ?? null);
   const [milestoneId, setMilestoneId] = useState<MilestoneId | ''>(defaultMilestone || '');
   const [showOptions, setShowOptions] = useState(!compact);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +101,7 @@ export function InlineTaskForm({
         text: text.trim(),
         priority,
         due_date: dueDate || null,
-        customer_id: selectedCustomerId || null,
+        customer_id: selectedCustomerId,
         customer_name: selectedCustomer?.name || null,
         milestone_id: milestoneId || null,
       });
@@ -110,7 +110,7 @@ export function InlineTaskForm({
       setText('');
       setPriority('medium');
       setDueDate('');
-      if (!customer) setSelectedCustomerId('');
+      if (!customer) setSelectedCustomerId(null);
       setMilestoneId(defaultMilestone || '');
       onClose();
     } catch (err) {
@@ -239,8 +239,8 @@ export function InlineTaskForm({
             <div className="option-group customer-group">
               <User size={12} className="option-icon" />
               <select
-                value={selectedCustomerId}
-                onChange={(e) => setSelectedCustomerId(e.target.value)}
+                value={selectedCustomerId ?? ''}
+                onChange={(e) => setSelectedCustomerId(e.target.value ? Number(e.target.value) : null)}
                 className="option-select"
               >
                 <option value="">No customer</option>
