@@ -419,14 +419,3 @@ export const useSelectedCustomer = () => {
   const selectedId = useCustomerStore((state) => state.selectedCustomerId);
   return customers.find((c) => c.id === selectedId) || null;
 };
-export const useCustomerLoading = () => useCustomerStore((state) => state.isLoading);
-export const useCustomerSaving = () => useCustomerStore((state) => state.isSaving);
-export const useCustomerError = () => useCustomerStore((state) => state.error);
-
-// Filtered selectors
-export const useActiveCustomers = () => useCustomerStore((state) =>
-  state.customers.filter((c) => !c.archive_status)
-);
-export const useArchivedCustomers = () => useCustomerStore((state) =>
-  state.customers.filter((c) => c.archive_status)
-);

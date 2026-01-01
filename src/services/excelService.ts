@@ -8,6 +8,7 @@
 import type { Customer, Guarantor } from '@/types';
 import type { ExcelTemplate, ExcelFieldMappings } from '@/types/excel.types';
 import { CURRENCY_FIELDS, PERCENTAGE_FIELDS } from '@/constants/excelFields';
+import { formatCurrency, currencyToNumber } from '@/utils/formatting';
 
 // Lazy load xlsx-populate module
 let xlsxModule: typeof import('xlsx-populate') | null = null;
@@ -19,22 +20,6 @@ const loadXlsxPopulate = async () => {
   return xlsxModule.default;
 };
 
-/**
- * Parse currency string to number
- */
-function currencyToNumber(value: string | number | null | undefined): number {
-  if (value === null || value === undefined) return 0;
-  const numericValue = parseFloat(value.toString().replace(/[^0-9.-]/g, ''));
-  return isNaN(numericValue) ? 0 : numericValue;
-}
-
-/**
- * Format number as currency string
- */
-function formatCurrency(value: number | null | undefined): string {
-  if (value === null || value === undefined || value === 0) return '';
-  return `$${value.toLocaleString('en-US')}`;
-}
 
 /**
  * Format loan summary

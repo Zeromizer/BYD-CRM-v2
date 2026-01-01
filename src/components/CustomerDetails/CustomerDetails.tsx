@@ -2,11 +2,7 @@ import { useState, useEffect } from 'react';
 import { useCustomerStore } from '@/stores/useCustomerStore';
 import { Button, Modal } from '@/components/common';
 import { CustomerForm } from '@/components/CustomerForm';
-import { DetailsTab } from './tabs/DetailsTab';
-import { ProposalTab } from './tabs/ProposalTab';
-import { VsaTab } from './tabs/VsaTab';
-import { DocumentsTab } from './tabs/DocumentsTab';
-import { MilestoneTracker } from './MilestoneTracker';
+import { DetailsTab, ProposalTab, VsaTab, DocumentsTab } from './tabs';
 import {
   User,
   FileText,
@@ -165,9 +161,6 @@ export function CustomerDetails({ customer, onClose }: CustomerDetailsProps) {
           )}
         </div>
       </div>
-
-      {/* Milestone Tracker */}
-      <MilestoneTracker customer={customer} />
 
       {/* Tabs */}
       <div className="customer-details-tabs">

@@ -1,0 +1,123 @@
+/**
+ * Vehicle Data Constants
+ * Centralized constants for vehicle models, colors, benefits, and other dropdown options
+ */
+
+export const VEHICLE_MODELS = [
+  'BYD Atto3 Extended Range 100kw',
+  'BYD Atto3 Carbon Edge 100kw',
+  'BYD Seal Dynamic 100kw',
+  'BYD Seal Premium',
+  'BYD Seal Performance',
+  'BYD Seal 6 Premium',
+  'BYD Dolphin Premium',
+  'BYD E6 7-Seater',
+  'BYD M6 7-Seater',
+  'BYD M6 Carbon Edge',
+  'BYD Sealion 7 Dynamic',
+  'BYD Sealion 7 Premium',
+  'BYD Sealion 7 Performance',
+] as const;
+
+export const BODY_COLOURS = [
+  'Ski White',
+  'Surf Blue',
+  'Cosmos Black',
+  'Boulder Grey',
+  'Atlantis Grey',
+  'Arctic Blue',
+  'Aurora White',
+  'Maldive Purple',
+  'Coral Pink',
+  'Sand White',
+  'Urban Grey',
+  'Crystal White',
+  'Harbor Grey',
+  'Inkstone Blue',
+  'Shark Grey',
+  'Whale Sea Blue',
+  'Arctic White',
+] as const;
+
+export const BENEFITS_OPTIONS = [
+  '$200 Shopping Vouchers',
+  '$500 Service Credits',
+  '$1,000 Insurance Subsidy',
+  '$1000 Service Credits',
+  '1x Ceramic Coating',
+  '1x Grooming Package',
+  '2x Ceramic Coating',
+  '2x Paint Sealer Protection PKG',
+  '3M Solar Film (Premium Plus)',
+  'Additional 6 months Road Tax',
+  'Atto 3 Bonnet Damper',
+  'Atto 3 Frunk',
+  'Atto 3 Rear Recording Camera',
+  'BYD Mic Set',
+  'BYD Thermo Flask',
+  'Dark Interior Combination',
+  'External Battery Pack',
+  'F&R Recording Cam',
+  'Free Charger Capped $3000',
+  'Full Black Interior',
+  'Full Car PPF',
+  'Full Car Wrap',
+  'Low Loan Surcharge',
+  'M6 Frunk',
+  'MWC Processing Fee',
+  'No Trade in Surcharge',
+  'Number Retention',
+  'Sealion 7 Boot Cover',
+  'Sunshade',
+  'Toscano Card wallet',
+  'Toscano Cardholder/Lanyard',
+  'Toscano Luggage Tag',
+  'Toscano Notebook',
+  'Toscano Passport Sleeve',
+  'Trapo Eco Mat',
+  'Trapo Hex Mat',
+  'Upgrade Crystalline Solar Film',
+  "X'mas $500 Service Credits",
+] as const;
+
+export const INSURANCE_COMPANIES = [
+  'AIG',
+  'AXA',
+  'Allianz',
+  'Chubb',
+  'EQ',
+  'Great Eastern',
+  'Liberty',
+  'MSIG',
+  'NTUC Income',
+  'QBE',
+  'Sompo',
+  'Tokio Marine',
+] as const;
+
+export const PRZ_TYPES = [
+  { value: 'P', label: 'P - Passenger Motor Car' },
+  { value: 'R', label: 'R - Rental / Leasing' },
+  { value: 'Z', label: 'Z - Private Hire' },
+] as const;
+
+export const BANKS = [
+  'DBS',
+  'OCBC',
+  'UOB',
+  'Maybank',
+  'HSBC',
+  'Standard Chartered',
+  'Citibank',
+  'Hong Leong Finance',
+  'Tokyo Century',
+  'Motorway Credit',
+] as const;
+
+// Type exports for type safety
+export type VehicleModel = typeof VEHICLE_MODELS[number];
+export type BodyColour = typeof BODY_COLOURS[number];
+export type BenefitOption = typeof BENEFITS_OPTIONS[number];
+export type InsuranceCompany = typeof INSURANCE_COMPANIES[number];
+export type PrzType = typeof PRZ_TYPES[number]['value'];
+export type Bank = typeof BANKS[number];

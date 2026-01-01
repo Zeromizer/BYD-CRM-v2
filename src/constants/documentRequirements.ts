@@ -1,0 +1,454 @@
+/**
+ * Document Requirements Configuration
+ * Defines required documents for each milestone in the customer journey
+ * Used for:
+ *  - Document checklist tracking
+ *  - AI document classification and routing
+ *  - Automated workflow triggers
+ */
+
+import type { MilestoneId, DocumentChecklistState, DocumentChecklistItem } from '@/types';
+
+/**
+ * Document type definition for AI classification
+ */
+export interface DocumentType {
+  id: string;
+  name: string;
+  folder: string;
+  keywords: string[];
+  milestone: MilestoneId | null;
+}
+
+/**
+ * Required document definition per milestone
+ */
+export interface RequiredDocument {
+  id: string;
+  name: string;
+  description: string;
+  documentTypes: string[];
+  required: boolean;
+}
+
+/**
+ * Document types that can be identified by AI
+ * Maps to folder destinations and checklist items
+ */
+export const DOCUMENT_TYPES: Record<string, DocumentType> = {
+  // Identity Documents
+  ID_DOCUMENTS: {
+    id: 'id_documents',
+    name: 'ID Documents (NRIC & License)',
+    folder: 'NRIC',
+    keywords: ['nric', 'identity card', 'driving license', 'id documents', 'identification'],
+    milestone: 'test_drive',
+  },
+  NRIC_FRONT: {
+    id: 'nric_front',
+    name: 'NRIC Front',
+    folder: 'NRIC',
+    keywords: ['nric', 'identity card', 'singapore id', 'fin'],
+    milestone: 'test_drive',
+  },
+  NRIC_BACK: {
+    id: 'nric_back',
+    name: 'NRIC Back',
+    folder: 'NRIC',
+    keywords: ['nric back', 'address', 'identity card back'],
+    milestone: 'test_drive',
+  },
+  DRIVING_LICENSE: {
+    id: 'driving_license',
+    name: 'Driving License',
+    folder: 'NRIC',
+    keywords: ['driving license', 'driver license', 'licence'],
+    milestone: 'test_drive',
+  },
+  PASSPORT: {
+    id: 'passport',
+    name: 'Passport',
+    folder: 'NRIC',
+    keywords: ['passport', 'travel document'],
+    milestone: 'test_drive',
+  },
+
+  // Test Drive Documents
+  TEST_DRIVE_FORM: {
+    id: 'test_drive_form',
+    name: 'Test Drive Form',
+    folder: 'Test Drive',
+    keywords: ['test drive', 'td form', 'test drive agreement'],
+    milestone: 'test_drive',
+  },
+
+  // Sales Documents
+  VSA_FORM: {
+    id: 'vsa_form',
+    name: 'VSA Form',
+    folder: 'VSA',
+    keywords: ['vsa', 'vehicle sales agreement', 'sales agreement'],
+    milestone: 'close_deal',
+  },
+  PDPA_FORM: {
+    id: 'pdpa_form',
+    name: 'PDPA Consent Form',
+    folder: 'VSA',
+    keywords: ['pdpa', 'data protection', 'consent form', 'privacy'],
+    milestone: 'close_deal',
+  },
+  COE_BIDDING_FORM: {
+    id: 'coe_bidding_form',
+    name: 'COE Bidding Form',
+    folder: 'VSA',
+    keywords: ['coe', 'certificate of entitlement', 'bidding'],
+    milestone: 'close_deal',
+  },
+
+  // Financial Documents
+  LOAN_APPROVAL: {
+    id: 'loan_approval',
+    name: 'Loan Approval Letter',
+    folder: 'Finance',
+    keywords: ['loan', 'approval', 'financing', 'bank approval', 'credit'],
+    milestone: 'close_deal',
+  },
+  LOAN_APPLICATION: {
+    id: 'loan_application',
+    name: 'Loan Application',
+    folder: 'Finance',
+    keywords: ['loan application', 'financing application'],
+    milestone: 'close_deal',
+  },
+  INCOME_PROOF: {
+    id: 'income_proof',
+    name: 'Income Proof',
+    folder: 'Finance',
+    keywords: ['payslip', 'income', 'salary', 'cpf statement', 'ir8a'],
+    milestone: 'close_deal',
+  },
+
+  // Insurance Documents
+  INSURANCE_QUOTATION: {
+    id: 'insurance_quotation',
+    name: 'Insurance Quotation',
+    folder: 'Insurance',
+    keywords: ['insurance quote', 'quotation', 'motor insurance'],
+    milestone: 'registration',
+  },
+  INSURANCE_ACCEPTANCE: {
+    id: 'insurance_acceptance',
+    name: 'Insurance Acceptance',
+    folder: 'Insurance',
+    keywords: ['insurance acceptance', 'insurance confirmation', 'policy'],
+    milestone: 'registration',
+  },
+  INSURANCE_POLICY: {
+    id: 'insurance_policy',
+    name: 'Insurance Policy',
+    folder: 'Insurance',
+    keywords: ['insurance policy', 'motor policy', 'coverage'],
+    milestone: 'registration',
+  },
+
+  // Payment Documents
+  PAYMENT_RECEIPT: {
+    id: 'payment_receipt',
+    name: 'Payment Receipt',
+    folder: 'Payments',
+    keywords: ['payment', 'receipt', 'deposit', 'downpayment'],
+    milestone: 'registration',
+  },
+  PROFORMA_INVOICE: {
+    id: 'proforma_invoice',
+    name: 'Proforma Invoice',
+    folder: 'Payments',
+    keywords: ['proforma', 'invoice', 'balance payment'],
+    milestone: 'registration',
+  },
+
+  // Delivery Documents
+  DELIVERY_CHECKLIST: {
+    id: 'delivery_checklist',
+    name: 'Delivery Checklist',
+    folder: 'Delivery',
+    keywords: ['delivery checklist', 'handover', 'pdi'],
+    milestone: 'delivery',
+  },
+  INSURANCE_CANCELLATION: {
+    id: 'insurance_cancellation',
+    name: 'Insurance Cancellation Declaration',
+    folder: 'Delivery',
+    keywords: ['insurance cancellation', 'declaration', 'previous insurance'],
+    milestone: 'delivery',
+  },
+  REGISTRATION_CARD: {
+    id: 'registration_card',
+    name: 'Vehicle Registration Card',
+    folder: 'Delivery',
+    keywords: ['registration card', 'log card', 'vehicle registration'],
+    milestone: 'delivery',
+  },
+
+  // Trade-In Documents
+  TRADE_IN_VALUATION: {
+    id: 'trade_in_valuation',
+    name: 'Trade-In Valuation',
+    folder: 'Trade In',
+    keywords: ['trade in', 'valuation', 'trade-in'],
+    milestone: 'close_deal',
+  },
+  TRADE_IN_AGREEMENT: {
+    id: 'trade_in_agreement',
+    name: 'Trade-In Agreement',
+    folder: 'Trade In',
+    keywords: ['trade in agreement', 'trade-in contract'],
+    milestone: 'close_deal',
+  },
+
+  // Other
+  OTHER: {
+    id: 'other',
+    name: 'Other Document',
+    folder: 'Other',
+    keywords: [],
+    milestone: null,
+  },
+};
+
+/**
+ * Required documents for each milestone
+ * Used to build the document checklist
+ */
+export const REQUIRED_DOCUMENTS: Record<MilestoneId, RequiredDocument[]> = {
+  test_drive: [
+    {
+      id: 'nric',
+      name: 'NRIC / ID',
+      description: 'Front and back of Singapore NRIC or FIN card',
+      documentTypes: [DOCUMENT_TYPES.ID_DOCUMENTS.id, DOCUMENT_TYPES.NRIC_FRONT.id, DOCUMENT_TYPES.NRIC_BACK.id],
+      required: true,
+    },
+    {
+      id: 'driving_license',
+      name: 'Driving License',
+      description: 'Valid Singapore driving license',
+      documentTypes: [DOCUMENT_TYPES.ID_DOCUMENTS.id, DOCUMENT_TYPES.DRIVING_LICENSE.id],
+      required: true,
+    },
+    {
+      id: 'test_drive_form',
+      name: 'Test Drive Form',
+      description: 'Signed test drive agreement form',
+      documentTypes: [DOCUMENT_TYPES.TEST_DRIVE_FORM.id],
+      required: true,
+    },
+  ],
+
+  close_deal: [
+    {
+      id: 'vsa',
+      name: 'VSA Form',
+      description: 'Vehicle Sales Agreement signed by customer',
+      documentTypes: [DOCUMENT_TYPES.VSA_FORM.id],
+      required: true,
+    },
+    {
+      id: 'pdpa',
+      name: 'PDPA Consent',
+      description: 'Personal Data Protection Act consent form',
+      documentTypes: [DOCUMENT_TYPES.PDPA_FORM.id],
+      required: true,
+    },
+    {
+      id: 'coe_bidding',
+      name: 'COE Bidding Form',
+      description: 'COE bidding authorization form',
+      documentTypes: [DOCUMENT_TYPES.COE_BIDDING_FORM.id],
+      required: true,
+    },
+    {
+      id: 'loan_approval',
+      name: 'Loan Approval',
+      description: 'Bank loan approval letter (if financing)',
+      documentTypes: [DOCUMENT_TYPES.LOAN_APPROVAL.id, DOCUMENT_TYPES.LOAN_APPLICATION.id],
+      required: false, // Only required if financing
+    },
+    {
+      id: 'trade_in_docs',
+      name: 'Trade-In Documents',
+      description: 'Trade-in valuation and agreement (if applicable)',
+      documentTypes: [DOCUMENT_TYPES.TRADE_IN_VALUATION.id, DOCUMENT_TYPES.TRADE_IN_AGREEMENT.id],
+      required: false, // Only required if trading in
+    },
+  ],
+
+  registration: [
+    {
+      id: 'insurance_quotation',
+      name: 'Insurance Quotation',
+      description: 'Motor insurance quotation',
+      documentTypes: [DOCUMENT_TYPES.INSURANCE_QUOTATION.id],
+      required: true,
+    },
+    {
+      id: 'insurance_acceptance',
+      name: 'Insurance Acceptance',
+      description: 'Signed insurance acceptance',
+      documentTypes: [DOCUMENT_TYPES.INSURANCE_ACCEPTANCE.id, DOCUMENT_TYPES.INSURANCE_POLICY.id],
+      required: true,
+    },
+    {
+      id: 'payment_proof',
+      name: 'Balance Payment',
+      description: 'Proof of balance payment or payment arrangement',
+      documentTypes: [DOCUMENT_TYPES.PAYMENT_RECEIPT.id, DOCUMENT_TYPES.PROFORMA_INVOICE.id],
+      required: true,
+    },
+  ],
+
+  delivery: [
+    {
+      id: 'delivery_checklist',
+      name: 'Delivery Checklist',
+      description: 'Completed delivery inspection checklist',
+      documentTypes: [DOCUMENT_TYPES.DELIVERY_CHECKLIST.id],
+      required: true,
+    },
+    {
+      id: 'insurance_cancellation',
+      name: 'Insurance Cancellation',
+      description: 'Declaration of previous insurance cancellation (if applicable)',
+      documentTypes: [DOCUMENT_TYPES.INSURANCE_CANCELLATION.id],
+      required: false,
+    },
+    {
+      id: 'registration_card',
+      name: 'Registration Card',
+      description: 'Vehicle registration card copy for customer',
+      documentTypes: [DOCUMENT_TYPES.REGISTRATION_CARD.id],
+      required: true,
+    },
+  ],
+
+  nps: [
+    // NPS milestone typically doesn't require documents
+  ],
+};
+
+/**
+ * Document status values
+ */
+export const DOCUMENT_STATUS = {
+  PENDING: 'pending',
+  UPLOADED: 'uploaded',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  EXPIRED: 'expired',
+  NOT_APPLICABLE: 'not_applicable',
+} as const;
+
+export type DocumentStatusType = typeof DOCUMENT_STATUS[keyof typeof DOCUMENT_STATUS];
+
+/**
+ * Get default document checklist state for a new customer
+ */
+export function getDefaultDocumentChecklist(): DocumentChecklistState {
+  const state: DocumentChecklistState = {
+    test_drive: {},
+    close_deal: {},
+    registration: {},
+    delivery: {},
+    nps: {},
+  };
+
+  (Object.entries(REQUIRED_DOCUMENTS) as [MilestoneId, RequiredDocument[]][]).forEach(([milestoneId, documents]) => {
+    documents.forEach((doc) => {
+      state[milestoneId][doc.id] = {
+        status: DOCUMENT_STATUS.PENDING,
+        uploadedAt: null,
+        uploadedFiles: [],
+        reviewedAt: null,
+        reviewedBy: null,
+        notes: '',
+      };
+    });
+  });
+
+  return state;
+}
+
+/**
+ * Calculate document completion percentage for a milestone
+ */
+export function getDocumentProgress(milestoneId: MilestoneId, documentChecklist: DocumentChecklistState | null): number {
+  if (!documentChecklist || !documentChecklist[milestoneId]) {
+    return 0;
+  }
+
+  const requiredDocs = REQUIRED_DOCUMENTS[milestoneId];
+  if (!requiredDocs || requiredDocs.length === 0) {
+    return 100; // No documents required
+  }
+
+  const required = requiredDocs.filter((doc) => doc.required);
+  if (required.length === 0) {
+    return 100; // No required documents
+  }
+
+  const completed = required.filter((doc) => {
+    const docItem = documentChecklist[milestoneId][doc.id] as DocumentChecklistItem | undefined;
+    const status = docItem?.status;
+    return status === DOCUMENT_STATUS.APPROVED || status === DOCUMENT_STATUS.NOT_APPLICABLE;
+  }).length;
+
+  return Math.round((completed / required.length) * 100);
+}
+
+/**
+ * Check if all required documents are complete for a milestone
+ */
+export function isDocumentChecklistComplete(milestoneId: MilestoneId, documentChecklist: DocumentChecklistState | null): boolean {
+  return getDocumentProgress(milestoneId, documentChecklist) === 100;
+}
+
+/**
+ * Get folder name for a document type
+ */
+export function getDocumentFolder(documentTypeId: string): string {
+  const docType = Object.values(DOCUMENT_TYPES).find((dt) => dt.id === documentTypeId);
+  return docType?.folder || 'Other';
+}
+
+/**
+ * Get all document types as an array for AI classification
+ */
+export function getDocumentTypesForClassification(): Array<{
+  id: string;
+  name: string;
+  keywords: string[];
+  folder: string;
+  milestone: MilestoneId | null;
+}> {
+  return Object.values(DOCUMENT_TYPES).map((dt) => ({
+    id: dt.id,
+    name: dt.name,
+    keywords: dt.keywords,
+    folder: dt.folder,
+    milestone: dt.milestone,
+  }));
+}
+
+/**
+ * Get document type by ID
+ */
+export function getDocumentTypeById(id: string): DocumentType | undefined {
+  return Object.values(DOCUMENT_TYPES).find((dt) => dt.id === id);
+}
+
+/**
+ * Get required documents for a milestone
+ */
+export function getRequiredDocumentsForMilestone(milestoneId: MilestoneId): RequiredDocument[] {
+  return REQUIRED_DOCUMENTS[milestoneId] || [];
+}

@@ -36,7 +36,9 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(find:*)",
+      "Bash(del \"c:\\\\Coding\\\\byd-crm-v2\\\\src\\\\components\\\\ProgressSidebar\\\\AddTaskModal.tsx\")"
     ]
   }
 }

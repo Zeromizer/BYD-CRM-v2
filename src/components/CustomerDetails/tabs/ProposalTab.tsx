@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/common';
-import { Save, Car, Banknote, Gift } from 'lucide-react';
+import { Save, Car, Banknote, Gift, Repeat } from 'lucide-react';
 import type { Customer, CustomerUpdate } from '@/types';
+import {
+  VEHICLE_MODELS,
+  BANKS,
+  BENEFITS_OPTIONS,
+} from '@/constants/vehicleData';
 
 interface ProposalTabProps {
   customer: Customer;
@@ -20,13 +25,23 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
     proposal_interest_rate: customer.proposal_interest_rate?.toString() || '',
     proposal_loan_tenure: customer.proposal_loan_tenure?.toString() || '',
     proposal_downpayment: customer.proposal_downpayment?.toString() || '',
+    proposal_admin_fee: customer.proposal_admin_fee?.toString() || '',
+    proposal_referral_fee: customer.proposal_referral_fee?.toString() || '',
     proposal_trade_in_model: customer.proposal_trade_in_model || '',
     proposal_trade_in_car_plate: customer.proposal_trade_in_car_plate || '',
     proposal_quoted_trade_in_price: customer.proposal_quoted_trade_in_price?.toString() || '',
+    proposal_low_loan_surcharge: customer.proposal_low_loan_surcharge?.toString() || '',
+    proposal_no_loan_surcharge: customer.proposal_no_loan_surcharge?.toString() || '',
     proposal_benefit1: customer.proposal_benefit1 || '',
     proposal_benefit2: customer.proposal_benefit2 || '',
     proposal_benefit3: customer.proposal_benefit3 || '',
     proposal_benefit4: customer.proposal_benefit4 || '',
+    proposal_benefit5: customer.proposal_benefit5 || '',
+    proposal_benefit6: customer.proposal_benefit6 || '',
+    proposal_benefit7: customer.proposal_benefit7 || '',
+    proposal_benefit8: customer.proposal_benefit8 || '',
+    proposal_benefit9: customer.proposal_benefit9 || '',
+    proposal_benefits_given: customer.proposal_benefits_given || '',
     proposal_remarks: customer.proposal_remarks || '',
   });
 
@@ -41,19 +56,29 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
       proposal_interest_rate: customer.proposal_interest_rate?.toString() || '',
       proposal_loan_tenure: customer.proposal_loan_tenure?.toString() || '',
       proposal_downpayment: customer.proposal_downpayment?.toString() || '',
+      proposal_admin_fee: customer.proposal_admin_fee?.toString() || '',
+      proposal_referral_fee: customer.proposal_referral_fee?.toString() || '',
       proposal_trade_in_model: customer.proposal_trade_in_model || '',
       proposal_trade_in_car_plate: customer.proposal_trade_in_car_plate || '',
       proposal_quoted_trade_in_price: customer.proposal_quoted_trade_in_price?.toString() || '',
+      proposal_low_loan_surcharge: customer.proposal_low_loan_surcharge?.toString() || '',
+      proposal_no_loan_surcharge: customer.proposal_no_loan_surcharge?.toString() || '',
       proposal_benefit1: customer.proposal_benefit1 || '',
       proposal_benefit2: customer.proposal_benefit2 || '',
       proposal_benefit3: customer.proposal_benefit3 || '',
       proposal_benefit4: customer.proposal_benefit4 || '',
+      proposal_benefit5: customer.proposal_benefit5 || '',
+      proposal_benefit6: customer.proposal_benefit6 || '',
+      proposal_benefit7: customer.proposal_benefit7 || '',
+      proposal_benefit8: customer.proposal_benefit8 || '',
+      proposal_benefit9: customer.proposal_benefit9 || '',
+      proposal_benefits_given: customer.proposal_benefits_given || '',
       proposal_remarks: customer.proposal_remarks || '',
     });
   }, [customer]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -72,13 +97,23 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
         proposal_interest_rate: formData.proposal_interest_rate ? Number(formData.proposal_interest_rate) : null,
         proposal_loan_tenure: formData.proposal_loan_tenure ? Number(formData.proposal_loan_tenure) : null,
         proposal_downpayment: formData.proposal_downpayment ? Number(formData.proposal_downpayment) : null,
+        proposal_admin_fee: formData.proposal_admin_fee ? Number(formData.proposal_admin_fee) : null,
+        proposal_referral_fee: formData.proposal_referral_fee ? Number(formData.proposal_referral_fee) : null,
         proposal_trade_in_model: formData.proposal_trade_in_model || null,
         proposal_trade_in_car_plate: formData.proposal_trade_in_car_plate || null,
         proposal_quoted_trade_in_price: formData.proposal_quoted_trade_in_price ? Number(formData.proposal_quoted_trade_in_price) : null,
+        proposal_low_loan_surcharge: formData.proposal_low_loan_surcharge ? Number(formData.proposal_low_loan_surcharge) : null,
+        proposal_no_loan_surcharge: formData.proposal_no_loan_surcharge ? Number(formData.proposal_no_loan_surcharge) : null,
         proposal_benefit1: formData.proposal_benefit1 || null,
         proposal_benefit2: formData.proposal_benefit2 || null,
         proposal_benefit3: formData.proposal_benefit3 || null,
         proposal_benefit4: formData.proposal_benefit4 || null,
+        proposal_benefit5: formData.proposal_benefit5 || null,
+        proposal_benefit6: formData.proposal_benefit6 || null,
+        proposal_benefit7: formData.proposal_benefit7 || null,
+        proposal_benefit8: formData.proposal_benefit8 || null,
+        proposal_benefit9: formData.proposal_benefit9 || null,
+        proposal_benefits_given: formData.proposal_benefits_given || null,
         proposal_remarks: formData.proposal_remarks || null,
       };
       await onUpdate(customer.id, updates);
@@ -93,43 +128,37 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
       <section className="details-section">
         <h3 className="section-title">
           <Car size={18} />
-          Vehicle Details
+          Proposal Information
         </h3>
         <div className="form-grid">
           <div className="form-group">
             <label className="form-label">Model</label>
-            <input
-              type="text"
+            <select
               name="proposal_model"
               value={formData.proposal_model}
               onChange={handleChange}
-              placeholder="BYD Seal, BYD Atto 3, etc."
               className="form-input"
-            />
+            >
+              <option value="">Select Model</option>
+              {VEHICLE_MODELS.map((model) => (
+                <option key={model} value={model}>{model}</option>
+              ))}
+            </select>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Variant</label>
-            <input
-              type="text"
-              name="proposal_variant"
-              value={formData.proposal_variant}
+            <label className="form-label">Bank</label>
+            <select
+              name="proposal_bank"
+              value={formData.proposal_bank}
               onChange={handleChange}
-              placeholder="Premium AWD"
               className="form-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Color</label>
-            <input
-              type="text"
-              name="proposal_color"
-              value={formData.proposal_color}
-              onChange={handleChange}
-              placeholder="Arctic White"
-              className="form-input"
-            />
+            >
+              <option value="">Select Bank</option>
+              {BANKS.map((bank) => (
+                <option key={bank} value={bank}>{bank}</option>
+              ))}
+            </select>
           </div>
 
           <div className="form-group">
@@ -150,33 +179,9 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
       <section className="details-section">
         <h3 className="section-title">
           <Banknote size={18} />
-          Loan Details
+          Financing Details
         </h3>
         <div className="form-grid">
-          <div className="form-group">
-            <label className="form-label">Bank</label>
-            <input
-              type="text"
-              name="proposal_bank"
-              value={formData.proposal_bank}
-              onChange={handleChange}
-              placeholder="DBS, OCBC, UOB, etc."
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Loan Amount</label>
-            <input
-              type="number"
-              name="proposal_loan_amount"
-              value={formData.proposal_loan_amount}
-              onChange={handleChange}
-              placeholder="80000"
-              className="form-input"
-            />
-          </div>
-
           <div className="form-group">
             <label className="form-label">Interest Rate (%)</label>
             <input
@@ -191,25 +196,61 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Tenure (Years)</label>
-            <input
-              type="number"
-              name="proposal_loan_tenure"
-              value={formData.proposal_loan_tenure}
-              onChange={handleChange}
-              placeholder="7"
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group full-width">
             <label className="form-label">Downpayment</label>
             <input
               type="number"
               name="proposal_downpayment"
               value={formData.proposal_downpayment}
               onChange={handleChange}
-              placeholder="5000"
+              placeholder="18588"
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Loan Tenure (months)</label>
+            <input
+              type="number"
+              name="proposal_loan_tenure"
+              value={formData.proposal_loan_tenure}
+              onChange={handleChange}
+              placeholder="84"
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Loan Amount</label>
+            <input
+              type="number"
+              name="proposal_loan_amount"
+              value={formData.proposal_loan_amount}
+              onChange={handleChange}
+              placeholder="150000"
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Admin Fee</label>
+            <input
+              type="number"
+              name="proposal_admin_fee"
+              value={formData.proposal_admin_fee}
+              onChange={handleChange}
+              placeholder="500"
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Referral Fee</label>
+            <input
+              type="number"
+              name="proposal_referral_fee"
+              value={formData.proposal_referral_fee}
+              onChange={handleChange}
+              placeholder="500"
               className="form-input"
             />
           </div>
@@ -218,7 +259,10 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
 
       {/* Trade-In Section */}
       <section className="details-section">
-        <h3 className="section-title">Trade-In</h3>
+        <h3 className="section-title">
+          <Repeat size={18} />
+          Trade-In Details
+        </h3>
         <div className="form-grid">
           <div className="form-group">
             <label className="form-label">Trade-In Model</label>
@@ -244,14 +288,38 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
             />
           </div>
 
-          <div className="form-group full-width">
+          <div className="form-group">
             <label className="form-label">Quoted Trade-In Price</label>
             <input
               type="number"
               name="proposal_quoted_trade_in_price"
               value={formData.proposal_quoted_trade_in_price}
               onChange={handleChange}
-              placeholder="50000"
+              placeholder="15000"
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Low Loan Surcharge</label>
+            <input
+              type="number"
+              name="proposal_low_loan_surcharge"
+              value={formData.proposal_low_loan_surcharge}
+              onChange={handleChange}
+              placeholder="1000"
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">No Loan Surcharge</label>
+            <input
+              type="number"
+              name="proposal_no_loan_surcharge"
+              value={formData.proposal_no_loan_surcharge}
+              onChange={handleChange}
+              placeholder="2000"
               className="form-input"
             />
           </div>
@@ -262,54 +330,41 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
       <section className="details-section">
         <h3 className="section-title">
           <Gift size={18} />
-          Benefits & Remarks
+          Benefits
         </h3>
         <div className="form-grid">
-          <div className="form-group">
-            <label className="form-label">Benefit 1</label>
-            <input
-              type="text"
-              name="proposal_benefit1"
-              value={formData.proposal_benefit1}
-              onChange={handleChange}
-              placeholder="Free tinting"
-              className="form-input"
-            />
-          </div>
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+            <div className="form-group" key={num}>
+              <label className="form-label">Benefit {num}</label>
+              <select
+                name={`proposal_benefit${num}`}
+                value={formData[`proposal_benefit${num}` as keyof typeof formData] || ''}
+                onChange={handleChange}
+                className="form-input"
+              >
+                <option value="">Select Benefit</option>
+                {BENEFITS_OPTIONS.map((benefit) => (
+                  <option key={benefit} value={benefit}>{benefit}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+      </section>
 
-          <div className="form-group">
-            <label className="form-label">Benefit 2</label>
-            <input
-              type="text"
-              name="proposal_benefit2"
-              value={formData.proposal_benefit2}
+      {/* Summary & Remarks Section */}
+      <section className="details-section">
+        <h3 className="section-title">Summary & Remarks</h3>
+        <div className="form-grid">
+          <div className="form-group full-width">
+            <label className="form-label">Benefits Given (Summary)</label>
+            <textarea
+              name="proposal_benefits_given"
+              value={formData.proposal_benefits_given}
               onChange={handleChange}
-              placeholder="Free floor mats"
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Benefit 3</label>
-            <input
-              type="text"
-              name="proposal_benefit3"
-              value={formData.proposal_benefit3}
-              onChange={handleChange}
-              placeholder="Free dashcam"
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Benefit 4</label>
-            <input
-              type="text"
-              name="proposal_benefit4"
-              value={formData.proposal_benefit4}
-              onChange={handleChange}
-              placeholder="Extended warranty"
-              className="form-input"
+              placeholder="Summary of all benefits given..."
+              className="form-textarea"
+              rows={2}
             />
           </div>
 

@@ -10,6 +10,12 @@ import {
   Banknote,
 } from 'lucide-react';
 import type { Customer, CustomerUpdate } from '@/types';
+import {
+  VEHICLE_MODELS,
+  BODY_COLOURS,
+  INSURANCE_COMPANIES,
+  PRZ_TYPES,
+} from '@/constants/vehicleData';
 
 interface VsaTabProps {
   customer: Customer;
@@ -34,17 +40,29 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
     vsa_yom: customer.vsa_yom || '',
     vsa_body_colour: customer.vsa_body_colour || '',
     vsa_upholstery: customer.vsa_upholstery || '',
+    vsa_prz_type: customer.vsa_prz_type || '',
     // Package
     vsa_package: customer.vsa_package || '',
     vsa_selling_price_list: customer.vsa_selling_price_list?.toString() || '',
     vsa_purchase_price_with_coe: customer.vsa_purchase_price_with_coe?.toString() || '',
+    vsa_coe_rebate_level: customer.vsa_coe_rebate_level || '',
     vsa_deposit: customer.vsa_deposit?.toString() || '',
+    vsa_less_others: customer.vsa_less_others?.toString() || '',
+    vsa_add_others: customer.vsa_add_others?.toString() || '',
     vsa_delivery_date: customer.vsa_delivery_date || '',
     // Trade-In
     vsa_trade_in_car_no: customer.vsa_trade_in_car_no || '',
     vsa_trade_in_car_model: customer.vsa_trade_in_car_model || '',
     vsa_trade_in_amount: customer.vsa_trade_in_amount?.toString() || '',
     vsa_trade_in_settlement_cost: customer.vsa_trade_in_settlement_cost?.toString() || '',
+    vsa_number_retention: customer.vsa_number_retention || false,
+    vsa_number_retention_fee: customer.vsa_number_retention_fee?.toString() || '',
+    vsa_trade_in_owner_not_customer: customer.vsa_trade_in_owner_not_customer || false,
+    vsa_trade_in_owner_name: customer.vsa_trade_in_owner_name || '',
+    vsa_trade_in_owner_nric: customer.vsa_trade_in_owner_nric || '',
+    vsa_trade_in_owner_mobile: customer.vsa_trade_in_owner_mobile || '',
+    vsa_trade_in_insurance_company: customer.vsa_trade_in_insurance_company || '',
+    vsa_trade_in_policy_number: customer.vsa_trade_in_policy_number || '',
     // Delivery
     vsa_date_of_registration: customer.vsa_date_of_registration || '',
     vsa_registration_no: customer.vsa_registration_no || '',
@@ -55,7 +73,9 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
     vsa_insurance_company: customer.vsa_insurance_company || '',
     vsa_insurance_fee: customer.vsa_insurance_fee?.toString() || '',
     vsa_insurance_subsidy: customer.vsa_insurance_subsidy?.toString() || '',
-    // Loan
+    // Loan & Remarks
+    vsa_remarks1: customer.vsa_remarks1 || '',
+    vsa_remarks2: customer.vsa_remarks2 || '',
     vsa_loan_amount: customer.vsa_loan_amount?.toString() || '',
     vsa_interest: customer.vsa_interest?.toString() || '',
     vsa_tenure: customer.vsa_tenure?.toString() || '',
@@ -70,15 +90,27 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
       vsa_yom: customer.vsa_yom || '',
       vsa_body_colour: customer.vsa_body_colour || '',
       vsa_upholstery: customer.vsa_upholstery || '',
+      vsa_prz_type: customer.vsa_prz_type || '',
       vsa_package: customer.vsa_package || '',
       vsa_selling_price_list: customer.vsa_selling_price_list?.toString() || '',
       vsa_purchase_price_with_coe: customer.vsa_purchase_price_with_coe?.toString() || '',
+      vsa_coe_rebate_level: customer.vsa_coe_rebate_level || '',
       vsa_deposit: customer.vsa_deposit?.toString() || '',
+      vsa_less_others: customer.vsa_less_others?.toString() || '',
+      vsa_add_others: customer.vsa_add_others?.toString() || '',
       vsa_delivery_date: customer.vsa_delivery_date || '',
       vsa_trade_in_car_no: customer.vsa_trade_in_car_no || '',
       vsa_trade_in_car_model: customer.vsa_trade_in_car_model || '',
       vsa_trade_in_amount: customer.vsa_trade_in_amount?.toString() || '',
       vsa_trade_in_settlement_cost: customer.vsa_trade_in_settlement_cost?.toString() || '',
+      vsa_number_retention: customer.vsa_number_retention || false,
+      vsa_number_retention_fee: customer.vsa_number_retention_fee?.toString() || '',
+      vsa_trade_in_owner_not_customer: customer.vsa_trade_in_owner_not_customer || false,
+      vsa_trade_in_owner_name: customer.vsa_trade_in_owner_name || '',
+      vsa_trade_in_owner_nric: customer.vsa_trade_in_owner_nric || '',
+      vsa_trade_in_owner_mobile: customer.vsa_trade_in_owner_mobile || '',
+      vsa_trade_in_insurance_company: customer.vsa_trade_in_insurance_company || '',
+      vsa_trade_in_policy_number: customer.vsa_trade_in_policy_number || '',
       vsa_date_of_registration: customer.vsa_date_of_registration || '',
       vsa_registration_no: customer.vsa_registration_no || '',
       vsa_chassis_no: customer.vsa_chassis_no || '',
@@ -87,6 +119,8 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
       vsa_insurance_company: customer.vsa_insurance_company || '',
       vsa_insurance_fee: customer.vsa_insurance_fee?.toString() || '',
       vsa_insurance_subsidy: customer.vsa_insurance_subsidy?.toString() || '',
+      vsa_remarks1: customer.vsa_remarks1 || '',
+      vsa_remarks2: customer.vsa_remarks2 || '',
       vsa_loan_amount: customer.vsa_loan_amount?.toString() || '',
       vsa_interest: customer.vsa_interest?.toString() || '',
       vsa_tenure: customer.vsa_tenure?.toString() || '',
@@ -96,10 +130,15 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
   }, [customer]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData((prev) => ({ ...prev, [name]: checked }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSave = async () => {
@@ -111,15 +150,27 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
         vsa_yom: formData.vsa_yom || null,
         vsa_body_colour: formData.vsa_body_colour || null,
         vsa_upholstery: formData.vsa_upholstery || null,
+        vsa_prz_type: (formData.vsa_prz_type as 'P' | 'R' | 'Z') || null,
         vsa_package: formData.vsa_package || null,
         vsa_selling_price_list: formData.vsa_selling_price_list ? Number(formData.vsa_selling_price_list) : null,
         vsa_purchase_price_with_coe: formData.vsa_purchase_price_with_coe ? Number(formData.vsa_purchase_price_with_coe) : null,
+        vsa_coe_rebate_level: formData.vsa_coe_rebate_level || null,
         vsa_deposit: formData.vsa_deposit ? Number(formData.vsa_deposit) : null,
+        vsa_less_others: formData.vsa_less_others ? Number(formData.vsa_less_others) : null,
+        vsa_add_others: formData.vsa_add_others ? Number(formData.vsa_add_others) : null,
         vsa_delivery_date: formData.vsa_delivery_date || null,
         vsa_trade_in_car_no: formData.vsa_trade_in_car_no || null,
         vsa_trade_in_car_model: formData.vsa_trade_in_car_model || null,
         vsa_trade_in_amount: formData.vsa_trade_in_amount ? Number(formData.vsa_trade_in_amount) : null,
         vsa_trade_in_settlement_cost: formData.vsa_trade_in_settlement_cost ? Number(formData.vsa_trade_in_settlement_cost) : null,
+        vsa_number_retention: formData.vsa_number_retention,
+        vsa_number_retention_fee: formData.vsa_number_retention_fee ? Number(formData.vsa_number_retention_fee) : null,
+        vsa_trade_in_owner_not_customer: formData.vsa_trade_in_owner_not_customer,
+        vsa_trade_in_owner_name: formData.vsa_trade_in_owner_name || null,
+        vsa_trade_in_owner_nric: formData.vsa_trade_in_owner_nric || null,
+        vsa_trade_in_owner_mobile: formData.vsa_trade_in_owner_mobile || null,
+        vsa_trade_in_insurance_company: formData.vsa_trade_in_insurance_company || null,
+        vsa_trade_in_policy_number: formData.vsa_trade_in_policy_number || null,
         vsa_date_of_registration: formData.vsa_date_of_registration || null,
         vsa_registration_no: formData.vsa_registration_no || null,
         vsa_chassis_no: formData.vsa_chassis_no || null,
@@ -128,6 +179,8 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
         vsa_insurance_company: formData.vsa_insurance_company || null,
         vsa_insurance_fee: formData.vsa_insurance_fee ? Number(formData.vsa_insurance_fee) : null,
         vsa_insurance_subsidy: formData.vsa_insurance_subsidy ? Number(formData.vsa_insurance_subsidy) : null,
+        vsa_remarks1: formData.vsa_remarks1 || null,
+        vsa_remarks2: formData.vsa_remarks2 || null,
         vsa_loan_amount: formData.vsa_loan_amount ? Number(formData.vsa_loan_amount) : null,
         vsa_interest: formData.vsa_interest ? Number(formData.vsa_interest) : null,
         vsa_tenure: formData.vsa_tenure ? Number(formData.vsa_tenure) : null,
@@ -156,14 +209,17 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
           <div className="form-grid">
             <div className="form-group full-width">
               <label className="form-label">Make & Model</label>
-              <input
-                type="text"
+              <select
                 name="vsa_make_model"
                 value={formData.vsa_make_model}
                 onChange={handleChange}
-                placeholder="BYD Seal"
                 className="form-input"
-              />
+              >
+                <option value="">Select Model</option>
+                {VEHICLE_MODELS.map((model) => (
+                  <option key={model} value={model}>{model}</option>
+                ))}
+              </select>
             </div>
             <div className="form-group">
               <label className="form-label">Variant</label>
@@ -189,14 +245,17 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
             </div>
             <div className="form-group">
               <label className="form-label">Body Colour</label>
-              <input
-                type="text"
+              <select
                 name="vsa_body_colour"
                 value={formData.vsa_body_colour}
                 onChange={handleChange}
-                placeholder="Arctic White"
                 className="form-input"
-              />
+              >
+                <option value="">Select Colour</option>
+                {BODY_COLOURS.map((colour) => (
+                  <option key={colour} value={colour}>{colour}</option>
+                ))}
+              </select>
             </div>
             <div className="form-group">
               <label className="form-label">Upholstery</label>
@@ -208,6 +267,20 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
                 placeholder="Black Leather"
                 className="form-input"
               />
+            </div>
+            <div className="form-group">
+              <label className="form-label">P/R/Z Type</label>
+              <select
+                name="vsa_prz_type"
+                value={formData.vsa_prz_type}
+                onChange={handleChange}
+                className="form-input"
+              >
+                <option value="">Select Type</option>
+                {PRZ_TYPES.map((type) => (
+                  <option key={type.value} value={type.value}>{type.label}</option>
+                ))}
+              </select>
             </div>
           </div>
         );
@@ -227,7 +300,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">List Price</label>
+              <label className="form-label">Selling Price (List)</label>
               <input
                 type="number"
                 name="vsa_selling_price_list"
@@ -249,6 +322,17 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               />
             </div>
             <div className="form-group">
+              <label className="form-label">COE Rebate Level</label>
+              <input
+                type="text"
+                name="vsa_coe_rebate_level"
+                value={formData.vsa_coe_rebate_level}
+                onChange={handleChange}
+                placeholder="Rebate level"
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
               <label className="form-label">Deposit</label>
               <input
                 type="number"
@@ -260,14 +344,82 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Delivery Date</label>
+              <label className="form-label">Less: Others</label>
               <input
-                type="date"
-                name="vsa_delivery_date"
-                value={formData.vsa_delivery_date}
+                type="number"
+                name="vsa_less_others"
+                value={formData.vsa_less_others}
                 onChange={handleChange}
+                placeholder="0"
                 className="form-input"
               />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Add: Others</label>
+              <input
+                type="number"
+                name="vsa_add_others"
+                value={formData.vsa_add_others}
+                onChange={handleChange}
+                placeholder="0"
+                className="form-input"
+              />
+            </div>
+            <div className="form-group full-width">
+              <label className="form-label">Estimated Delivery Date</label>
+              <div className="estimated-delivery-container">
+                <select
+                  name="vsa_delivery_month_start"
+                  value={formData.vsa_delivery_date?.split('/')[0]?.trim() || ''}
+                  onChange={(e) => {
+                    const startMonth = e.target.value;
+                    const endMonth = formData.vsa_delivery_date?.split('/')[1]?.trim() || '';
+                    const newValue = startMonth && endMonth ? `${startMonth}/${endMonth}` : startMonth || endMonth;
+                    setFormData((prev) => ({ ...prev, vsa_delivery_date: newValue }));
+                  }}
+                  className="form-input"
+                >
+                  <option value="">Select start month</option>
+                  {(() => {
+                    const options = [];
+                    const currentDate = new Date();
+                    for (let i = 0; i < 24; i++) {
+                      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+                      const monthName = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+                      const year = date.getFullYear();
+                      const value = `${monthName} ${year}`;
+                      options.push(<option key={value} value={value}>{value}</option>);
+                    }
+                    return options;
+                  })()}
+                </select>
+                <span className="delivery-separator">/</span>
+                <select
+                  name="vsa_delivery_month_end"
+                  value={formData.vsa_delivery_date?.split('/')[1]?.trim() || ''}
+                  onChange={(e) => {
+                    const startMonth = formData.vsa_delivery_date?.split('/')[0]?.trim() || '';
+                    const endMonth = e.target.value;
+                    const newValue = startMonth && endMonth ? `${startMonth}/${endMonth}` : startMonth || endMonth;
+                    setFormData((prev) => ({ ...prev, vsa_delivery_date: newValue }));
+                  }}
+                  className="form-input"
+                >
+                  <option value="">Select end month</option>
+                  {(() => {
+                    const options = [];
+                    const currentDate = new Date();
+                    for (let i = 0; i < 24; i++) {
+                      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+                      const monthName = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+                      const year = date.getFullYear();
+                      const value = `${monthName} ${year}`;
+                      options.push(<option key={value} value={value}>{value}</option>);
+                    }
+                    return options;
+                  })()}
+                </select>
+              </div>
             </div>
           </div>
         );
@@ -316,6 +468,111 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
                 value={formData.vsa_trade_in_settlement_cost}
                 onChange={handleChange}
                 placeholder="20000"
+                className="form-input"
+              />
+            </div>
+
+            {/* Number Retention Checkbox */}
+            <div className="form-group full-width">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="vsa_number_retention"
+                  checked={formData.vsa_number_retention}
+                  onChange={handleChange}
+                />
+                <span>Number Retention (Retain old car registration)</span>
+              </label>
+            </div>
+
+            {formData.vsa_number_retention && (
+              <div className="form-group">
+                <label className="form-label">Number Retention Fee</label>
+                <input
+                  type="number"
+                  name="vsa_number_retention_fee"
+                  value={formData.vsa_number_retention_fee}
+                  onChange={handleChange}
+                  placeholder="100"
+                  className="form-input"
+                />
+              </div>
+            )}
+
+            {/* Trade-In Owner Different Checkbox */}
+            <div className="form-group full-width">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="vsa_trade_in_owner_not_customer"
+                  checked={formData.vsa_trade_in_owner_not_customer}
+                  onChange={handleChange}
+                />
+                <span>Trade-in owner is different from customer</span>
+              </label>
+            </div>
+
+            {formData.vsa_trade_in_owner_not_customer && (
+              <>
+                <div className="form-group">
+                  <label className="form-label">Owner Name</label>
+                  <input
+                    type="text"
+                    name="vsa_trade_in_owner_name"
+                    value={formData.vsa_trade_in_owner_name}
+                    onChange={handleChange}
+                    placeholder="Owner name"
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Owner NRIC</label>
+                  <input
+                    type="text"
+                    name="vsa_trade_in_owner_nric"
+                    value={formData.vsa_trade_in_owner_nric}
+                    onChange={handleChange}
+                    placeholder="S1234567A"
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Owner Mobile</label>
+                  <input
+                    type="tel"
+                    name="vsa_trade_in_owner_mobile"
+                    value={formData.vsa_trade_in_owner_mobile}
+                    onChange={handleChange}
+                    placeholder="91234567"
+                    className="form-input"
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Trade-In Insurance */}
+            <div className="form-group">
+              <label className="form-label">Insurance Company</label>
+              <select
+                name="vsa_trade_in_insurance_company"
+                value={formData.vsa_trade_in_insurance_company}
+                onChange={handleChange}
+                className="form-input"
+              >
+                <option value="">Select Company</option>
+                {INSURANCE_COMPANIES.map((company) => (
+                  <option key={company} value={company}>{company}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Policy Number</label>
+              <input
+                type="text"
+                name="vsa_trade_in_policy_number"
+                value={formData.vsa_trade_in_policy_number}
+                onChange={handleChange}
+                placeholder="Policy number"
                 className="form-input"
               />
             </div>
@@ -387,14 +644,17 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
           <div className="form-grid">
             <div className="form-group full-width">
               <label className="form-label">Insurance Company</label>
-              <input
-                type="text"
+              <select
                 name="vsa_insurance_company"
                 value={formData.vsa_insurance_company}
                 onChange={handleChange}
-                placeholder="AXA, NTUC Income, etc."
                 className="form-input"
-              />
+              >
+                <option value="">Select Company</option>
+                {INSURANCE_COMPANIES.map((company) => (
+                  <option key={company} value={company}>{company}</option>
+                ))}
+              </select>
             </div>
             <div className="form-group">
               <label className="form-label">Insurance Fee</label>
@@ -424,6 +684,31 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
       case 'loan':
         return (
           <div className="form-grid">
+            {/* Remarks Section */}
+            <div className="form-group full-width">
+              <label className="form-label">Remarks 1</label>
+              <textarea
+                name="vsa_remarks1"
+                value={formData.vsa_remarks1}
+                onChange={handleChange}
+                placeholder="Remarks..."
+                rows={2}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group full-width">
+              <label className="form-label">Remarks 2</label>
+              <textarea
+                name="vsa_remarks2"
+                value={formData.vsa_remarks2}
+                onChange={handleChange}
+                placeholder="Additional remarks..."
+                rows={2}
+                className="form-input"
+              />
+            </div>
+
+            {/* Loan Details */}
             <div className="form-group">
               <label className="form-label">Loan Amount</label>
               <input
@@ -448,13 +733,13 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Tenure (Years)</label>
+              <label className="form-label">Tenure (Months)</label>
               <input
                 type="number"
                 name="vsa_tenure"
                 value={formData.vsa_tenure}
                 onChange={handleChange}
-                placeholder="7"
+                placeholder="84"
                 className="form-input"
               />
             </div>

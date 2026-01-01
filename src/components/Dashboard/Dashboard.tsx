@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CustomerList } from '@/components/CustomerList';
 import { CustomerDetails } from '@/components/CustomerDetails';
 import { CustomerForm } from '@/components/CustomerForm';
+import { ProgressSidebar } from '@/components/ProgressSidebar';
 import { useSelectedCustomer, useCustomerStore } from '@/stores';
 import { Modal } from '@/components/common';
 import { useToast } from '@/components/common';
@@ -25,7 +26,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className="dashboard">
+    <div className={`dashboard ${selectedCustomer ? 'has-customer' : ''}`}>
       <div className="dashboard-sidebar">
         <CustomerList onAddCustomer={() => setShowAddModal(true)} />
       </div>
@@ -42,6 +43,11 @@ export function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Progress Sidebar - only shown when customer selected */}
+      {selectedCustomer && (
+        <ProgressSidebar customer={selectedCustomer} />
+      )}
 
       {/* Add Customer Modal */}
       <Modal

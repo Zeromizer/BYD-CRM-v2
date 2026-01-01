@@ -19,6 +19,7 @@ import {
 import { jsPDF } from 'jspdf';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { useCustomerStore } from '@/stores/useCustomerStore';
+import { formatCurrencySGD as formatCurrency } from '@/utils/formatting';
 import type { DocumentTemplate, Customer, Guarantor } from '@/types';
 import './PrintManager.css';
 
@@ -173,11 +174,6 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
         month: '2-digit',
         year: 'numeric',
       });
-    };
-
-    const formatCurrency = (amount: number | null) => {
-      if (amount === null || amount === undefined) return '';
-      return `$${amount.toLocaleString('en-SG', { minimumFractionDigits: 2 })}`;
     };
 
     const getGuarantorField = (index: number, field: keyof Guarantor): string => {

@@ -1,10 +1,11 @@
-import { useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   useTodoStore,
   useTodoSidebarOpen,
   useTodoActiveFilter,
   useTodos,
 } from '@/stores';
+import { InlineTaskForm } from '@/components/common';
 import {
   X,
   Plus,
@@ -38,13 +39,13 @@ export function TodoSidebar() {
   const todos = useTodos();
   const {
     fetchTodos,
-    createTodo,
     toggleTodo,
     deleteTodo,
     setSidebarOpen,
     setActiveFilter,
     subscribeToChanges,
   } = useTodoStore();
+  const [showAddForm, setShowAddForm] = useState(false);
 
   // Memoize filtered todos to prevent infinite loops
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -79,13 +80,6 @@ export function TodoSidebar() {
     const unsubscribe = subscribeToChanges();
     return unsubscribe;
   }, [fetchTodos, subscribeToChanges]);
-
-  const handleAddTodo = async () => {
-    const text = prompt('Enter todo:');
-    if (text?.trim()) {
-      await createTodo({ text: text.trim() });
-    }
-  };
 
   if (!isOpen) return null;
 
@@ -132,10 +126,14 @@ export function TodoSidebar() {
         </div>
 
         {/* Add Todo */}
-        <button onClick={handleAddTodo} className="add-todo-button">
-          <Plus size={18} />
-          <span>Add Task</span>
-        </button>
+        {showAddForm ? (
+          <InlineTaskForm onClose={() => setShowAddForm(false)} />
+        ) : (
+          <button onClick={() => setShowAddForm(true)} className="add-todo-button">
+            <Plus size={18} />
+            <span>Add Task</span>
+          </button>
+        )}
 
         {/* Todo List */}
         <div className="todo-list">
