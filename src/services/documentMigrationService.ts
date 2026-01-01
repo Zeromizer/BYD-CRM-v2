@@ -295,7 +295,7 @@ export async function migrateCustomerDocuments(
  */
 export function createMigrationFiles(
   fileList: FileList,
-  basePath: string = ''
+  _basePath: string = ''
 ): MigrationFile[] {
   const files: MigrationFile[] = [];
 

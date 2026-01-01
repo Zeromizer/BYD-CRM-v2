@@ -13,7 +13,6 @@ import {
   Upload,
   Download,
   Search,
-  MoreVertical,
   Settings,
   X,
 } from 'lucide-react';

@@ -298,16 +298,16 @@ export async function populateExcelTemplate(
         }
 
         if (value !== undefined && value !== null && value !== '') {
-          // Convert currency fields to numbers for Excel
-          if (CURRENCY_FIELDS.has(fieldType)) {
+          // Convert currency fields to numbers for Excel (skip Date values)
+          if (CURRENCY_FIELDS.has(fieldType) && !(value instanceof Date)) {
             const numericValue = currencyToNumber(value);
             if (!isNaN(numericValue)) {
               value = numericValue;
             }
           }
 
-          // Convert percentage fields to decimal for Excel
-          if (PERCENTAGE_FIELDS.has(fieldType)) {
+          // Convert percentage fields to decimal for Excel (skip Date values)
+          if (PERCENTAGE_FIELDS.has(fieldType) && !(value instanceof Date)) {
             const numericValue = parseFloat(value.toString().replace(/[^0-9.-]/g, ''));
             if (!isNaN(numericValue)) {
               value = numericValue / 100; // Convert 2.88 to 0.0288
@@ -315,7 +315,7 @@ export async function populateExcelTemplate(
           }
 
           // Set cell value
-          sheet.cell(cellRef).value(value);
+          sheet.cell(cellRef).value(value as string | number | boolean | Date | null | undefined);
           appliedCount++;
         }
       }

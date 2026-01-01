@@ -33,7 +33,9 @@
       "Bash(npx supabase functions:*)",
       "Bash(npx supabase login)",
       "Bash(npx tsc:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }
