@@ -1,8 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useCustomerStore, useCustomers, useSelectedCustomerId } from '@/stores';
-import { Search, Plus, Archive } from 'lucide-react';
+import { Search, Plus, Archive, X, FileSpreadsheet } from 'lucide-react';
 import { MILESTONES, getOverallProgress } from '@/constants';
-import type { Customer, MilestoneId } from '@/types';
+import { Modal, Button, useToast } from '@/components/common';
+import {
+  importCustomersFromFile,
+  exportCustomersToJSON,
+  downloadJSON,
+} from '@/services/customerImportService';
+import type { Customer, MilestoneId, Guarantor } from '@/types';
 import './CustomerList.css';
 
 interface CustomerListProps {
@@ -18,9 +24,17 @@ export function CustomerList({ onAddCustomer }: CustomerListProps) {
   const [sortBy] = useState<SortOption>('recent');
   const [milestoneFilter, setMilestoneFilter] = useState<MilestoneId | 'all'>('all');
 
+  // Import/Export state
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState('');
+  const importFileInputRef = useRef<HTMLInputElement>(null);
+
   const customers = useCustomers();
   const selectedCustomerId = useSelectedCustomerId();
-  const { selectCustomer, fetchCustomers, subscribeToChanges } = useCustomerStore();
+  const { selectCustomer, fetchCustomers, subscribeToChanges, createCustomer, saveGuarantors } = useCustomerStore();
+  const { success, error: toastError } = useToast();
 
   useEffect(() => {
     fetchCustomers();
@@ -79,15 +93,134 @@ export function CustomerList({ onAddCustomer }: CustomerListProps) {
     return result;
   }, [customers, filterTab, milestoneFilter, searchQuery, sortBy]);
 
+  // Handle import file selection
+  const handleImportFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (!file.name.endsWith('.json')) {
+        toastError('Please select a JSON file');
+        return;
+      }
+      setImportFile(file);
+    }
+  };
+
+  // Handle import
+  const handleImport = async () => {
+    if (!importFile) {
+      toastError('Please select a file to import');
+      return;
+    }
+
+    setIsImporting(true);
+    setImportProgress('Reading file...');
+
+    try {
+      const result = await importCustomersFromFile(importFile);
+
+      if (!result.success) {
+        toastError(result.errors.join(', '));
+        setIsImporting(false);
+        return;
+      }
+
+      // Import each customer
+      let imported = 0;
+      let failed = 0;
+      for (const { customer, guarantors } of result.customers) {
+        setImportProgress(`Importing "${customer.name}" (${imported + failed + 1}/${result.customers.length})...`);
+
+        try {
+          // Create the customer
+          const newCustomer = await createCustomer(customer);
+
+          // Save guarantors if any
+          if (guarantors.length > 0) {
+            const guarantorsWithCustomerId = guarantors.map((g) => ({
+              ...g,
+              customer_id: newCustomer.id,
+            }));
+            await saveGuarantors(newCustomer.id, guarantorsWithCustomerId);
+          }
+
+          imported++;
+
+          // Small delay to avoid overwhelming the database
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (err) {
+          console.error(`Failed to import "${customer.name}":`, err);
+          failed++;
+        }
+      }
+
+      if (failed > 0) {
+        success(`Imported ${imported} customer${imported !== 1 ? 's' : ''} (${failed} failed)`);
+      } else {
+        success(`Imported ${imported} customer${imported !== 1 ? 's' : ''} successfully`);
+      }
+      setShowImportModal(false);
+      setImportFile(null);
+      if (importFileInputRef.current) {
+        importFileInputRef.current.value = '';
+      }
+    } catch (err) {
+      console.error('Error during import:', err);
+      toastError('Failed to import customers');
+    } finally {
+      setIsImporting(false);
+      setImportProgress('');
+    }
+  };
+
+  // Handle export
+  const handleExport = async () => {
+    try {
+      // For now, export without guarantors (would need to fetch them)
+      const guarantorsMap: Record<number, Guarantor[]> = {};
+      const json = exportCustomersToJSON(customers, guarantorsMap);
+      const filename = `byd-crm-customers-${new Date().toISOString().split('T')[0]}.json`;
+      downloadJSON(json, filename);
+      success(`Exported ${customers.length} customers`);
+    } catch (err) {
+      console.error('Error exporting customers:', err);
+      toastError('Failed to export customers');
+    }
+  };
+
+  // Reset import modal
+  const resetImportModal = () => {
+    setImportFile(null);
+    setImportProgress('');
+    if (importFileInputRef.current) {
+      importFileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="customer-list">
       {/* Header */}
       <div className="list-header">
         <h2 className="list-title">Customers</h2>
-        <button onClick={onAddCustomer} className="add-customer-btn">
-          <Plus size={18} />
-          <span>Add</span>
-        </button>
+        <div className="list-header-actions">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="import-export-btn"
+            title="Import from Old CRM"
+          >
+            ↑
+          </button>
+          <button
+            onClick={handleExport}
+            className="import-export-btn"
+            title="Export Customers"
+          >
+            ↓
+          </button>
+          <button onClick={onAddCustomer} className="add-customer-btn">
+            <Plus size={18} />
+            <span>Add</span>
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -158,6 +291,91 @@ export function CustomerList({ onAddCustomer }: CustomerListProps) {
           ))
         )}
       </div>
+
+      {/* Import Modal */}
+      <Modal
+        isOpen={showImportModal}
+        onClose={() => {
+          setShowImportModal(false);
+          resetImportModal();
+        }}
+        title="Import Customers from Old CRM"
+      >
+        <div className="import-modal">
+          <div className="import-description">
+            <p>
+              Import customer data exported from your old BYD-CRM. Select the JSON file
+              containing your customer data.
+            </p>
+          </div>
+
+          {/* File Upload */}
+          <div className="import-form-group">
+            <label>Select Export File</label>
+            <div className="import-file-upload-area">
+              <input
+                ref={importFileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleImportFileSelect}
+                style={{ display: 'none' }}
+                disabled={isImporting}
+              />
+              {!importFile ? (
+                <div
+                  className="import-upload-placeholder"
+                  onClick={() => importFileInputRef.current?.click()}
+                >
+                  <FileSpreadsheet size={24} />
+                  <span>Click to select file</span>
+                  <small>.json from old CRM export</small>
+                </div>
+              ) : (
+                <div className="import-file-selected">
+                  <FileSpreadsheet size={20} />
+                  <span>{importFile.name}</span>
+                  {!isImporting && (
+                    <button
+                      className="import-remove-file"
+                      onClick={() => {
+                        setImportFile(null);
+                        if (importFileInputRef.current) importFileInputRef.current.value = '';
+                      }}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Progress */}
+          {isImporting && importProgress && (
+            <div className="import-progress">
+              <div className="loading-spinner" />
+              <span>{importProgress}</span>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="import-form-actions">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowImportModal(false);
+                resetImportModal();
+              }}
+              disabled={isImporting}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleImport} disabled={!importFile || isImporting}>
+              {isImporting ? 'Importing...' : 'Import Customers'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { AuthPage, AuthGuard } from '@/components/Auth';
 import { Layout } from '@/components/Layout';
 import { Dashboard } from '@/components/Dashboard';
 import { DocumentsPage } from '@/components/Documents';
+import { ExcelPage } from '@/components/Excel';
 import { ToastProvider } from '@/components/common';
 import { ThemeProvider } from '@/context/ThemeContext';
 import './styles/globals.css';
@@ -46,6 +47,7 @@ function App() {
               <Route path="customers" element={<Dashboard />} />
               <Route path="customers/:customerId" element={<Dashboard />} />
               <Route path="documents" element={<DocumentsPage />} />
+              <Route path="excel" element={<ExcelPage />} />
             </Route>
 
             {/* Fallback */}

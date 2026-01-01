@@ -22,3 +22,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files
+.env
+.env.*
+
+# Supabase
+supabase.exe
+supabase/.temp/
+
+# Backup folders
+CodingBYD-CRM-old/
+BYD CRM/
+
+# Misc
+nul

@@ -6,7 +6,7 @@ import {
   X,
   Home,
   FileText,
-  Table,
+  FileSpreadsheet,
   CheckSquare,
   LogOut,
   Moon,
@@ -30,7 +30,7 @@ export function Header({ theme, onToggleTheme }: HeaderProps) {
   const navItems = [
     { path: '/', label: 'Dashboard', icon: Home },
     { path: '/documents', label: 'Documents', icon: FileText },
-    { path: '/excel', label: 'Excel', icon: Table },
+    { path: '/excel', label: 'Excel', icon: FileSpreadsheet },
   ];
 
   const handleSignOut = async () => {

@@ -88,7 +88,7 @@
   border: none;
   background: transparent;
   border-radius: 4px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary, #64748b);
   cursor: pointer;
   transition: all 0.15s;
 }

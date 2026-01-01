@@ -6,6 +6,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import type { ExcelTemplate, ExcelTemplateInsert, ExcelTemplateUpdate, ExcelFieldMappings } from '@/types';
+import { parseExcelFile } from '@/services/excelService';
 
 interface ExcelState {
   templates: ExcelTemplate[];
@@ -30,7 +31,7 @@ interface ExcelActions {
   updateFieldMappings: (id: string, mappings: ExcelFieldMappings) => Promise<void>;
 
   // Storage
-  uploadExcelFile: (file: File) => Promise<{ path: string; sheetNames: string[] }>;
+  uploadExcelFile: (file: File, skipParsing?: boolean) => Promise<{ path: string; sheetNames: string[] }>;
   downloadExcelFile: (path: string) => Promise<Blob>;
   deleteExcelFile: (path: string) => Promise<void>;
 
@@ -175,7 +176,7 @@ export const useExcelStore = create<ExcelState & ExcelActions>((set, get) => ({
     await get().updateTemplate(id, { field_mappings: mappings });
   },
 
-  uploadExcelFile: async (file) => {
+  uploadExcelFile: async (file, skipParsing = false) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
@@ -188,9 +189,15 @@ export const useExcelStore = create<ExcelState & ExcelActions>((set, get) => ({
 
     if (uploadError) throw uploadError;
 
-    // TODO: Parse Excel to get sheet names using xlsx-populate
-    // For now, return empty array - will be populated when editing
-    const sheetNames: string[] = [];
+    // Parse Excel to get sheet names (skip if requested, e.g., during imports)
+    let sheetNames: string[] = [];
+    if (!skipParsing) {
+      try {
+        sheetNames = await parseExcelFile(file);
+      } catch (parseError) {
+        console.warn('Could not parse Excel file for sheet names:', parseError);
+      }
+    }
 
     return {
       path: filePath,

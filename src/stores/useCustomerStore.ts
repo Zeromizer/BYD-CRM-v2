@@ -98,9 +98,11 @@ export const useCustomerStore = create<CustomerState & CustomerActions>((set, ge
         return value;
       };
 
-      const customerData = {
+      const customerData: CustomerInsert = {
         user_id: user.id,
         name: data.name || 'New Customer',
+
+        // Basic Info
         phone: toNullIfEmpty(data.phone),
         email: toNullIfEmpty(data.email),
         nric: toNullIfEmpty(data.nric),
@@ -112,13 +114,99 @@ export const useCustomerStore = create<CustomerState & CustomerActions>((set, ge
         sales_consultant: toNullIfEmpty(data.sales_consultant),
         vsa_no: toNullIfEmpty(data.vsa_no),
         notes: toNullIfEmpty(data.notes),
-        archive_status: null,
-        archived_at: null,
-        deal_closed: false,
-        current_milestone: 'test_drive' as const,
-        checklist: getDefaultChecklistState(),
-        milestone_dates: getDefaultMilestoneDates(),
-        document_checklist: getDefaultDocumentChecklistState(),
+
+        // Status - use provided values or defaults
+        archive_status: data.archive_status || null,
+        archived_at: data.archived_at || null,
+        deal_closed: data.deal_closed || false,
+        current_milestone: data.current_milestone || 'test_drive',
+
+        // JSONB fields - use provided values or defaults
+        checklist: data.checklist || getDefaultChecklistState(),
+        milestone_dates: data.milestone_dates || getDefaultMilestoneDates(),
+        document_checklist: data.document_checklist || getDefaultDocumentChecklistState(),
+
+        // VSA Details - Vehicle
+        vsa_make_model: toNullIfEmpty(data.vsa_make_model),
+        vsa_variant: toNullIfEmpty(data.vsa_variant),
+        vsa_yom: toNullIfEmpty(data.vsa_yom),
+        vsa_body_colour: toNullIfEmpty(data.vsa_body_colour),
+        vsa_upholstery: toNullIfEmpty(data.vsa_upholstery),
+        vsa_prz_type: data.vsa_prz_type || null,
+
+        // VSA Details - Package
+        vsa_package: toNullIfEmpty(data.vsa_package),
+        vsa_selling_price_list: data.vsa_selling_price_list ?? null,
+        vsa_purchase_price_with_coe: data.vsa_purchase_price_with_coe ?? null,
+        vsa_coe_rebate_level: toNullIfEmpty(data.vsa_coe_rebate_level),
+        vsa_deposit: data.vsa_deposit ?? null,
+        vsa_less_others: data.vsa_less_others ?? null,
+        vsa_add_others: data.vsa_add_others ?? null,
+        vsa_delivery_date: toNullIfEmpty(data.vsa_delivery_date),
+
+        // VSA Details - Trade In
+        vsa_trade_in_car_no: toNullIfEmpty(data.vsa_trade_in_car_no),
+        vsa_trade_in_car_model: toNullIfEmpty(data.vsa_trade_in_car_model),
+        vsa_trade_in_amount: data.vsa_trade_in_amount ?? null,
+        vsa_trade_in_settlement_cost: data.vsa_trade_in_settlement_cost ?? null,
+        vsa_number_retention: data.vsa_number_retention || false,
+        vsa_number_retention_fee: data.vsa_number_retention_fee ?? null,
+        vsa_trade_in_owner_not_customer: data.vsa_trade_in_owner_not_customer || false,
+        vsa_trade_in_owner_name: toNullIfEmpty(data.vsa_trade_in_owner_name),
+        vsa_trade_in_owner_nric: toNullIfEmpty(data.vsa_trade_in_owner_nric),
+        vsa_trade_in_owner_mobile: toNullIfEmpty(data.vsa_trade_in_owner_mobile),
+        vsa_trade_in_insurance_company: toNullIfEmpty(data.vsa_trade_in_insurance_company),
+        vsa_trade_in_policy_number: toNullIfEmpty(data.vsa_trade_in_policy_number),
+
+        // VSA Details - Delivery
+        vsa_date_of_registration: toNullIfEmpty(data.vsa_date_of_registration),
+        vsa_registration_no: toNullIfEmpty(data.vsa_registration_no),
+        vsa_chassis_no: toNullIfEmpty(data.vsa_chassis_no),
+        vsa_engine_no: toNullIfEmpty(data.vsa_engine_no),
+        vsa_motor_no: toNullIfEmpty(data.vsa_motor_no),
+
+        // VSA Details - Insurance
+        vsa_insurance_company: toNullIfEmpty(data.vsa_insurance_company),
+        vsa_insurance_fee: data.vsa_insurance_fee ?? null,
+        vsa_insurance_subsidy: data.vsa_insurance_subsidy ?? null,
+
+        // VSA Details - Loan
+        vsa_remarks1: toNullIfEmpty(data.vsa_remarks1),
+        vsa_remarks2: toNullIfEmpty(data.vsa_remarks2),
+        vsa_loan_amount: data.vsa_loan_amount ?? null,
+        vsa_interest: data.vsa_interest ?? null,
+        vsa_tenure: data.vsa_tenure ?? null,
+        vsa_admin_fee: data.vsa_admin_fee ?? null,
+        vsa_monthly_repayment: data.vsa_monthly_repayment ?? null,
+
+        // Proposal Details
+        proposal_model: toNullIfEmpty(data.proposal_model),
+        proposal_variant: toNullIfEmpty(data.proposal_variant),
+        proposal_color: toNullIfEmpty(data.proposal_color),
+        proposal_bank: toNullIfEmpty(data.proposal_bank),
+        proposal_selling_price: data.proposal_selling_price ?? null,
+        proposal_interest_rate: data.proposal_interest_rate ?? null,
+        proposal_downpayment: data.proposal_downpayment ?? null,
+        proposal_loan_tenure: data.proposal_loan_tenure ?? null,
+        proposal_loan_amount: data.proposal_loan_amount ?? null,
+        proposal_admin_fee: data.proposal_admin_fee ?? null,
+        proposal_referral_fee: data.proposal_referral_fee ?? null,
+        proposal_trade_in_model: toNullIfEmpty(data.proposal_trade_in_model),
+        proposal_low_loan_surcharge: data.proposal_low_loan_surcharge ?? null,
+        proposal_trade_in_car_plate: toNullIfEmpty(data.proposal_trade_in_car_plate),
+        proposal_no_loan_surcharge: data.proposal_no_loan_surcharge ?? null,
+        proposal_quoted_trade_in_price: data.proposal_quoted_trade_in_price ?? null,
+        proposal_benefit1: toNullIfEmpty(data.proposal_benefit1),
+        proposal_benefit2: toNullIfEmpty(data.proposal_benefit2),
+        proposal_benefit3: toNullIfEmpty(data.proposal_benefit3),
+        proposal_benefit4: toNullIfEmpty(data.proposal_benefit4),
+        proposal_benefit5: toNullIfEmpty(data.proposal_benefit5),
+        proposal_benefit6: toNullIfEmpty(data.proposal_benefit6),
+        proposal_benefit7: toNullIfEmpty(data.proposal_benefit7),
+        proposal_benefit8: toNullIfEmpty(data.proposal_benefit8),
+        proposal_benefit9: toNullIfEmpty(data.proposal_benefit9),
+        proposal_benefits_given: toNullIfEmpty(data.proposal_benefits_given),
+        proposal_remarks: toNullIfEmpty(data.proposal_remarks),
       };
 
       const { data: newCustomer, error } = await supabase

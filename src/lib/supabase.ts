@@ -19,6 +19,22 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+// Refresh session when tab becomes visible again (fixes stale token after inactivity)
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible') {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // Force token refresh if session exists
+        const { error } = await supabase.auth.refreshSession();
+        if (error) {
+          console.warn('Session refresh failed:', error.message);
+        }
+      }
+    }
+  });
+}
+
 // Helper to get current user ID
 export async function getCurrentUserId(): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();

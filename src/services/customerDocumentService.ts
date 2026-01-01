@@ -24,22 +24,38 @@ export interface UploadProgress {
 const BUCKET_NAME = 'customer-documents';
 
 /**
+ * Sanitize customer name for use in file paths
+ * Removes special characters and replaces spaces with underscores
+ */
+function sanitizeCustomerName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_').toUpperCase();
+}
+
+/**
  * Upload a document for a customer
  */
 export async function uploadCustomerDocument(
-  customerId: number,
   documentType: string,
   file: File,
+  customerName: string,
   _onProgress?: (progress: UploadProgress) => void
 ): Promise<CustomerDocument> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
   const fileExt = file.name.split('.').pop();
-  const fileName = `${documentType}_${Date.now()}.${fileExt}`;
-  const filePath = `${user.id}/${customerId}/${documentType}/${fileName}`;
+  // Format: CustomerName_DocumentType_XXXXXX.ext (e.g., "SIM_MENG_HUAT_nric_front_123456.pdf")
+  const safeName = sanitizeCustomerName(customerName);
+  const docTypeFormatted = documentType.replace(/_/g, '_');
+  const uniqueSuffix = Date.now().toString().slice(-6); // Last 6 digits of timestamp
+  const fileName = `${safeName}_${docTypeFormatted}_${uniqueSuffix}.${fileExt}`;
+  // Folder structure: user.id/CustomerName/documentType/filename
+  const filePath = `${user.id}/${safeName}/${documentType}/${fileName}`;
 
   // Upload file
+  console.log(`[Upload] Starting upload: ${file.name} (${(file.size / 1024).toFixed(1)}KB) -> ${filePath}`);
+  const uploadStart = Date.now();
+
   const { error: uploadError, data } = await supabase.storage
     .from(BUCKET_NAME)
     .upload(filePath, file, {
@@ -47,7 +63,11 @@ export async function uploadCustomerDocument(
       upsert: false,
     });
 
-  if (uploadError) throw uploadError;
+  if (uploadError) {
+    console.error(`[Upload] Failed: ${file.name}:`, uploadError);
+    throw uploadError;
+  }
+  console.log(`[Upload] Complete: ${file.name} in ${Date.now() - uploadStart}ms`);
 
   // Get signed URL
   const { data: urlData, error: urlError } = await supabase.storage
@@ -71,15 +91,16 @@ export async function uploadCustomerDocument(
  * Get all documents for a customer in a specific category
  */
 export async function getCustomerDocuments(
-  customerId: number,
+  customerName: string,
   documentType?: string
 ): Promise<CustomerDocument[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  const safeName = sanitizeCustomerName(customerName);
   const basePath = documentType
-    ? `${user.id}/${customerId}/${documentType}`
-    : `${user.id}/${customerId}`;
+    ? `${user.id}/${safeName}/${documentType}`
+    : `${user.id}/${safeName}`;
 
   const { data: files, error } = await supabase.storage
     .from(BUCKET_NAME)
@@ -153,16 +174,30 @@ export async function deleteCustomerDocument(path: string): Promise<void> {
 }
 
 /**
+ * Delete multiple customer documents at once (batch delete)
+ */
+export async function deleteCustomerDocuments(paths: string[]): Promise<void> {
+  if (paths.length === 0) return;
+
+  const { error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .remove(paths);
+
+  if (error) throw error;
+}
+
+/**
  * Delete all documents for a customer in a specific category
  */
 export async function deleteAllCustomerDocuments(
-  customerId: number,
+  customerName: string,
   documentType: string
 ): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const basePath = `${user.id}/${customerId}/${documentType}`;
+  const safeName = sanitizeCustomerName(customerName);
+  const basePath = `${user.id}/${safeName}/${documentType}`;
 
   const { data: files, error: listError } = await supabase.storage
     .from(BUCKET_NAME)
@@ -183,4 +218,58 @@ export async function deleteAllCustomerDocuments(
       if (deleteError) throw deleteError;
     }
   }
+}
+
+/**
+ * Get all document folders (types) for a customer
+ */
+export async function getCustomerDocumentFolders(
+  customerName: string
+): Promise<string[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const safeName = sanitizeCustomerName(customerName);
+  const basePath = `${user.id}/${safeName}`;
+
+  const { data: folders, error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .list(basePath, {
+      limit: 100,
+    });
+
+  if (error) throw error;
+
+  if (!folders) return [];
+
+  // Return folder names (document types)
+  return folders
+    .filter((f) => f.id === null) // Folders have null id
+    .map((f) => f.name);
+}
+
+/**
+ * Get all documents for a customer across all folders
+ */
+export async function getAllCustomerDocuments(
+  customerName: string
+): Promise<{ documentType: string; documents: CustomerDocument[] }[]> {
+  const folders = await getCustomerDocumentFolders(customerName);
+  const result: { documentType: string; documents: CustomerDocument[] }[] = [];
+
+  for (const folder of folders) {
+    try {
+      const docs = await getCustomerDocuments(customerName, folder);
+      if (docs.length > 0) {
+        result.push({
+          documentType: folder,
+          documents: docs,
+        });
+      }
+    } catch (err) {
+      console.error(`Error loading documents from ${folder}:`, err);
+    }
+  }
+
+  return result;
 }

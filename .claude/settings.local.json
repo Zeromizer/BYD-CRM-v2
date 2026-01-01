@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git config:*)",
+      "Bash(gh auth:*)",
+      "Bash(findstr:*)",
+      "Bash(gh repo view:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(cmd /c \"npm run dev\")",
+      "Bash(powershell -Command \"Start-Process cmd -ArgumentList ''/c cd /d c:\\\\Coding\\\\BYD-CRM-v2 && npm run dev'' -NoNewWindow\")",
+      "Bash(powershell -Command \"Start-Process ''http://localhost:5173''\")",
+      "Bash(where.exe:*)",
+      "Bash(cmd /c \"where npm\")",
+      "Bash(gh repo clone:*)",
+      "Bash(dir C:Coding)",
+      "Bash(dir:*)",
+      "Bash(git clone:*)",
+      "Bash(tree:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(node scripts/collectCustomers.js:*)",
+      "Bash(cat:*)",
+      "Bash(node -e:*)",
+      "Bash(node scripts/resetDocumentChecklists.cjs:*)",
+      "Bash(where:*)",
+      "Bash(winget install:*)",
+      "Bash(winget search:*)",
+      "Bash(powershell:*)",
+      "Bash(curl:*)",
+      "Bash(npx supabase --version)",
+      "Bash(npx supabase functions:*)",
+      "Bash(npx supabase login)",
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

@@ -17,7 +17,9 @@ import {
   Trash2,
   Edit,
   X,
+  FileSpreadsheet,
 } from 'lucide-react';
+import { ExcelPopulateModal } from '@/components/Excel';
 import type { Customer } from '@/types';
 import './CustomerDetails.css';
 
@@ -45,6 +47,7 @@ export function CustomerDetails({ customer, onClose }: CustomerDetailsProps) {
   const [activeTab, setActiveTab] = useState<TabId>('details');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
 
   const {
     updateCustomer,
@@ -107,6 +110,15 @@ export function CustomerDetails({ customer, onClose }: CustomerDetailsProps) {
         </div>
 
         <div className="customer-details-actions">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExcelModalOpen(true)}
+            title="Generate Excel"
+          >
+            <FileSpreadsheet size={16} />
+          </Button>
+
           <Button
             variant="ghost"
             size="sm"
@@ -218,6 +230,14 @@ export function CustomerDetails({ customer, onClose }: CustomerDetailsProps) {
           </div>
         </div>
       </Modal>
+
+      {/* Excel Populate Modal */}
+      <ExcelPopulateModal
+        isOpen={isExcelModalOpen}
+        onClose={() => setIsExcelModalOpen(false)}
+        customer={customer}
+        guarantors={customer.guarantors}
+      />
     </div>
   );
 }

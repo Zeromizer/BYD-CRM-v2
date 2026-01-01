@@ -1,0 +1,248 @@
+/**
+ * ExcelPopulateModal Styles
+ */
+
+.excel-populate-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Template Selection */
+.template-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.template-selection label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.template-selection select {
+  padding: 0.75rem;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.template-selection select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* No Templates */
+.no-templates {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-tertiary);
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.no-templates svg {
+  margin-bottom: 0.75rem;
+  opacity: 0.5;
+}
+
+.no-templates p {
+  margin: 0 0 0.25rem;
+  color: var(--text-secondary);
+}
+
+.no-templates small {
+  font-size: 0.8125rem;
+}
+
+/* File Upload Section */
+.file-upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.file-upload-section label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.upload-hint {
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.file-upload-area {
+  margin-top: 0.5rem;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: all 0.15s ease;
+}
+
+.upload-placeholder:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.upload-placeholder span {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.upload-placeholder small {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.file-selected {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.file-selected span {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-selected svg {
+  color: #10b981;
+  flex-shrink: 0;
+}
+
+.remove-file {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: var(--bg-tertiary);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.remove-file:hover {
+  background-color: var(--danger, #dc2626);
+  color: white;
+}
+
+/* Preview Section */
+.preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.preview-section label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.preview-list {
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.preview-item {
+  display: grid;
+  grid-template-columns: 80px 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.8125rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.preview-item:last-child {
+  border-bottom: none;
+}
+
+.preview-cell {
+  font-family: monospace;
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.preview-field {
+  color: var(--text-secondary);
+}
+
+.preview-value {
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-more {
+  padding: 0.5rem 0.875rem;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  text-align: center;
+  background-color: var(--bg-tertiary);
+}
+
+/* Customer Info */
+.customer-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.customer-label {
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
+}
+
+.customer-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Modal Actions */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+}

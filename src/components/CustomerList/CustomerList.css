@@ -23,6 +23,37 @@
   margin: 0;
 }
 
+.list-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.import-export-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--bg-tertiary, #f1f5f9);
+  color: var(--text-secondary, #64748b);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.import-export-btn:hover {
+  background: var(--bg-hover, #e2e8f0);
+  color: var(--text-primary, #1e293b);
+}
+
+.import-export-btn svg {
+  stroke: currentColor;
+  width: 16px;
+  height: 16px;
+}
+
 .add-customer-btn {
   display: flex;
   align-items: center;
@@ -39,7 +70,7 @@
 }
 
 .add-customer-btn:hover {
-  background: var(--primary-dark);
+  background: var(--primary-hover);
 }
 
 /* Search */
@@ -251,4 +282,133 @@
   color: var(--text-tertiary);
   min-width: 30px;
   text-align: right;
+}
+
+/* Import Modal */
+.import-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.import-description {
+  padding: 1rem;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.import-description p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.import-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.import-form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.import-file-upload-area {
+  min-height: 100px;
+}
+
+.import-upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: all 0.15s ease;
+}
+
+.import-upload-placeholder:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.import-upload-placeholder span {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.import-upload-placeholder small {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.import-file-selected {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.import-file-selected span {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import-file-selected svg {
+  color: #10b981;
+  flex-shrink: 0;
+}
+
+.import-remove-file {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: var(--bg-tertiary);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.import-remove-file:hover {
+  background-color: var(--danger, #dc2626);
+  color: white;
+}
+
+.import-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.import-progress span {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.import-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
 }

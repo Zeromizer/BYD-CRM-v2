@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/common';
+import { Button, useToast } from '@/components/common';
 import {
   User,
   Phone,
@@ -22,6 +22,7 @@ interface DetailsTabProps {
 
 export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
   const { fetchGuarantors, saveGuarantors, isSaving } = useCustomerStore();
+  const { success, error: toastError } = useToast();
   const [guarantors, setGuarantors] = useState<Partial<Guarantor>[]>([]);
   const [formData, setFormData] = useState({
     phone: customer.phone || '',
@@ -70,7 +71,18 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
   };
 
   const handleSave = async () => {
-    await onUpdate(customer.id, formData);
+    // Convert empty strings to null for date fields
+    const updates: CustomerUpdate = {
+      ...formData,
+      dob: formData.dob || null,
+      license_start_date: formData.license_start_date || null,
+    };
+    try {
+      await onUpdate(customer.id, updates);
+      success('Customer details saved');
+    } catch (err) {
+      toastError('Failed to save customer details');
+    }
   };
 
   const handleGuarantorChange = (
@@ -97,7 +109,12 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
   };
 
   const handleSaveGuarantors = async () => {
-    await saveGuarantors(customer.id, guarantors);
+    try {
+      await saveGuarantors(customer.id, guarantors);
+      success('Guarantors saved');
+    } catch (err) {
+      toastError('Failed to save guarantors');
+    }
   };
 
   return (

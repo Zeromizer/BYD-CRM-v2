@@ -54,6 +54,7 @@ body {
   /* Colors - Text */
   --text-primary: #0f172a;
   --text-secondary: #475569;
+  --text-tertiary: #64748b;
   --text-muted: #94a3b8;
   --text-inverse: #ffffff;
 
@@ -121,6 +122,7 @@ body {
   /* Colors - Text */
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
+  --text-tertiary: #78889a;
   --text-muted: #64748b;
   --text-inverse: #0f172a;
 
