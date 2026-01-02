@@ -9,6 +9,7 @@ import {
   deleteCustomerDocument,
   deleteCustomerDocuments,
   getAllCustomerDocuments,
+  clearDocumentListCache,
   type CustomerDocument,
 } from '@/services/customerDocumentService';
 import {
@@ -127,21 +128,64 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
   const { templates, fetchTemplates } = useDocumentStore();
   const documentChecklist = customer.document_checklist;
 
-  // Load uploaded documents and templates on mount
+  // Load uploaded documents and templates on mount or customer change
   useEffect(() => {
-    loadDocuments();
-    fetchTemplates();
-  }, [customer.id, fetchTemplates]);
+    let isCancelled = false;
 
+    const loadDocs = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // Load all documents from all folders with timeout
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Request timeout')), 15000)
+        );
+
+        const allDocsFromFolders = await Promise.race([
+          getAllCustomerDocuments(customer.name),
+          timeoutPromise,
+        ]);
+
+        // Don't update state if component unmounted or customer changed
+        if (isCancelled) return;
+
+        setAllUploads(allDocsFromFolders);
+
+        // Also map to uploadedDocs for the category view
+        const allDocs: UploadedDocuments = {};
+        for (const folder of allDocsFromFolders) {
+          allDocs[folder.documentType] = folder.documents;
+        }
+        setUploadedDocs(allDocs);
+      } catch (err) {
+        if (isCancelled) return;
+        setError('Failed to load documents');
+        console.error('Error loading documents:', err);
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadDocs();
+    fetchTemplates();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [customer.id, customer.name, fetchTemplates]);
+
+  // Manual reload function for after uploads/deletes
   const loadDocuments = async () => {
     setIsLoading(true);
     setError(null);
+    // Clear cache first to ensure fresh data
+    clearDocumentListCache(customer.name);
     try {
-      // Load all documents from all folders
       const allDocsFromFolders = await getAllCustomerDocuments(customer.name);
       setAllUploads(allDocsFromFolders);
 
-      // Also map to uploadedDocs for the category view
       const allDocs: UploadedDocuments = {};
       for (const folder of allDocsFromFolders) {
         allDocs[folder.documentType] = folder.documents;
@@ -213,6 +257,9 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
 
     try {
       const uploadedDoc = await uploadCustomerDocument(docId, file, customer.name);
+
+      // Clear cache for this customer so next load gets fresh data
+      clearDocumentListCache(customer.name);
 
       // Update local state
       setUploadedDocs((prev) => ({
@@ -306,7 +353,10 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
     try {
       await deleteCustomerDocument(doc.path);
 
-      // Update local state
+      // Clear cache for this customer
+      clearDocumentListCache(customer.name);
+
+      // Update uploadedDocs state
       setUploadedDocs((prev) => {
         const updated = { ...prev };
         if (updated[docId]) {
@@ -316,6 +366,16 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
           }
         }
         return updated;
+      });
+
+      // Update allUploads state (for "All Uploads" view)
+      setAllUploads((prev) => {
+        return prev
+          .map((folder) => ({
+            ...folder,
+            documents: folder.documents.filter((d) => d.path !== doc.path),
+          }))
+          .filter((folder) => folder.documents.length > 0);
       });
 
       // Update document checklist
@@ -379,6 +439,9 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
       // Delete all selected documents in one batch
       await deleteCustomerDocuments(Array.from(selectedDocs));
 
+      // Clear cache before reload
+      clearDocumentListCache(customer.name);
+
       toastSuccess(`Deleted ${count} documents`);
       setSelectedDocs(new Set());
 
@@ -401,6 +464,25 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
 
   const isPdfFile = (mimeType: string): boolean => {
     return mimeType === 'application/pdf';
+  };
+
+  const isVideoFile = (mimeType: string): boolean => {
+    return mimeType.startsWith('video/');
+  };
+
+  const isExcelFile = (mimeType: string, fileName?: string): boolean => {
+    const excelMimeTypes = [
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.oasis.opendocument.spreadsheet',
+    ];
+    if (excelMimeTypes.includes(mimeType)) return true;
+    // Fallback to extension check
+    if (fileName) {
+      const ext = fileName.split('.').pop()?.toLowerCase();
+      return ['xls', 'xlsx', 'xlsm', 'ods'].includes(ext || '');
+    }
+    return false;
   };
 
   const handleGenerateDocument = () => {
@@ -662,7 +744,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*,.pdf"
+        accept="image/*,.pdf,.xls,.xlsx,.xlsm,.ods,video/*"
         onChange={handleFileSelect}
         hidden
       />
@@ -1020,11 +1102,58 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                 <img src={previewDoc.url} alt={previewDoc.name} />
               ) : isPdfFile(previewDoc.mimeType) ? (
                 <iframe src={previewDoc.url} title={previewDoc.name} />
+              ) : isVideoFile(previewDoc.mimeType) ? (
+                <video controls autoPlay className="video-preview">
+                  <source src={previewDoc.url} type={previewDoc.mimeType} />
+                  Your browser does not support video playback.
+                </video>
+              ) : isExcelFile(previewDoc.mimeType, previewDoc.name) ? (
+                <div className="excel-preview">
+                  <File size={48} className="preview-icon excel" />
+                  <p className="excel-filename">{previewDoc.name}</p>
+                  <p>Excel files cannot be previewed in browser</p>
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const blob = await downloadDocument(previewDoc.path);
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = previewDoc.name;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                      } catch (err) {
+                        setError('Failed to download document');
+                      }
+                    }}
+                  >
+                    <DownloadSimple size={16} className="btn-icon" />
+                    Download Excel File
+                  </Button>
+                </div>
               ) : (
                 <div className="unsupported-preview">
                   <File size={48} className="preview-icon" />
                   <p>Preview not available for this file type</p>
-                  <Button onClick={() => handleDownload(docToDelete?.docId || '')}>
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const blob = await downloadDocument(previewDoc.path);
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = previewDoc.name;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                      } catch (err) {
+                        setError('Failed to download document');
+                      }
+                    }}
+                  >
                     <DownloadSimple size={16} className="btn-icon" />
                     Download to View
                   </Button>

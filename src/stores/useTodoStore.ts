@@ -5,7 +5,8 @@
 
 import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Todo, TodoInsert, TodoUpdate, TodoFilter } from '@/types';
 
 interface TodoState {
@@ -15,6 +16,7 @@ interface TodoState {
   isLoading: boolean;
   isSaving: boolean;
   error: string | null;
+  _channel: RealtimeChannel | null;
 }
 
 interface TodoActions {
@@ -44,11 +46,12 @@ export const useTodoStore = create<TodoState & TodoActions>((set, get) => ({
   isLoading: false,
   isSaving: false,
   error: null,
+  _channel: null,
 
   fetchTodos: async () => {
     set({ isLoading: true, error: null });
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('todos')
         .select('*')
         .order('created_at', { ascending: false });
@@ -64,6 +67,7 @@ export const useTodoStore = create<TodoState & TodoActions>((set, get) => ({
   createTodo: async (data) => {
     set({ isSaving: true, error: null });
     try {
+      const supabase = getSupabase();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
@@ -102,7 +106,7 @@ export const useTodoStore = create<TodoState & TodoActions>((set, get) => ({
   updateTodo: async (id, updates) => {
     set({ isSaving: true, error: null });
     try {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('todos')
         .update(updates)
         .eq('id', id);
@@ -124,7 +128,7 @@ export const useTodoStore = create<TodoState & TodoActions>((set, get) => ({
   deleteTodo: async (id) => {
     set({ isSaving: true, error: null });
     try {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('todos')
         .delete()
         .eq('id', id);
@@ -161,6 +165,14 @@ export const useTodoStore = create<TodoState & TodoActions>((set, get) => ({
   },
 
   subscribeToChanges: () => {
+    // Clean up existing channel before creating new one
+    const existing = get()._channel;
+    if (existing) {
+      existing.unsubscribe();
+    }
+
+    // Use getSupabase() to get current client instance
+    const supabase = getSupabase();
     const channel = supabase
       .channel('todos_changes')
       .on(
@@ -186,10 +198,19 @@ export const useTodoStore = create<TodoState & TodoActions>((set, get) => ({
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[TodoStore] Channel status:', status);
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.log('[TodoStore] Will reconnect in 3s...');
+          setTimeout(() => get().subscribeToChanges(), 3000);
+        }
+      });
+
+    set({ _channel: channel });
 
     return () => {
       channel.unsubscribe();
+      set({ _channel: null });
     };
   },
 

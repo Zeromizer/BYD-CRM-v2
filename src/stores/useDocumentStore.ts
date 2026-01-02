@@ -4,7 +4,8 @@
  */
 
 import { create } from 'zustand';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { DocumentTemplate, DocumentTemplateInsert, DocumentTemplateUpdate, FieldMappings, DocumentCategory } from '@/types';
 
 interface DocumentState {
@@ -13,6 +14,7 @@ interface DocumentState {
   isLoading: boolean;
   isSaving: boolean;
   error: string | null;
+  _channel: RealtimeChannel | null;
 }
 
 interface DocumentActions {
@@ -47,10 +49,12 @@ export const useDocumentStore = create<DocumentState & DocumentActions>((set, ge
   isLoading: false,
   isSaving: false,
   error: null,
+  _channel: null,
 
   fetchTemplates: async () => {
     set({ isLoading: true, error: null });
     try {
+      const supabase = getSupabase();
       const { data, error } = await supabase
         .from('document_templates')
         .select('*')
@@ -83,6 +87,7 @@ export const useDocumentStore = create<DocumentState & DocumentActions>((set, ge
 
   fetchTemplateById: async (id) => {
     try {
+      const supabase = getSupabase();
       const { data, error } = await supabase
         .from('document_templates')
         .select('*')
@@ -115,6 +120,7 @@ export const useDocumentStore = create<DocumentState & DocumentActions>((set, ge
   createTemplate: async (data) => {
     set({ isSaving: true, error: null });
     try {
+      const supabase = getSupabase();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
@@ -153,7 +159,7 @@ export const useDocumentStore = create<DocumentState & DocumentActions>((set, ge
   updateTemplate: async (id, updates) => {
     set({ isSaving: true, error: null });
     try {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('document_templates')
         .update(updates)
         .eq('id', id);
@@ -179,7 +185,7 @@ export const useDocumentStore = create<DocumentState & DocumentActions>((set, ge
       const template = get().templates.find((t) => t.id === id);
 
       // Delete from database
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('document_templates')
         .delete()
         .eq('id', id);
@@ -211,6 +217,7 @@ export const useDocumentStore = create<DocumentState & DocumentActions>((set, ge
   },
 
   uploadTemplateImage: async (file) => {
+    const supabase = getSupabase();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
@@ -236,7 +243,7 @@ export const useDocumentStore = create<DocumentState & DocumentActions>((set, ge
   },
 
   getSignedUrl: async (path) => {
-    const { data, error } = await supabase.storage
+    const { data, error } = await getSupabase().storage
       .from('document-templates')
       .createSignedUrl(path, 3600);
 
@@ -245,7 +252,7 @@ export const useDocumentStore = create<DocumentState & DocumentActions>((set, ge
   },
 
   deleteTemplateImage: async (path) => {
-    const { error } = await supabase.storage
+    const { error } = await getSupabase().storage
       .from('document-templates')
       .remove([path]);
 
@@ -255,6 +262,14 @@ export const useDocumentStore = create<DocumentState & DocumentActions>((set, ge
   },
 
   subscribeToChanges: () => {
+    // Clean up existing channel before creating new one
+    const existing = get()._channel;
+    if (existing) {
+      existing.unsubscribe();
+    }
+
+    // Use getSupabase() to get current client instance
+    const supabase = getSupabase();
     const channel = supabase
       .channel('document_templates_changes')
       .on(
@@ -280,10 +295,19 @@ export const useDocumentStore = create<DocumentState & DocumentActions>((set, ge
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[DocumentStore] Channel status:', status);
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.log('[DocumentStore] Will reconnect in 3s...');
+          setTimeout(() => get().subscribeToChanges(), 3000);
+        }
+      });
+
+    set({ _channel: channel });
 
     return () => {
       channel.unsubscribe();
+      set({ _channel: null });
     };
   },
 

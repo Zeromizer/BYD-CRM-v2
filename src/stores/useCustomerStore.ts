@@ -4,7 +4,8 @@
  */
 
 import { create } from 'zustand';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Customer, CustomerInsert, CustomerUpdate, Guarantor, MilestoneId } from '@/types';
 import { getDefaultChecklistState, getDefaultMilestoneDates, getDefaultDocumentChecklistState } from '@/constants';
 
@@ -14,6 +15,7 @@ interface CustomerState {
   isLoading: boolean;
   isSaving: boolean;
   error: string | null;
+  _channel: RealtimeChannel | null;
 }
 
 interface CustomerActions {
@@ -52,11 +54,12 @@ export const useCustomerStore = create<CustomerState & CustomerActions>((set, ge
   isLoading: false,
   isSaving: false,
   error: null,
+  _channel: null,
 
   fetchCustomers: async () => {
     set({ isLoading: true, error: null });
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('customers')
         .select('*')
         .order('created_at', { ascending: false });
@@ -71,7 +74,7 @@ export const useCustomerStore = create<CustomerState & CustomerActions>((set, ge
 
   fetchCustomerById: async (id) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('customers')
         .select('*')
         .eq('id', id)
@@ -89,7 +92,7 @@ export const useCustomerStore = create<CustomerState & CustomerActions>((set, ge
   createCustomer: async (data) => {
     set({ isSaving: true, error: null });
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getSupabase().auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       // Helper to convert empty strings to null for optional fields
@@ -209,7 +212,7 @@ export const useCustomerStore = create<CustomerState & CustomerActions>((set, ge
         proposal_remarks: toNullIfEmpty(data.proposal_remarks),
       };
 
-      const { data: newCustomer, error } = await supabase
+      const { data: newCustomer, error } = await getSupabase()
         .from('customers')
         .insert(customerData)
         .select()
@@ -235,7 +238,7 @@ export const useCustomerStore = create<CustomerState & CustomerActions>((set, ge
   updateCustomer: async (id, updates) => {
     set({ isSaving: true, error: null });
     try {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('customers')
         .update(updates)
         .eq('id', id);
@@ -257,7 +260,7 @@ export const useCustomerStore = create<CustomerState & CustomerActions>((set, ge
   deleteCustomer: async (id) => {
     set({ isSaving: true, error: null });
     try {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('customers')
         .delete()
         .eq('id', id);
@@ -322,7 +325,7 @@ export const useCustomerStore = create<CustomerState & CustomerActions>((set, ge
 
   fetchGuarantors: async (customerId) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('guarantors')
         .select('*')
         .eq('customer_id', customerId)
@@ -341,7 +344,7 @@ export const useCustomerStore = create<CustomerState & CustomerActions>((set, ge
     set({ isSaving: true, error: null });
     try {
       // Delete existing guarantors
-      await supabase
+      await getSupabase()
         .from('guarantors')
         .delete()
         .eq('customer_id', customerId);
@@ -361,7 +364,7 @@ export const useCustomerStore = create<CustomerState & CustomerActions>((set, ge
           address_continue: g.address_continue || null,
         }));
 
-        const { error } = await supabase
+        const { error } = await getSupabase()
           .from('guarantors')
           .insert(guarantorData);
 
@@ -376,6 +379,14 @@ export const useCustomerStore = create<CustomerState & CustomerActions>((set, ge
   },
 
   subscribeToChanges: () => {
+    // Clean up existing channel before creating new one
+    const existing = get()._channel;
+    if (existing) {
+      existing.unsubscribe();
+    }
+
+    // Use getSupabase() to get current client instance
+    const supabase = getSupabase();
     const channel = supabase
       .channel('customers_changes')
       .on(
@@ -401,10 +412,19 @@ export const useCustomerStore = create<CustomerState & CustomerActions>((set, ge
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[CustomerStore] Channel status:', status);
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.log('[CustomerStore] Will reconnect in 3s...');
+          setTimeout(() => get().subscribeToChanges(), 3000);
+        }
+      });
+
+    set({ _channel: channel });
 
     return () => {
       channel.unsubscribe();
+      set({ _channel: null });
     };
   },
 

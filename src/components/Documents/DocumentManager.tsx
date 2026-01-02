@@ -8,7 +8,7 @@ import { CircleNotch, Cloud, Plus, MagnifyingGlass, File, Image, DotsThreeVertic
 import { Button, Modal } from '@/components/common';
 import { useToast } from '@/components/common';
 import { useDocumentStore } from '@/stores/useDocumentStore';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import type { DocumentTemplate, DocumentCategory } from '@/types';
 import './DocumentManager.css';
 
@@ -193,7 +193,7 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
   const handleSyncOneDrive = async () => {
     setIsSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-onedrive');
+      const { data, error } = await getSupabase().functions.invoke('sync-onedrive');
 
       if (error) {
         throw new Error(error.message || 'Sync failed');

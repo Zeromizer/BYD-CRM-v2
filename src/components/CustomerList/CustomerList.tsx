@@ -203,7 +203,24 @@ export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
       <div className="list-header">
         <h2 className="list-title">Customers</h2>
         <div className="list-header-actions">
-          {!isMobile && (
+          {isMobile ? (
+            /* Mobile: Show filter tabs in header */
+            <div className="mobile-filter-tabs">
+              <button
+                onClick={() => setFilterTab('active')}
+                className={`mobile-filter-tab ${filterTab === 'active' ? 'active' : ''}`}
+              >
+                Active
+              </button>
+              <button
+                onClick={() => setFilterTab('archived')}
+                className={`mobile-filter-tab ${filterTab === 'archived' ? 'active' : ''}`}
+              >
+                <Package size={14} />
+                Archived
+              </button>
+            </div>
+          ) : (
             <>
               <button
                 onClick={() => setShowImportModal(true)}
@@ -238,24 +255,35 @@ export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="search-input"
         />
+        {isMobile && (
+          <button
+            className="mobile-add-btn"
+            onClick={onAddCustomer}
+            aria-label="Add Customer"
+          >
+            <Plus size={20} />
+          </button>
+        )}
       </div>
 
-      {/* Tabs */}
-      <div className="filter-tabs">
-        <button
-          onClick={() => setFilterTab('active')}
-          className={`filter-tab ${filterTab === 'active' ? 'active' : ''}`}
-        >
-          Active
-        </button>
-        <button
-          onClick={() => setFilterTab('archived')}
-          className={`filter-tab ${filterTab === 'archived' ? 'active' : ''}`}
-        >
-          <Package size={16} />
-          Archived
-        </button>
-      </div>
+      {/* Tabs - Desktop only */}
+      {!isMobile && (
+        <div className="filter-tabs">
+          <button
+            onClick={() => setFilterTab('active')}
+            className={`filter-tab ${filterTab === 'active' ? 'active' : ''}`}
+          >
+            Active
+          </button>
+          <button
+            onClick={() => setFilterTab('archived')}
+            className={`filter-tab ${filterTab === 'archived' ? 'active' : ''}`}
+          >
+            <Package size={16} />
+            Archived
+          </button>
+        </div>
+      )}
 
       {/* Milestone Filter */}
       <div className="milestone-filters">
@@ -297,16 +325,6 @@ export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
         )}
       </div>
 
-      {/* Mobile FAB */}
-      {isMobile && (
-        <button
-          className="add-customer-fab touch-target"
-          onClick={onAddCustomer}
-          aria-label="Add Customer"
-        >
-          <Plus size={24} className="fab-icon" />
-        </button>
-      )}
 
       {/* Import Modal */}
       <Modal

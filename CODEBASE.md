@@ -383,6 +383,82 @@ npm run preview  # Preview production build
 
 ---
 
+## Supabase Architecture
+
+### Supabase Client (`src/lib/supabase.ts`)
+Simple singleton client:
+```typescript
+const supabaseInstance = createClient(url, key, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+});
+
+export function getSupabase() {
+  return supabaseInstance;
+}
+```
+
+### Auth State Change Pattern (Critical)
+The `onAuthStateChange` callback in Supabase has a **deadlock issue** - you cannot call other Supabase methods inside an async callback. This causes requests to hang indefinitely.
+
+**Solution**: Use `setTimeout` to dispatch async work outside the callback:
+
+```typescript
+// In useAuthStore.ts
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN' && session?.user) {
+    // MUST use setTimeout to avoid deadlock
+    setTimeout(async () => {
+      const { data: profile } = await getSupabase()
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+      // ... update state
+    }, 0);
+  }
+});
+```
+
+See: https://supabase.com/docs/reference/javascript/auth-onauthstatechange
+
+### Store Realtime Pattern
+All stores (Customer, Document, Todo, Excel) follow this pattern for realtime subscriptions:
+
+```typescript
+subscribeToChanges: () => {
+  const existing = get()._channel;
+  if (existing) existing.unsubscribe();
+
+  const channel = getSupabase()
+    .channel('table_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'xxx' },
+      (payload) => { /* handle INSERT/UPDATE/DELETE */ }
+    )
+    .subscribe((status) => {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        setTimeout(() => get().subscribeToChanges(), 3000);
+      }
+    });
+
+  set({ _channel: channel });
+  return () => { channel.unsubscribe(); set({ _channel: null }); };
+}
+```
+
+### Customer Document Service (`src/services/customerDocumentService.ts`)
+Optimized for performance:
+- **URL caching** - 6-hour cache for signed URLs
+- **Document list caching** - 2-minute cache per customer
+- **Request deduplication** - Prevents duplicate in-flight requests
+- **Batch operations** - Fetches all folders in one call, batches signed URL requests
+- **Concurrency limiting** - Max 6 concurrent requests
+
+---
+
 ## Quick Reference
 
 ### Adding a Feature

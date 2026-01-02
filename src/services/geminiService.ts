@@ -4,7 +4,7 @@
  * API key stored in Edge Function Secrets (not client-side)
  */
 
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 
 export interface ExtractedIDData {
   name: string;
@@ -47,6 +47,7 @@ export async function extractIDWithGemini(
   onProgress?.({ stage: 'Analyzing ID with AI...', progress: 10 });
 
   // Verify user is authenticated
+  const supabase = getSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     throw new Error('Please sign in to use the scanner.');
@@ -104,6 +105,7 @@ export async function extractLicenseWithGemini(
 
   onProgress?.({ stage: 'Analyzing license with AI...', progress: 10 });
 
+  const supabase = getSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     throw new Error('Please sign in to use the scanner.');

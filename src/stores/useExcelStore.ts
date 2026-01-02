@@ -4,7 +4,8 @@
  */
 
 import { create } from 'zustand';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { ExcelTemplate, ExcelTemplateInsert, ExcelTemplateUpdate, ExcelFieldMappings } from '@/types';
 import { parseExcelFile } from '@/services/excelService';
 
@@ -14,6 +15,7 @@ interface ExcelState {
   isLoading: boolean;
   isSaving: boolean;
   error: string | null;
+  _channel: RealtimeChannel | null;
 }
 
 interface ExcelActions {
@@ -48,11 +50,12 @@ export const useExcelStore = create<ExcelState & ExcelActions>((set, get) => ({
   isLoading: false,
   isSaving: false,
   error: null,
+  _channel: null,
 
   fetchTemplates: async () => {
     set({ isLoading: true, error: null });
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('excel_templates')
         .select('*')
         .order('created_at', { ascending: false });
@@ -67,7 +70,7 @@ export const useExcelStore = create<ExcelState & ExcelActions>((set, get) => ({
 
   fetchTemplateById: async (id) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('excel_templates')
         .select('*')
         .eq('id', id)
@@ -85,6 +88,7 @@ export const useExcelStore = create<ExcelState & ExcelActions>((set, get) => ({
   createTemplate: async (data) => {
     set({ isSaving: true, error: null });
     try {
+      const supabase = getSupabase();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
@@ -119,7 +123,7 @@ export const useExcelStore = create<ExcelState & ExcelActions>((set, get) => ({
   updateTemplate: async (id, updates) => {
     set({ isSaving: true, error: null });
     try {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('excel_templates')
         .update(updates)
         .eq('id', id);
@@ -145,7 +149,7 @@ export const useExcelStore = create<ExcelState & ExcelActions>((set, get) => ({
       const template = get().templates.find((t) => t.id === id);
 
       // Delete from database
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('excel_templates')
         .delete()
         .eq('id', id);
@@ -177,6 +181,7 @@ export const useExcelStore = create<ExcelState & ExcelActions>((set, get) => ({
   },
 
   uploadExcelFile: async (file, skipParsing = false) => {
+    const supabase = getSupabase();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
@@ -206,7 +211,7 @@ export const useExcelStore = create<ExcelState & ExcelActions>((set, get) => ({
   },
 
   downloadExcelFile: async (path) => {
-    const { data, error } = await supabase.storage
+    const { data, error } = await getSupabase().storage
       .from('excel-templates')
       .download(path);
 
@@ -215,7 +220,7 @@ export const useExcelStore = create<ExcelState & ExcelActions>((set, get) => ({
   },
 
   deleteExcelFile: async (path) => {
-    const { error } = await supabase.storage
+    const { error } = await getSupabase().storage
       .from('excel-templates')
       .remove([path]);
 
@@ -225,6 +230,14 @@ export const useExcelStore = create<ExcelState & ExcelActions>((set, get) => ({
   },
 
   subscribeToChanges: () => {
+    // Clean up existing channel before creating new one
+    const existing = get()._channel;
+    if (existing) {
+      existing.unsubscribe();
+    }
+
+    // Use getSupabase() to get current client instance
+    const supabase = getSupabase();
     const channel = supabase
       .channel('excel_templates_changes')
       .on(
@@ -250,10 +263,19 @@ export const useExcelStore = create<ExcelState & ExcelActions>((set, get) => ({
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[ExcelStore] Channel status:', status);
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.log('[ExcelStore] Will reconnect in 3s...');
+          setTimeout(() => get().subscribeToChanges(), 3000);
+        }
+      });
+
+    set({ _channel: channel });
 
     return () => {
       channel.unsubscribe();
+      set({ _channel: null });
     };
   },
 

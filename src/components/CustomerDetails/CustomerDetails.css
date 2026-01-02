@@ -538,6 +538,36 @@
   text-align: center;
 }
 
+/* Video preview */
+.document-preview .video-preview {
+  max-width: 100%;
+  max-height: 70vh;
+  border-radius: var(--radius-md);
+  background: #000;
+}
+
+/* Excel preview */
+.excel-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.excel-preview .preview-icon.excel {
+  color: #217346;
+}
+
+.excel-preview .excel-filename {
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
 /* Confirmation Actions */
 .confirmation-actions {
   display: flex;

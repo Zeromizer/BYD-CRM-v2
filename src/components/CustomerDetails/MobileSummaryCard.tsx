@@ -1,6 +1,7 @@
+import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, DotsThree, Phone, ChatCircle, Envelope } from '@phosphor-icons/react';
 import type { Customer } from '@/types';
-import { CHECKLISTS, getOverallProgress, getMilestoneById } from '@/constants/milestones';
+import { getOverallProgress, getMilestoneById } from '@/constants/milestones';
 import './MobileSummaryCard.css';
 
 interface MobileSummaryCardProps {
@@ -10,47 +11,24 @@ interface MobileSummaryCardProps {
 }
 
 export function MobileSummaryCard({ customer, onBack, onMoreActions }: MobileSummaryCardProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const milestone = getMilestoneById(customer.current_milestone);
   const progress = getOverallProgress(customer.checklist);
 
-  // Get next uncompleted step
-  const getNextStep = (): string | null => {
-    const currentChecklist = CHECKLISTS[customer.current_milestone];
-    const checklistState = customer.checklist?.[customer.current_milestone] || {};
-
-    for (const item of currentChecklist) {
-      if (!checklistState[item.id]) {
-        return item.label;
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
       }
+    };
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-    return null;
-  };
-
-  // Get next due date from milestone dates
-  const getNextDueDate = (): string | null => {
-    const dates = customer.milestone_dates;
-    if (!dates) return null;
-
-    const milestoneOrder: (keyof typeof dates)[] = ['test_drive', 'close_deal', 'registration', 'delivery', 'nps'];
-    const currentIndex = milestoneOrder.indexOf(customer.current_milestone);
-
-    // Check current and future milestones for dates
-    for (let i = currentIndex; i < milestoneOrder.length; i++) {
-      const date = dates[milestoneOrder[i]];
-      if (date) {
-        return formatDate(date);
-      }
-    }
-    return null;
-  };
-
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
-  const nextStep = getNextStep();
-  const nextDueDate = getNextDueDate();
+  }, [menuOpen]);
 
   // Get initials for avatar
   const getInitials = (name: string): string => {
@@ -67,18 +45,26 @@ export function MobileSummaryCard({ customer, onBack, onMoreActions }: MobileSum
     if (customer.phone) {
       window.location.href = `tel:${customer.phone}`;
     }
+    setMenuOpen(false);
   };
 
   const handleMessage = () => {
     if (customer.phone) {
       window.location.href = `sms:${customer.phone}`;
     }
+    setMenuOpen(false);
   };
 
   const handleEmail = () => {
     if (customer.email) {
       window.location.href = `mailto:${customer.email}`;
     }
+    setMenuOpen(false);
+  };
+
+  const handleMoreActions = () => {
+    setMenuOpen(false);
+    onMoreActions?.();
   };
 
   return (
@@ -99,11 +85,59 @@ export function MobileSummaryCard({ customer, onBack, onMoreActions }: MobileSum
             {customer.vsa_make_model || 'No vehicle'}{customer.vsa_variant ? ` ${customer.vsa_variant}` : ''}
           </p>
         </div>
-        {onMoreActions && (
-          <button type="button" className="summary-more-btn touch-target" onClick={onMoreActions}>
+        <div className="summary-menu-container" ref={menuRef}>
+          <button
+            type="button"
+            className="summary-more-btn touch-target"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
             <DotsThree size={24} weight="bold" className="more-icon" />
           </button>
-        )}
+          {menuOpen && (
+            <div className="summary-dropdown-menu">
+              <button
+                type="button"
+                className="dropdown-menu-item"
+                onClick={handleCall}
+                disabled={!customer.phone}
+              >
+                <Phone size={18} />
+                <span>Call</span>
+              </button>
+              <button
+                type="button"
+                className="dropdown-menu-item"
+                onClick={handleMessage}
+                disabled={!customer.phone}
+              >
+                <ChatCircle size={18} />
+                <span>Message</span>
+              </button>
+              <button
+                type="button"
+                className="dropdown-menu-item"
+                onClick={handleEmail}
+                disabled={!customer.email}
+              >
+                <Envelope size={18} />
+                <span>Email</span>
+              </button>
+              {onMoreActions && (
+                <>
+                  <div className="dropdown-menu-divider" />
+                  <button
+                    type="button"
+                    className="dropdown-menu-item"
+                    onClick={handleMoreActions}
+                  >
+                    <DotsThree size={18} weight="bold" />
+                    <span>More Actions</span>
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Progress Row */}
@@ -124,56 +158,6 @@ export function MobileSummaryCard({ customer, onBack, onMoreActions }: MobileSum
           />
         </div>
         <span className="summary-progress-text">{progress}%</span>
-      </div>
-
-      {/* Key Info Row */}
-      <div className="summary-key-info">
-        {nextDueDate && (
-          <div className="key-info-item">
-            <span className="key-info-label">Due</span>
-            <span className="key-info-value">{nextDueDate}</span>
-          </div>
-        )}
-        {nextStep && (
-          <div className="key-info-item next-step">
-            <span className="key-info-label">Next</span>
-            <span className="key-info-value truncate">{nextStep}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Quick Actions Row */}
-      <div className="summary-actions">
-        <button
-          type="button"
-          className="summary-action-btn touch-target"
-          onClick={handleCall}
-          disabled={!customer.phone}
-          title={customer.phone || 'No phone'}
-        >
-          <Phone size={18} className="action-icon" />
-          <span>Call</span>
-        </button>
-        <button
-          type="button"
-          className="summary-action-btn touch-target"
-          onClick={handleMessage}
-          disabled={!customer.phone}
-          title={customer.phone || 'No phone'}
-        >
-          <ChatCircle size={18} className="action-icon" />
-          <span>Message</span>
-        </button>
-        <button
-          type="button"
-          className="summary-action-btn touch-target"
-          onClick={handleEmail}
-          disabled={!customer.email}
-          title={customer.email || 'No email'}
-        >
-          <Envelope size={18} className="action-icon" />
-          <span>Email</span>
-        </button>
       </div>
     </div>
   );

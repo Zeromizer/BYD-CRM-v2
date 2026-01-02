@@ -444,8 +444,44 @@
   margin-top: 0.5rem;
 }
 
-/* Mobile FAB */
-.add-customer-fab {
+/* Mobile Filter Tabs in Header */
+.mobile-filter-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.mobile-filter-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.mobile-filter-tab.active {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-filter-tab svg {
+  flex-shrink: 0;
+}
+
+/* Mobile Add Button in Search Bar */
+.mobile-add-btn {
   display: none;
 }
 
@@ -477,25 +513,45 @@
   margin-top: 0;
   padding-top: 8px;
   padding-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .customer-list.mobile .search-input {
   font-size: 16px; /* Prevent iOS zoom */
   min-height: var(--touch-target-min);
   padding: 12px 12px 12px 40px;
+  flex: 1;
 }
 
 .customer-list.mobile .search-icon {
   left: calc(var(--mobile-padding) + 12px);
 }
 
-.customer-list.mobile .filter-tabs {
-  padding: 8px var(--mobile-padding) 0;
+.customer-list.mobile .mobile-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.customer-list.mobile .filter-tab {
-  padding: 10px 16px;
-  min-height: var(--touch-target-min);
+.customer-list.mobile .mobile-add-btn:active {
+  background: var(--primary-hover);
+  transform: scale(0.95);
+}
+
+.customer-list.mobile .mobile-add-btn svg {
+  flex-shrink: 0;
 }
 
 .customer-list.mobile .milestone-filters {
@@ -538,26 +594,7 @@
   height: 6px;
 }
 
-.customer-list.mobile .add-customer-fab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: fixed;
-  bottom: calc(var(--panel-indicator-height) + 16px);
-  right: var(--mobile-padding);
-  width: 56px;
-  height: 56px;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  box-shadow: var(--shadow-lg);
-  cursor: pointer;
-  z-index: 100;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.customer-list.mobile .add-customer-fab:active {
-  transform: scale(0.95);
-  background: var(--primary-hover);
+/* Reduce bottom padding since FAB is removed */
+.customer-list.mobile .list-content {
+  padding-bottom: calc(var(--panel-indicator-height) + 16px);
 }

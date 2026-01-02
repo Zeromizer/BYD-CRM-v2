@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import { loadGeminiApiKey, clearGeminiApiKeyCache } from '@/services/geminiService';
 import type { Profile, AuthState, SignInCredentials, SignUpCredentials } from '@/types';
 
@@ -30,6 +30,8 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   initialize: async () => {
     try {
       set({ isLoading: true, error: null });
+
+      const supabase = getSupabase();
 
       // Get current session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -63,28 +65,34 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
         set({ isInitialized: true, isLoading: false });
       }
 
-      // Listen for auth changes
-      supabase.auth.onAuthStateChange(async (event, session) => {
+      // Set up auth listener
+      // IMPORTANT: onAuthStateChange callback must NOT be async and must NOT call
+      // other Supabase methods directly - this causes deadlock! Use setTimeout to
+      // dispatch async operations outside the callback.
+      // See: https://supabase.com/docs/reference/javascript/auth-onauthstatechange
+      supabase.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+          // Dispatch async work outside callback to avoid deadlock
+          setTimeout(async () => {
+            const { data: profile } = await getSupabase()
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
 
-          // Preload Gemini API key on sign in
-          loadGeminiApiKey().catch(console.error);
+            loadGeminiApiKey().catch(console.error);
 
-          set({
-            user: session.user,
-            session,
-            profile: profile as Profile | null,
-          });
+            useAuthStore.setState({
+              user: session.user,
+              session,
+              profile: profile as Profile | null,
+            });
+          }, 0);
         } else if (event === 'SIGNED_OUT') {
           clearGeminiApiKeyCache();
-          set({ user: null, session: null, profile: null });
+          useAuthStore.setState({ user: null, session: null, profile: null });
         } else if (event === 'TOKEN_REFRESHED' && session) {
-          set({ session });
+          useAuthStore.setState({ session });
         }
       });
     } catch (error) {
@@ -99,7 +107,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   signIn: async ({ email, password }) => {
     set({ isLoading: true, error: null });
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await getSupabase().auth.signInWithPassword({
         email,
         password,
       });
@@ -117,7 +125,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   signUp: async ({ email, password, displayName }) => {
     set({ isLoading: true, error: null });
     try {
-      const { error } = await supabase.auth.signUp({
+      const { error } = await getSupabase().auth.signUp({
         email,
         password,
         options: {
@@ -138,7 +146,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   signOut: async () => {
     set({ isLoading: true, error: null });
     try {
-      const { error } = await supabase.auth.signOut();
+      const { error } = await getSupabase().auth.signOut();
       if (error) throw error;
       clearGeminiApiKeyCache();
       set({ user: null, session: null, profile: null, isLoading: false });
@@ -151,7 +159,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   resetPassword: async (email) => {
     set({ isLoading: true, error: null });
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await getSupabase().auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
@@ -165,7 +173,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
   updatePassword: async (newPassword) => {
     set({ isLoading: true, error: null });
     try {
-      const { error } = await supabase.auth.updateUser({
+      const { error } = await getSupabase().auth.updateUser({
         password: newPassword,
       });
       if (error) throw error;
@@ -182,7 +190,7 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
 
     set({ isLoading: true, error: null });
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('profiles')
         .update(updates)
         .eq('id', user.id)

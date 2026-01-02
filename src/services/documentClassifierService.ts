@@ -4,7 +4,7 @@
  * Identifies document type, extracts customer name, suggests folder placement
  */
 
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 
 // Document types that can be classified
 export const DOCUMENT_TYPES = {
@@ -73,6 +73,7 @@ export async function classifyDocument(
   onProgress?.({ stage: 'Analyzing document...', progress: 10 });
 
   // Verify user is authenticated
+  const supabase = getSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     throw new Error('Please sign in to use the document scanner.');

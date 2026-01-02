@@ -4,7 +4,7 @@
  */
 
 import { uploadCustomerDocument } from './customerDocumentService';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import type { Customer, DocumentChecklistState } from '@/types';
 
 // Map of old folder names/file patterns to new document types
@@ -180,6 +180,7 @@ export async function migrateCustomerDocuments(
   // Refresh session before starting uploads to ensure valid token
   // This is important after AI classification which can take time
   console.log('[Migration] Refreshing session before uploads...');
+  const supabase = getSupabase();
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
     const { error: refreshError } = await supabase.auth.refreshSession();
@@ -321,7 +322,16 @@ export function createMigrationFiles(
  * Filter files to only include supported document types
  */
 export function filterSupportedFiles(files: MigrationFile[]): MigrationFile[] {
-  const supportedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp'];
+  const supportedExtensions = [
+    // Images
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.tif',
+    // Documents
+    '.pdf',
+    // Excel
+    '.xls', '.xlsx', '.xlsm', '.ods',
+    // Video
+    '.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v',
+  ];
 
   return files.filter(f => {
     const ext = f.name.toLowerCase().slice(f.name.lastIndexOf('.'));
