@@ -4,21 +4,9 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { CircleNotch, Cloud, Plus, MagnifyingGlass, File, Image, DotsThreeVertical, PencilSimple, Printer, Copy, Trash, UploadSimple, X } from '@phosphor-icons/react';
 import { Button, Modal } from '@/components/common';
 import { useToast } from '@/components/common';
-import {
-  Plus,
-  Edit2,
-  Trash2,
-  FileText,
-  Upload,
-  Image,
-  Search,
-  MoreVertical,
-  Copy,
-  Cloud,
-  RefreshCw,
-} from 'lucide-react';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { supabase } from '@/lib/supabase';
 import type { DocumentTemplate, DocumentCategory } from '@/types';
@@ -248,7 +236,7 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
             variant="outline"
             onClick={handleSyncOneDrive}
             isLoading={isSyncing}
-            leftIcon={isSyncing ? <RefreshCw size={16} className="spinning" /> : <Cloud size={16} />}
+            leftIcon={isSyncing ? <CircleNotch size={16} className="spinning" /> : <Cloud size={16} />}
           >
             {isSyncing ? 'Syncing...' : 'Sync OneDrive'}
           </Button>
@@ -262,14 +250,14 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
       {error && (
         <div className="dm-error">
           <span>{error}</span>
-          <button onClick={clearError}>&times;</button>
+          <button onClick={clearError}><X size={14} /></button>
         </div>
       )}
 
       {/* Filters */}
       <div className="dm-filters">
         <div className="dm-search">
-          <Search size={16} />
+          <MagnifyingGlass size={16} className="search-icon" />
           <input
             type="text"
             placeholder="Search templates..."
@@ -296,7 +284,7 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
         <div className="dm-loading">Loading templates...</div>
       ) : filteredTemplates.length === 0 ? (
         <div className="dm-empty">
-          <FileText size={48} strokeWidth={1} />
+          <File size={48} className="empty-icon" />
           <h3>No templates found</h3>
           <p>
             {searchQuery || activeCategory !== 'all'
@@ -319,7 +307,7 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
                   <img src={template.image_url} alt={template.name} />
                 ) : (
                   <div className="template-preview-placeholder">
-                    <Image size={32} strokeWidth={1} />
+                    <Image size={32} className="placeholder-icon" />
                     <span>No image</span>
                   </div>
                 )}
@@ -339,18 +327,18 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
                         setOpenDropdownId(openDropdownId === template.id ? null : template.id);
                       }}
                     >
-                      <MoreVertical size={16} />
+                      <DotsThreeVertical size={18} className="more-icon" />
                     </button>
                     {openDropdownId === template.id && (
                       <div className="action-dropdown">
                         <button onClick={() => { onEditTemplate?.(template); setOpenDropdownId(null); }}>
-                          <Edit2 size={14} /> Edit Fields
+                          <PencilSimple size={14} className="menu-icon" /> Edit Fields
                         </button>
                         <button onClick={() => { onPrintTemplate?.(template); setOpenDropdownId(null); }}>
-                          <FileText size={14} /> Print Preview
+                          <Printer size={14} className="menu-icon" /> Print Preview
                         </button>
                         <button onClick={() => handleDuplicateTemplate(template)}>
-                          <Copy size={14} /> Duplicate
+                          <Copy size={14} className="menu-icon" /> Duplicate
                         </button>
                         <button
                           className="danger"
@@ -360,7 +348,7 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
                             setOpenDropdownId(null);
                           }}
                         >
-                          <Trash2 size={14} /> Delete
+                          <Trash size={14} className="menu-icon" /> Delete
                         </button>
                       </div>
                     )}
@@ -440,7 +428,7 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
                 </div>
               ) : (
                 <div className="upload-placeholder" onClick={() => fileInputRef.current?.click()}>
-                  <Upload size={24} />
+                  <UploadSimple size={24} className="upload-icon" />
                   <span>Click to upload image</span>
                   <small>PNG, JPG up to 10MB</small>
                 </div>

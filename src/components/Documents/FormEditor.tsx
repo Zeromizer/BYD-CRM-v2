@@ -4,14 +4,8 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { ArrowLeft, UploadSimple, FloppyDisk, Trash, TextT } from '@phosphor-icons/react';
 import { Button, Modal } from '@/components/common';
-import {
-  Save,
-  Trash2,
-  Type,
-  ArrowLeft,
-  Upload,
-} from 'lucide-react';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import {
   FONT_SIZES,
@@ -460,10 +454,10 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
         </div>
 
         <div className="fe-toolbar-right">
-          <Button variant="outline" onClick={() => setShowImageUpload(true)} leftIcon={<Upload size={14} />}>
+          <Button variant="outline" onClick={() => setShowImageUpload(true)} leftIcon={<UploadSimple size={16} />}>
             Upload Image
           </Button>
-          <Button onClick={handleSave} isLoading={isSaving} leftIcon={<Save size={14} />}>
+          <Button onClick={handleSave} isLoading={isSaving} leftIcon={<FloppyDisk size={16} />}>
             Save
           </Button>
         </div>
@@ -500,7 +494,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 style={{ width: 800, height: 1000 }}
                 onClick={() => setShowImageUpload(true)}
               >
-                <Upload size={48} strokeWidth={1} />
+                <UploadSimple size={48} className="upload-icon" />
                 <p>Click to upload template image</p>
               </div>
             )}
@@ -592,7 +586,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 onClick={() => deleteField(selectedFieldId!)}
                 title="Delete Field"
               >
-                <Trash2 size={16} />
+                <Trash size={16} className="delete-icon" />
               </button>
             </div>
 
@@ -744,7 +738,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                     className="field-option"
                     onClick={() => addField(field.key)}
                   >
-                    <Type size={14} />
+                    <TextT size={16} className="field-icon" />
                     {field.label}
                   </button>
                 ))}
@@ -766,7 +760,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
             className="upload-dropzone"
             onClick={() => fileInputRef.current?.click()}
           >
-            <Upload size={32} />
+            <UploadSimple size={32} className="upload-icon" />
             <p>Click to select an image</p>
             <small>PNG, JPG up to 10MB</small>
           </div>

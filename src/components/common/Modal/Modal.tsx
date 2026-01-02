@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { X } from '@phosphor-icons/react';
 import './Modal.css';
 
 interface ModalProps {

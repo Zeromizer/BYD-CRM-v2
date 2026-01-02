@@ -1,6 +1,6 @@
 .dashboard {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 340px 1fr;
   gap: 0;
   height: calc(100vh - 60px - 3rem);
   min-height: 500px;
@@ -8,7 +8,7 @@
 
 /* When customer is selected, use 3-column layout with sidebar on right */
 .dashboard.has-customer {
-  grid-template-columns: 280px 1fr 280px;
+  grid-template-columns: 340px 1fr 300px;
   gap: 0;
 }
 
@@ -54,18 +54,22 @@
 
 /* Responsive - larger screens */
 @media (min-width: 1400px) {
+  .dashboard {
+    grid-template-columns: 360px 1fr;
+  }
+
   .dashboard.has-customer {
-    grid-template-columns: 320px 1fr 300px;
+    grid-template-columns: 360px 1fr 320px;
   }
 }
 
 @media (max-width: 1200px) {
   .dashboard {
-    grid-template-columns: 260px 1fr;
+    grid-template-columns: 300px 1fr;
   }
 
   .dashboard.has-customer {
-    grid-template-columns: 260px 1fr 260px;
+    grid-template-columns: 300px 1fr 280px;
   }
 }
 

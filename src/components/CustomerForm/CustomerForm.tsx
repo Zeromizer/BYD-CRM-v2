@@ -1,6 +1,6 @@
 import { useState } from 'react';
+import { Camera, User, Phone, Envelope, CreditCard, Briefcase, MapPin } from '@phosphor-icons/react';
 import { Button } from '@/components/common';
-import { User, Phone, Mail, CreditCard, Briefcase, MapPin, ScanLine } from 'lucide-react';
 import { IDScanner, type ScannedData } from '@/components/IDScanner';
 import './CustomerForm.css';
 
@@ -58,7 +58,7 @@ export function CustomerForm({ initialData, onSubmit, onCancel, isLoading }: Cus
               type="button"
               variant="outline"
               onClick={() => setShowScanner(true)}
-              leftIcon={<ScanLine size={16} />}
+              leftIcon={<Camera size={18} />}
               className="scan-id-btn"
             >
               Scan ID / License
@@ -71,7 +71,7 @@ export function CustomerForm({ initialData, onSubmit, onCancel, isLoading }: Cus
           {/* Name */}
           <div className="form-group full-width">
             <label htmlFor="name" className="form-label required">
-              <User size={14} />
+              <User size={16} className="label-icon" />
               Customer Name
             </label>
             <input
@@ -89,7 +89,7 @@ export function CustomerForm({ initialData, onSubmit, onCancel, isLoading }: Cus
         {/* Phone */}
         <div className="form-group">
           <label htmlFor="phone" className="form-label">
-            <Phone size={14} />
+            <Phone size={16} className="label-icon" />
             Phone
           </label>
           <input
@@ -106,7 +106,7 @@ export function CustomerForm({ initialData, onSubmit, onCancel, isLoading }: Cus
         {/* Email */}
         <div className="form-group">
           <label htmlFor="email" className="form-label">
-            <Mail size={14} />
+            <Envelope size={16} className="label-icon" />
             Email
           </label>
           <input
@@ -123,7 +123,7 @@ export function CustomerForm({ initialData, onSubmit, onCancel, isLoading }: Cus
         {/* NRIC */}
         <div className="form-group">
           <label htmlFor="nric" className="form-label">
-            <CreditCard size={14} />
+            <CreditCard size={16} className="label-icon" />
             NRIC/FIN
           </label>
           <input
@@ -155,7 +155,7 @@ export function CustomerForm({ initialData, onSubmit, onCancel, isLoading }: Cus
         {/* Occupation */}
         <div className="form-group">
           <label htmlFor="occupation" className="form-label">
-            <Briefcase size={14} />
+            <Briefcase size={16} className="label-icon" />
             Occupation
           </label>
           <input
@@ -188,7 +188,7 @@ export function CustomerForm({ initialData, onSubmit, onCancel, isLoading }: Cus
         {/* Address */}
         <div className="form-group full-width">
           <label htmlFor="address" className="form-label">
-            <MapPin size={14} />
+            <MapPin size={16} className="label-icon" />
             Address
           </label>
           <input

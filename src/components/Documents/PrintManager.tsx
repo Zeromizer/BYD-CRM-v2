@@ -4,18 +4,8 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { ArrowLeft, User, File, CaretLeft, CaretRight, DownloadSimple, Printer, MagnifyingGlass, X, Check } from '@phosphor-icons/react';
 import { Button, Modal } from '@/components/common';
-import {
-  Printer,
-  Download,
-  ChevronLeft,
-  ChevronRight,
-  ArrowLeft,
-  User,
-  Search,
-  X,
-  FileText,
-} from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { useCustomerStore } from '@/stores/useCustomerStore';
@@ -522,12 +512,12 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
           <div className="pm-customer-selector">
             {selectedCustomer ? (
               <button className="selected-customer" onClick={() => setShowCustomerSelect(true)}>
-                <User size={16} />
+                <User size={16} className="customer-icon" />
                 <span>{selectedCustomer.name}</span>
               </button>
             ) : (
               <Button variant="outline" onClick={() => setShowCustomerSelect(true)}>
-                <User size={14} />
+                <User size={16} className="customer-icon" />
                 Select Customer
               </Button>
             )}
@@ -542,7 +532,7 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
                 onClick={() => setCurrentTemplateIndex((i) => Math.max(0, i - 1))}
                 disabled={currentTemplateIndex === 0}
               >
-                <ChevronLeft size={18} />
+                <CaretLeft size={16} className="nav-icon" />
               </button>
               <span>
                 {currentTemplateIndex + 1} / {selectedTemplates.length}
@@ -553,13 +543,13 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
                 }
                 disabled={currentTemplateIndex === selectedTemplates.length - 1}
               >
-                <ChevronRight size={18} />
+                <CaretRight size={16} className="nav-icon" />
               </button>
             </div>
           )}
 
           <Button variant="ghost" onClick={() => setShowTemplateSelect(true)}>
-            <FileText size={14} />
+            <File size={16} className="template-icon" />
             Templates ({selectedTemplates.length})
           </Button>
 
@@ -589,11 +579,11 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
             onClick={generatePdf}
             isLoading={isGeneratingPdf}
             disabled={!selectedCustomer}
-            leftIcon={<Download size={14} />}
+            leftIcon={<DownloadSimple size={16} />}
           >
             Download PDF
           </Button>
-          <Button onClick={handlePrint} disabled={!selectedCustomer} leftIcon={<Printer size={14} />}>
+          <Button onClick={handlePrint} disabled={!selectedCustomer} leftIcon={<Printer size={16} />}>
             Print
           </Button>
         </div>
@@ -609,7 +599,7 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
           <canvas ref={canvasRef} className="pm-canvas" />
           {!selectedCustomer && (
             <div className="pm-no-customer">
-              <User size={48} strokeWidth={1} />
+              <User size={48} className="no-customer-icon" />
               <p>Select a customer to preview</p>
               <Button onClick={() => setShowCustomerSelect(true)}>
                 Select Customer
@@ -628,7 +618,7 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
       >
         <div className="pm-customer-modal">
           <div className="pm-search">
-            <Search size={16} />
+            <MagnifyingGlass size={16} className="search-icon" />
             <input
               type="text"
               placeholder="Search customers..."
@@ -638,7 +628,7 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')}>
-                <X size={16} />
+                <X size={14} className="clear-icon" />
               </button>
             )}
           </div>
@@ -682,7 +672,7 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
       >
         <div className="pm-template-modal">
           <div className="pm-search">
-            <Search size={16} />
+            <MagnifyingGlass size={16} className="search-icon" />
             <input
               type="text"
               placeholder="Search templates..."
@@ -699,13 +689,13 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
                 onClick={() => toggleTemplateSelection(t)}
               >
                 <div className="template-checkbox">
-                  {selectedTemplates.find((st) => st.id === t.id) && '✓'}
+                  {selectedTemplates.find((st) => st.id === t.id) && <Check size={14} weight="bold" />}
                 </div>
                 <div className="template-preview-thumb">
                   {t.image_url ? (
                     <img src={t.image_url} alt={t.name} />
                   ) : (
-                    <FileText size={24} strokeWidth={1} />
+                    <File size={24} className="placeholder-icon" />
                   )}
                 </div>
                 <div className="template-info">

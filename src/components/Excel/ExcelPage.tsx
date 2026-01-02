@@ -4,18 +4,9 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { DownloadSimple, Plus, MagnifyingGlass, FileXls, DotsThreeVertical, Gear, UploadSimple, Trash, X } from '@phosphor-icons/react';
 import { Button, Modal } from '@/components/common';
 import { useToast } from '@/components/common';
-import {
-  Plus,
-  Trash2,
-  FileSpreadsheet,
-  Upload,
-  Download,
-  Search,
-  Settings,
-  X,
-} from 'lucide-react';
 import { useExcelStore } from '@/stores/useExcelStore';
 import { parseExcelFile } from '@/services/excelService';
 import { importTemplatesFromFile } from '@/services/templateImportService';
@@ -452,11 +443,11 @@ export function ExcelPage() {
         <h2>Excel Templates</h2>
         <div className="ep-header-actions">
           <Button variant="secondary" onClick={() => setShowImportModal(true)}>
-            <Download size={18} />
+            <DownloadSimple size={16} className="btn-icon" />
             Import
           </Button>
           <Button onClick={() => setShowCreateModal(true)}>
-            <Plus size={18} />
+            <Plus size={16} className="btn-icon" />
             New Template
           </Button>
         </div>
@@ -466,14 +457,14 @@ export function ExcelPage() {
       {error && (
         <div className="ep-error">
           <span>{error}</span>
-          <button onClick={clearError}>&times;</button>
+          <button onClick={clearError}><X size={14} /></button>
         </div>
       )}
 
       {/* Search */}
       <div className="ep-filters">
         <div className="ep-search">
-          <Search size={18} />
+          <MagnifyingGlass size={16} className="search-icon" />
           <input
             type="text"
             placeholder="Search templates..."
@@ -494,11 +485,11 @@ export function ExcelPage() {
       {/* Empty State */}
       {!isLoading && filteredTemplates.length === 0 && (
         <div className="ep-empty">
-          <FileSpreadsheet size={48} />
+          <FileXls size={48} className="empty-icon" />
           <h3>No Excel Templates</h3>
           <p>Create your first Excel template to start mapping customer data to cells.</p>
           <Button onClick={() => setShowCreateModal(true)}>
-            <Plus size={18} />
+            <Plus size={16} className="btn-icon" />
             Create Template
           </Button>
         </div>
@@ -515,7 +506,7 @@ export function ExcelPage() {
               style={{ cursor: 'pointer' }}
             >
               <div className="excel-card-icon">
-                <FileSpreadsheet size={32} />
+                <FileXls size={32} className="card-icon" />
               </div>
               <div className="excel-card-info">
                 <div className="excel-card-header">
@@ -532,16 +523,16 @@ export function ExcelPage() {
                       }
                       title="More options"
                     >
-                      ⋮
+                      <DotsThreeVertical size={18} />
                     </button>
                     {openDropdownId === template.id && (
                       <div className="action-dropdown">
                         <button onClick={() => openMappingModal(template)}>
-                          <Settings size={16} />
+                          <Gear size={14} className="menu-icon" />
                           Edit Mappings
                         </button>
                         <button onClick={() => openUploadModal(template)}>
-                          <Upload size={16} />
+                          <UploadSimple size={14} className="menu-icon" />
                           {template.file_path ? 'Replace File' : 'Upload File'}
                         </button>
                         <button
@@ -552,7 +543,7 @@ export function ExcelPage() {
                             setOpenDropdownId(null);
                           }}
                         >
-                          <Trash2 size={16} />
+                          <Trash size={14} className="menu-icon" />
                           Delete
                         </button>
                       </div>
@@ -608,13 +599,13 @@ export function ExcelPage() {
                   className="upload-placeholder"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Upload size={24} />
+                  <UploadSimple size={24} className="upload-icon" />
                   <span>Click to upload Excel file</span>
                   <small>.xlsx or .xls</small>
                 </div>
               ) : (
                 <div className="file-selected">
-                  <FileSpreadsheet size={20} />
+                  <FileXls size={18} className="file-icon" />
                   <span>{selectedFile.name}</span>
                   <button
                     className="remove-file"
@@ -623,7 +614,7 @@ export function ExcelPage() {
                       if (fileInputRef.current) fileInputRef.current.value = '';
                     }}
                   >
-                    <X size={14} />
+                    <X size={14} className="remove-icon" />
                   </button>
                 </div>
               )}
@@ -689,13 +680,13 @@ export function ExcelPage() {
                   className="upload-placeholder"
                   onClick={() => masterFileInputRef.current?.click()}
                 >
-                  <Upload size={24} />
+                  <UploadSimple size={24} className="upload-icon" />
                   <span>Click to upload Excel file</span>
                   <small>.xlsx or .xls</small>
                 </div>
               ) : (
                 <div className="file-selected">
-                  <FileSpreadsheet size={20} />
+                  <FileXls size={18} className="file-icon" />
                   <span>{masterFile.name}</span>
                   <button
                     className="remove-file"
@@ -704,7 +695,7 @@ export function ExcelPage() {
                       if (masterFileInputRef.current) masterFileInputRef.current.value = '';
                     }}
                   >
-                    <X size={14} />
+                    <X size={14} className="remove-icon" />
                   </button>
                 </div>
               )}
@@ -746,7 +737,7 @@ export function ExcelPage() {
                     if (selectedTemplate) openUploadModal(selectedTemplate);
                   }}
                 >
-                  <Upload size={16} />
+                  <UploadSimple size={16} className="btn-icon" />
                   Upload File
                 </Button>
               </div>
@@ -781,7 +772,7 @@ export function ExcelPage() {
                 <div className="field-selector">
                   <label>Field Type</label>
                   <div className="field-search">
-                    <Search size={16} />
+                    <MagnifyingGlass size={14} className="search-icon" />
                     <input
                       type="text"
                       placeholder="Search fields..."
@@ -826,7 +817,7 @@ export function ExcelPage() {
                 )}
 
                 <Button onClick={handleAddMapping}>
-                  <Plus size={16} />
+                  <Plus size={16} className="btn-icon" />
                   Add Mapping
                 </Button>
               </>
@@ -852,7 +843,7 @@ export function ExcelPage() {
                           className="mapping-remove"
                           onClick={() => handleRemoveMapping(sheetName, cell)}
                         >
-                          <X size={14} />
+                          <X size={14} className="remove-icon" />
                         </button>
                       </div>
                     ))}
@@ -908,13 +899,13 @@ export function ExcelPage() {
                   className="upload-placeholder"
                   onClick={() => importFileInputRef.current?.click()}
                 >
-                  <Upload size={24} />
+                  <UploadSimple size={24} className="upload-icon" />
                   <span>Click to select file</span>
                   <small>.json or .zip from old CRM export</small>
                 </div>
               ) : (
                 <div className="file-selected">
-                  <FileSpreadsheet size={20} />
+                  <FileXls size={18} className="file-icon" />
                   <span>{importFile.name}</span>
                   {!isImporting && (
                     <button
@@ -924,7 +915,7 @@ export function ExcelPage() {
                         if (importFileInputRef.current) importFileInputRef.current.value = '';
                       }}
                     >
-                      <X size={14} />
+                      <X size={14} className="remove-icon" />
                     </button>
                   )}
                 </div>

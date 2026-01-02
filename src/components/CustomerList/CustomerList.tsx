@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { UploadSimple, DownloadSimple, Plus, MagnifyingGlass, Package, File, X } from '@phosphor-icons/react';
 import { useCustomerStore, useCustomers, useSelectedCustomerId } from '@/stores';
-import { Search, Plus, Archive, X, FileSpreadsheet } from 'lucide-react';
 import { MILESTONES, getOverallProgress } from '@/constants';
 import { Modal, Button, useToast } from '@/components/common';
 import {
@@ -13,12 +13,13 @@ import './CustomerList.css';
 
 interface CustomerListProps {
   onAddCustomer: () => void;
+  isMobile?: boolean;
 }
 
 type FilterTab = 'active' | 'archived';
 type SortOption = 'recent' | 'name' | 'milestone';
 
-export function CustomerList({ onAddCustomer }: CustomerListProps) {
+export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTab, setFilterTab] = useState<FilterTab>('active');
   const [sortBy] = useState<SortOption>('recent');
@@ -197,35 +198,39 @@ export function CustomerList({ onAddCustomer }: CustomerListProps) {
   };
 
   return (
-    <div className="customer-list">
+    <div className={`customer-list ${isMobile ? 'mobile' : ''}`}>
       {/* Header */}
       <div className="list-header">
         <h2 className="list-title">Customers</h2>
         <div className="list-header-actions">
-          <button
-            onClick={() => setShowImportModal(true)}
-            className="import-export-btn"
-            title="Import from Old CRM"
-          >
-            ↑
-          </button>
-          <button
-            onClick={handleExport}
-            className="import-export-btn"
-            title="Export Customers"
-          >
-            ↓
-          </button>
-          <button onClick={onAddCustomer} className="add-customer-btn">
-            <Plus size={18} />
-            <span>Add</span>
-          </button>
+          {!isMobile && (
+            <>
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="import-export-btn"
+                title="Import from Old CRM"
+              >
+                <UploadSimple size={18} />
+              </button>
+              <button
+                onClick={handleExport}
+                className="import-export-btn"
+                title="Export Customers"
+              >
+                <DownloadSimple size={18} />
+              </button>
+              <button onClick={onAddCustomer} className="add-customer-btn">
+                <Plus size={16} />
+                <span>Add</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       {/* Search */}
       <div className="search-container">
-        <Search className="search-icon" size={18} />
+        <MagnifyingGlass size={18} className="search-icon" />
         <input
           type="text"
           placeholder="Search customers..."
@@ -247,7 +252,7 @@ export function CustomerList({ onAddCustomer }: CustomerListProps) {
           onClick={() => setFilterTab('archived')}
           className={`filter-tab ${filterTab === 'archived' ? 'active' : ''}`}
         >
-          <Archive size={14} />
+          <Package size={16} />
           Archived
         </button>
       </div>
@@ -292,6 +297,17 @@ export function CustomerList({ onAddCustomer }: CustomerListProps) {
         )}
       </div>
 
+      {/* Mobile FAB */}
+      {isMobile && (
+        <button
+          className="add-customer-fab touch-target"
+          onClick={onAddCustomer}
+          aria-label="Add Customer"
+        >
+          <Plus size={24} className="fab-icon" />
+        </button>
+      )}
+
       {/* Import Modal */}
       <Modal
         isOpen={showImportModal}
@@ -326,13 +342,13 @@ export function CustomerList({ onAddCustomer }: CustomerListProps) {
                   className="import-upload-placeholder"
                   onClick={() => importFileInputRef.current?.click()}
                 >
-                  <FileSpreadsheet size={24} />
+                  <File size={24} />
                   <span>Click to select file</span>
                   <small>.json from old CRM export</small>
                 </div>
               ) : (
                 <div className="import-file-selected">
-                  <FileSpreadsheet size={20} />
+                  <File size={18} color="#10b981" />
                   <span>{importFile.name}</span>
                   {!isImporting && (
                     <button
@@ -342,7 +358,7 @@ export function CustomerList({ onAddCustomer }: CustomerListProps) {
                         if (importFileInputRef.current) importFileInputRef.current.value = '';
                       }}
                     >
-                      <X size={14} />
+                      <X size={16} />
                     </button>
                   )}
                 </div>

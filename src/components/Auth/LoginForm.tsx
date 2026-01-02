@@ -1,6 +1,6 @@
 import { useState } from 'react';
+import { Envelope, Lock, Eye, EyeSlash, CircleNotch } from '@phosphor-icons/react';
 import { useAuthStore } from '@/stores';
-import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import './Auth.css';
 
 interface LoginFormProps {
@@ -42,7 +42,7 @@ export function LoginForm({ onSwitchToSignup, onForgotPassword }: LoginFormProps
           <div className="form-group">
             <label htmlFor="email" className="form-label">Email</label>
             <div className="input-wrapper">
-              <Mail className="input-icon" size={18} />
+              <Envelope size={18} className="input-icon" />
               <input
                 id="email"
                 type="email"
@@ -59,7 +59,7 @@ export function LoginForm({ onSwitchToSignup, onForgotPassword }: LoginFormProps
           <div className="form-group">
             <label htmlFor="password" className="form-label">Password</label>
             <div className="input-wrapper">
-              <Lock className="input-icon" size={18} />
+              <Lock size={18} className="input-icon" />
               <input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
@@ -75,7 +75,7 @@ export function LoginForm({ onSwitchToSignup, onForgotPassword }: LoginFormProps
                 onClick={() => setShowPassword(!showPassword)}
                 className="password-toggle"
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
@@ -95,7 +95,7 @@ export function LoginForm({ onSwitchToSignup, onForgotPassword }: LoginFormProps
           >
             {isLoading ? (
               <>
-                <Loader2 className="spinner" size={18} />
+                <CircleNotch size={18} className="spinner" />
                 Signing in...
               </>
             ) : (

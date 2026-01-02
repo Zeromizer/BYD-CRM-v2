@@ -1,3 +1,4 @@
+import { Check, X, FloppyDisk, Calendar, Clock, CheckSquare, ArrowRight, File, UploadSimple, Warning } from '@phosphor-icons/react';
 import {
   MILESTONES,
   CHECKLISTS,
@@ -9,19 +10,6 @@ import {
 import { REQUIRED_DOCUMENTS, DOCUMENT_STATUS } from '@/constants/documentRequirements';
 import { useMilestoneChecklist } from '@/hooks';
 import { getMilestoneIcon, CheckmarkIcon } from '@/utils';
-import {
-  Calendar,
-  Clock,
-  ListTodo,
-  FileText,
-  Upload,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  ChevronRight,
-  Save,
-  X,
-} from 'lucide-react';
 import type { Customer, DocumentChecklistItem } from '@/types';
 import './MilestoneSidebar.css';
 
@@ -108,7 +96,7 @@ export function MilestoneSidebar({ customer }: MilestoneSidebarProps) {
               <ProgressRing progress={progress} color={milestone.color} />
               <div className="icon-inner">
                 {isComplete ? (
-                  <CheckCircle size={18} color="white" />
+                  <Check size={18} weight="bold" color="white" />
                 ) : (
                   getMilestoneIcon(milestone.iconName, 18, isCurrent ? milestone.color : 'var(--text-muted)')
                 )}
@@ -146,7 +134,7 @@ export function MilestoneSidebar({ customer }: MilestoneSidebarProps) {
                 </div>
               </div>
               <button className="panel-close-btn" onClick={handleClosePanel}>
-                <X size={18} />
+                <X size={18} className="close-icon" />
               </button>
             </div>
 
@@ -157,7 +145,7 @@ export function MilestoneSidebar({ customer }: MilestoneSidebarProps) {
                 onClick={() => handleSetCurrentMilestone(expandedMilestone)}
                 style={{ borderColor: expandedMilestoneData.color, color: expandedMilestoneData.color }}
               >
-                <ChevronRight size={14} />
+                <ArrowRight size={14} className="chevron-icon" />
                 Set as Current Stage
               </button>
             )}
@@ -171,7 +159,7 @@ export function MilestoneSidebar({ customer }: MilestoneSidebarProps) {
                     Cancel
                   </button>
                   <button className="btn-save" onClick={handleSaveChanges} disabled={isSaving}>
-                    <Save size={14} />
+                    <FloppyDisk size={14} className="save-icon" />
                     {isSaving ? 'Saving...' : 'Save'}
                   </button>
                 </div>
@@ -181,7 +169,7 @@ export function MilestoneSidebar({ customer }: MilestoneSidebarProps) {
             {/* Date Section */}
             <div className="panel-date-section">
               <label className="date-label">
-                <Calendar size={14} />
+                <Calendar size={14} className="calendar-icon" />
                 Target Date
               </label>
               <div className="date-input-row">
@@ -197,7 +185,7 @@ export function MilestoneSidebar({ customer }: MilestoneSidebarProps) {
                   if (days === null) return null;
                   return (
                     <span className={`days-badge ${urgency}`}>
-                      <Clock size={12} />
+                      <Clock size={12} className="clock-icon" />
                       {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'Today' : `${days}d left`}
                     </span>
                   );
@@ -213,7 +201,7 @@ export function MilestoneSidebar({ customer }: MilestoneSidebarProps) {
               disabled={isCreatingTodos}
               style={{ borderColor: expandedMilestoneData.color, color: expandedMilestoneData.color }}
             >
-              <ListTodo size={14} />
+              <CheckSquare size={14} className="list-icon" />
               {isCreatingTodos ? 'Creating...' : 'Create Tasks from Checklist'}
             </button>
 
@@ -249,7 +237,7 @@ export function MilestoneSidebar({ customer }: MilestoneSidebarProps) {
             {REQUIRED_DOCUMENTS[expandedMilestone]?.length > 0 && (
               <div className="panel-documents">
                 <h4 className="documents-heading">
-                  <FileText size={14} />
+                  <File size={14} className="doc-heading-icon" />
                   Required Documents
                 </h4>
                 <div className="documents-list">
@@ -261,15 +249,15 @@ export function MilestoneSidebar({ customer }: MilestoneSidebarProps) {
                     const getStatusIcon = () => {
                       switch (status) {
                         case DOCUMENT_STATUS.UPLOADED:
-                          return <Upload size={12} className="doc-icon uploaded" />;
+                          return <UploadSimple size={14} className="doc-icon uploaded" />;
                         case DOCUMENT_STATUS.APPROVED:
-                          return <CheckCircle size={12} className="doc-icon approved" />;
+                          return <Check size={14} weight="bold" className="doc-icon approved" />;
                         case DOCUMENT_STATUS.REJECTED:
-                          return <XCircle size={12} className="doc-icon rejected" />;
+                          return <X size={14} weight="bold" className="doc-icon rejected" />;
                         case DOCUMENT_STATUS.EXPIRED:
-                          return <AlertCircle size={12} className="doc-icon expired" />;
+                          return <Warning size={14} className="doc-icon expired" />;
                         default:
-                          return <Clock size={12} className="doc-icon pending" />;
+                          return <Clock size={14} className="doc-icon pending" />;
                       }
                     };
 

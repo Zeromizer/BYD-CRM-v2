@@ -38,7 +38,11 @@
       "Bash(git push:*)",
       "Bash(git checkout:*)",
       "Bash(find:*)",
-      "Bash(del \"c:\\\\Coding\\\\byd-crm-v2\\\\src\\\\components\\\\ProgressSidebar\\\\AddTaskModal.tsx\")"
+      "Bash(del \"c:\\\\Coding\\\\byd-crm-v2\\\\src\\\\components\\\\ProgressSidebar\\\\AddTaskModal.tsx\")",
+      "Bash(cmd /c \"cd /d c:\\\\Coding\\\\byd-crm-v2 && npm run dev\")",
+      "Bash(cd:*)",
+      "Bash(grep:*)",
+      "Bash(node:*)"
     ]
   }
 }

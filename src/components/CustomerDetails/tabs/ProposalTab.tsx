@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
+import { Car, Money, ArrowsClockwise, Gift, FloppyDisk } from '@phosphor-icons/react';
 import { Button } from '@/components/common';
-import { Save, Car, Banknote, Gift, Repeat } from 'lucide-react';
 import type { Customer, CustomerUpdate } from '@/types';
 import {
   VEHICLE_MODELS,
@@ -127,7 +127,7 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
       {/* Vehicle Section */}
       <section className="details-section">
         <h3 className="section-title">
-          <Car size={18} />
+          <Car size={18} className="section-icon" />
           Proposal Information
         </h3>
         <div className="form-grid">
@@ -178,7 +178,7 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
       {/* Loan Section */}
       <section className="details-section">
         <h3 className="section-title">
-          <Banknote size={18} />
+          <Money size={18} className="section-icon" />
           Financing Details
         </h3>
         <div className="form-grid">
@@ -260,7 +260,7 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
       {/* Trade-In Section */}
       <section className="details-section">
         <h3 className="section-title">
-          <Repeat size={18} />
+          <ArrowsClockwise size={18} className="section-icon" />
           Trade-In Details
         </h3>
         <div className="form-grid">
@@ -329,7 +329,7 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
       {/* Benefits Section */}
       <section className="details-section">
         <h3 className="section-title">
-          <Gift size={18} />
+          <Gift size={18} className="section-icon" />
           Benefits
         </h3>
         <div className="form-grid">
@@ -384,7 +384,7 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
 
       <div className="section-actions">
         <Button onClick={handleSave} isLoading={isSaving}>
-          <Save size={16} />
+          <FloppyDisk size={16} className="btn-icon" />
           Save Proposal
         </Button>
       </div>

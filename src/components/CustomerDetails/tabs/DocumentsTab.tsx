@@ -1,20 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { Export, FolderOpen, File, CircleNotch, Warning, X, Check, Circle, Eye, DownloadSimple, Trash, UploadSimple, Sparkle } from '@phosphor-icons/react';
 import { Button, Modal, useToast } from '@/components/common';
-import {
-  FileText,
-  Upload,
-  Download,
-  Trash2,
-  Eye,
-  CheckCircle,
-  Circle,
-  FolderOpen,
-  Loader2,
-  X,
-  AlertCircle,
-  File,
-  FileOutput,
-} from 'lucide-react';
 import { useCustomerStore } from '@/stores/useCustomerStore';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import {
@@ -699,7 +685,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
         <Button
           className="generate-doc-btn"
           onClick={handleGenerateDocument}
-          leftIcon={<FileOutput size={16} />}
+          leftIcon={<Export size={16} />}
         >
           Generate Document
         </Button>
@@ -709,7 +695,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
           className="generate-doc-btn"
           variant="outline"
           onClick={() => migrationInputRef.current?.click()}
-          leftIcon={<span style={{ fontSize: '14px' }}>📁</span>}
+          leftIcon={<FolderOpen size={16} />}
         >
           Import from Folder
         </Button>
@@ -726,7 +712,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
               onClick={() => setActiveCategory(category.id)}
             >
               <div className="category-info">
-                <FolderOpen size={16} />
+                <FolderOpen size={16} className="category-icon" />
                 <span className="category-label">{category.label}</span>
               </div>
               <span
@@ -745,7 +731,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
           onClick={() => setActiveCategory('all_uploads')}
         >
           <div className="category-info">
-            <File size={16} />
+            <File size={16} className="category-icon" />
             <span className="category-label">All Uploads</span>
           </div>
           <span className="category-progress">
@@ -764,7 +750,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
           </h3>
           {isLoading && (
             <div className="loading-indicator">
-              <Loader2 size={16} className="spin" />
+              <CircleNotch size={16} className="spin" />
               Loading...
             </div>
           )}
@@ -772,10 +758,10 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
 
         {error && (
           <div className="documents-error">
-            <AlertCircle size={16} />
+            <Warning size={16} className="error-icon" />
             <span>{error}</span>
             <button onClick={() => setError(null)}>
-              <X size={14} />
+              <X size={16} className="close-icon" />
             </button>
           </div>
         )}
@@ -785,7 +771,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
           <div className="all-uploads-list">
             {allUploads.length === 0 ? (
               <div className="no-uploads">
-                <File size={48} strokeWidth={1} />
+                <File size={32} className="empty-icon" />
                 <p>No documents uploaded yet</p>
               </div>
             ) : (
@@ -823,12 +809,12 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                       >
                         {isDeleting ? (
                           <>
-                            <Loader2 size={14} className="spin" />
+                            <CircleNotch size={14} className="spin" />
                             Deleting...
                           </>
                         ) : (
                           <>
-                            <Trash2 size={14} />
+                            <Trash size={14} className="btn-icon" />
                             Delete ({selectedDocs.size})
                           </>
                         )}
@@ -840,7 +826,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                 {allUploads.map((folder) => (
                   <div key={folder.documentType} className="upload-folder">
                     <h4 className="folder-title">
-                      <FolderOpen size={16} />
+                      <FolderOpen size={16} className="folder-icon" />
                       {folder.documentType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                       <span className="folder-count">({folder.documents.length})</span>
                     </h4>
@@ -857,7 +843,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                               onChange={() => toggleDocSelection(doc.path)}
                               className="doc-checkbox"
                             />
-                            <FileText size={18} className="document-icon" />
+                            <File size={16} className="document-icon" />
                             <div className="document-details">
                               <span className="document-label">{doc.name}</span>
                               <span className="document-filename">
@@ -875,7 +861,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                               }}
                               title="View"
                             >
-                              <Eye size={14} />
+                              <Eye size={16} className="action-icon" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -897,7 +883,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                               }}
                               title="Download"
                             >
-                              <Download size={14} />
+                              <DownloadSimple size={16} className="action-icon" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -909,7 +895,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                               title="Delete"
                               className="danger"
                             >
-                              <Trash2 size={14} />
+                              <Trash size={16} className="action-icon" />
                             </Button>
                           </div>
                         </div>
@@ -944,11 +930,11 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                 >
                   <div className="document-info">
                     {isUploaded ? (
-                      <CheckCircle size={18} className="status-icon uploaded" />
+                      <Check size={14} weight="bold" className="status-icon uploaded" />
                     ) : (
-                      <Circle size={18} className="status-icon pending" />
+                      <Circle size={14} className="status-icon pending" />
                     )}
-                    <FileText size={18} className="document-icon" />
+                    <File size={16} className="document-icon" />
                     <div className="document-details">
                       <span className="document-label">{doc.label}</span>
                       {docs.length > 0 && (
@@ -960,7 +946,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                   <div className="document-actions">
                     {isUploading ? (
                       <div className="uploading-indicator">
-                        <Loader2 size={16} className="spin" />
+                        <CircleNotch size={14} className="spin" />
                         Uploading...
                       </div>
                     ) : isUploaded ? (
@@ -971,7 +957,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                           onClick={() => handleView(doc.id)}
                           title="View"
                         >
-                          <Eye size={14} />
+                          <Eye size={16} className="action-icon" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -979,7 +965,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                           onClick={() => handleDownload(doc.id)}
                           title="Download"
                         >
-                          <Download size={14} />
+                          <DownloadSimple size={16} className="action-icon" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -988,7 +974,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                           title="Delete"
                           className="danger"
                         >
-                          <Trash2 size={14} />
+                          <Trash size={16} className="action-icon" />
                         </Button>
                         <Button
                           variant="outline"
@@ -996,7 +982,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                           onClick={() => handleUploadClick(doc.id)}
                           title="Replace"
                         >
-                          <Upload size={14} />
+                          <UploadSimple size={16} className="action-icon" />
                         </Button>
                       </>
                     ) : (
@@ -1005,7 +991,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                         size="sm"
                         onClick={() => handleUploadClick(doc.id)}
                       >
-                        <Upload size={14} />
+                        <UploadSimple size={16} className="action-icon" />
                         Upload
                       </Button>
                     )}
@@ -1036,10 +1022,10 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                 <iframe src={previewDoc.url} title={previewDoc.name} />
               ) : (
                 <div className="unsupported-preview">
-                  <File size={48} strokeWidth={1} />
+                  <File size={48} className="preview-icon" />
                   <p>Preview not available for this file type</p>
                   <Button onClick={() => handleDownload(docToDelete?.docId || '')}>
-                    <Download size={14} />
+                    <DownloadSimple size={16} className="btn-icon" />
                     Download to View
                   </Button>
                 </div>
@@ -1095,7 +1081,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
 
           {templates.length === 0 ? (
             <div className="no-templates">
-              <FileText size={48} strokeWidth={1} />
+              <File size={32} className="empty-icon" />
               <p>No document templates available</p>
               <p className="hint">Create templates in the Documents section first</p>
             </div>
@@ -1119,7 +1105,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                           />
                         ) : (
                           <div className="template-placeholder">
-                            <FileText size={32} />
+                            <File size={24} className="placeholder-icon" />
                           </div>
                         )}
                         <span className="template-name">{template.name}</span>
@@ -1157,7 +1143,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                   <div className="file-list-scroll">
                     {migrationFiles.slice(0, 20).map((file, index) => (
                       <div key={index} className="migration-file-item">
-                        <File size={14} />
+                        <File size={16} className="file-icon" />
                         <span className="file-name">{file.name}</span>
                         {file.folder && <span className="file-folder">({file.folder})</span>}
                       </div>
@@ -1171,7 +1157,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
 
               {(isScanning || isMigrating) && (scanProgress || migrationProgress) && (
                 <div className="migration-progress">
-                  <Loader2 size={16} className="spin" />
+                  <CircleNotch size={16} className="spin" />
                   <span>{scanProgress || migrationProgress}</span>
                 </div>
               )}
@@ -1189,7 +1175,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                   onClick={handleAIScan}
                   disabled={isScanning || isMigrating || migrationFiles.length === 0}
                 >
-                  {isScanning ? 'Scanning...' : '✨ Scan with AI'}
+                  {isScanning ? 'Scanning...' : <><Sparkle size={14} /> Scan with AI</>}
                 </Button>
                 <Button
                   onClick={handleStartMigration}
@@ -1211,7 +1197,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                   {classifiedFiles.map((item, index) => (
                     <div key={index} className="classified-file-item">
                       <div className="classified-file-info">
-                        <File size={14} />
+                        <File size={16} className="file-icon" />
                         <span className="file-name">{item.name}</span>
                         <span className={`confidence ${item.classification.confidence >= 75 ? 'high' : item.classification.confidence >= 50 ? 'medium' : 'low'}`}>
                           {item.classification.confidence}%
@@ -1248,7 +1234,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
 
               {isMigrating && migrationProgress && (
                 <div className="migration-progress">
-                  <Loader2 size={16} className="spin" />
+                  <CircleNotch size={16} className="spin" />
                   <span>{migrationProgress}</span>
                 </div>
               )}

@@ -5,7 +5,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { X, Camera, RotateCcw, ChevronRight, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Warning, Camera, ArrowCounterClockwise, ArrowRight, Check, Car, IdentificationCard, Sparkle, DeviceMobileCamera, Image } from '@phosphor-icons/react';
 import { Button } from '@/components/common';
 import {
   extractIDWithGemini,
@@ -391,7 +391,7 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
             {step === 'final-review' && 'Review All Data'}
           </h2>
           <button className="id-scanner-close" onClick={handleClose}>
-            <X size={24} />
+            <X size={20} className="close-icon" />
           </button>
         </div>
 
@@ -427,7 +427,7 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
         <div className="id-scanner-content">
           {error && (
             <div className="id-scanner-error">
-              <AlertCircle size={20} />
+              <Warning size={20} className="error-icon" />
               <p>{error}</p>
               <Button variant="outline" size="sm" onClick={handleManualEntry}>
                 Enter Manually
@@ -440,14 +440,16 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
             <div className="capture-section">
               {!cameraActive && !currentImage && !cameraLoading && (
                 <div className="capture-start">
-                  <div className="id-icon">{isLicenseStep ? '🚗' : step === 'front' ? '🪪' : '🔄'}</div>
+                  <div className="id-icon">
+                    {isLicenseStep ? <Car size={48} /> : step === 'front' ? <IdentificationCard size={48} /> : <ArrowCounterClockwise size={48} />}
+                  </div>
                   <p className="capture-instruction">
                     {step === 'front' && 'Position the front of the ID card within the frame'}
                     {step === 'back' && 'Position the back of the ID card within the frame'}
                     {step === 'license-front' && 'Position the front of the driving license within the frame'}
                     {step === 'license-back' && 'Position the back of the driving license within the frame'}
                   </p>
-                  <Button onClick={startCamera} leftIcon={<Camera size={18} />}>
+                  <Button onClick={startCamera} leftIcon={<Camera size={16} />}>
                     Start Camera
                   </Button>
                 </div>
@@ -487,7 +489,7 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
                       onClick={() => setIsPortraitMode(!isPortraitMode)}
                       title={isPortraitMode ? 'Switch to Landscape' : 'Switch to Portrait'}
                     >
-                      {isPortraitMode ? '📱' : '🖼️'}
+                      {isPortraitMode ? <DeviceMobileCamera size={24} /> : <Image size={24} />}
                     </button>
                     <button className="btn-capture" onClick={capturePhoto}>
                       <div className="capture-ring">
@@ -505,10 +507,10 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
                     <img src={currentImage} alt="Captured" className="preview-image" />
                   </div>
                   <div className="preview-actions">
-                    <Button variant="outline" onClick={handleRetake} leftIcon={<RotateCcw size={16} />}>
+                    <Button variant="outline" onClick={handleRetake} leftIcon={<ArrowCounterClockwise size={16} />}>
                       Retake
                     </Button>
-                    <Button onClick={handleNextStep} rightIcon={<ChevronRight size={16} />}>
+                    <Button onClick={handleNextStep} rightIcon={<ArrowRight size={16} />}>
                       {step === 'front' && 'Next: Scan Back'}
                       {step === 'back' && 'Process ID'}
                       {step === 'license-front' && 'Next: Scan Back'}
@@ -563,7 +565,7 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
           {step === 'review' && (
             <div className="review-section">
               <div className="confidence-badge">
-                <span className="scanner-method ai">✨ AI Scanner</span>
+                <span className="scanner-method ai"><Sparkle size={14} /> AI Scanner</span>
                 <span className={`confidence ${confidence >= 75 ? 'high' : confidence >= 50 ? 'medium' : 'low'}`}>
                   {confidence}% confidence
                 </span>
@@ -667,7 +669,7 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
           {/* Ask License Step */}
           {step === 'ask-license' && (
             <div className="ask-license-section">
-              <div className="ask-license-icon">🚗</div>
+              <div className="ask-license-icon"><Car size={48} /></div>
               <h3>Would you like to scan a driving license?</h3>
               <p className="ask-license-description">
                 Scanning the driving license will extract the license start date.
@@ -791,7 +793,7 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
                 <Button variant="outline" onClick={resetScanner}>
                   Scan Again
                 </Button>
-                <Button onClick={handleConfirm} leftIcon={<CheckCircle size={16} />}>
+                <Button onClick={handleConfirm} leftIcon={<Check size={16} weight="bold" />}>
                   Use This Data
                 </Button>
               </div>
@@ -817,7 +819,7 @@ function ProgressStep({
 }) {
   return (
     <div className={`progress-step ${isActive ? 'active' : ''} ${isComplete ? 'complete' : ''}`}>
-      <span className="step-number">{isComplete ? '✓' : number}</span>
+      <span className="step-number">{isComplete ? <Check size={12} weight="bold" /> : number}</span>
       <span className="step-label">{label}</span>
     </div>
   );

@@ -4,15 +4,8 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { Check, Circle, Flag, Calendar, DotsThree, Trash } from '@phosphor-icons/react';
 import { useTodoStore } from '@/stores/useTodoStore';
-import {
-  Circle,
-  CheckCircle2,
-  Trash2,
-  MoreHorizontal,
-  Calendar,
-  Flag,
-} from 'lucide-react';
 import type { Todo, Priority } from '@/types';
 
 interface TaskItemProps {
@@ -94,9 +87,9 @@ export function TaskItem({ task, compact = false }: TaskItemProps) {
         title={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
       >
         {task.completed ? (
-          <CheckCircle2 size={16} className="check-icon completed" />
+          <Check size={14} weight="bold" className="check-icon completed" />
         ) : (
-          <Circle size={16} className="check-icon" />
+          <Circle size={14} className="check-icon" />
         )}
       </button>
 
@@ -107,17 +100,18 @@ export function TaskItem({ task, compact = false }: TaskItemProps) {
         {!compact && (
           <div className="task-meta">
             {task.priority && task.priority !== 'medium' && (
-              <span
-                className="task-priority"
-                style={{ color: priorityColors[task.priority] }}
-                title={`${task.priority} priority`}
-              >
-                <Flag size={10} />
+              <span title={`${task.priority} priority`}>
+                <Flag
+                  size={12}
+                  weight="fill"
+                  className="task-priority"
+                  style={{ color: priorityColors[task.priority] }}
+                />
               </span>
             )}
             {dueInfo && (
               <span className={`task-due ${dueInfo.className}`}>
-                <Calendar size={10} />
+                <Calendar size={12} className="calendar-icon" />
                 {dueInfo.text}
               </span>
             )}
@@ -131,7 +125,7 @@ export function TaskItem({ task, compact = false }: TaskItemProps) {
           onClick={() => setShowMenu(!showMenu)}
           title="More actions"
         >
-          <MoreHorizontal size={14} />
+          <DotsThree size={18} weight="bold" className="menu-icon" />
         </button>
 
         {showMenu && (
@@ -142,12 +136,12 @@ export function TaskItem({ task, compact = false }: TaskItemProps) {
             >
               {task.completed ? (
                 <>
-                  <Circle size={14} />
+                  <Circle size={14} className="menu-item-icon" />
                   <span>Mark incomplete</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 size={14} />
+                  <Check size={14} className="menu-item-icon" />
                   <span>Mark complete</span>
                 </>
               )}
@@ -156,7 +150,7 @@ export function TaskItem({ task, compact = false }: TaskItemProps) {
               className="task-menu-item delete"
               onClick={handleDelete}
             >
-              <Trash2 size={14} />
+              <Trash size={14} className="menu-item-icon" />
               <span>Delete</span>
             </button>
           </div>

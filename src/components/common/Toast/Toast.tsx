@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { createContext, useContext, useState, useCallback, type ReactNode, type ReactElement } from 'react';
+import { Check, X, Warning, Info } from '@phosphor-icons/react';
 import './Toast.css';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -107,19 +107,19 @@ interface ToastItemProps {
   onRemove: (id: string) => void;
 }
 
-const TOAST_ICONS = {
-  success: CheckCircle,
-  error: XCircle,
-  warning: AlertTriangle,
-  info: Info,
+const TOAST_ICONS: Record<ToastType, ReactElement> = {
+  success: <Check size={18} weight="bold" />,
+  error: <X size={18} weight="bold" />,
+  warning: <Warning size={18} />,
+  info: <Info size={18} />,
 };
 
 function ToastItem({ toast, onRemove }: ToastItemProps) {
-  const Icon = TOAST_ICONS[toast.type];
+  const icon = TOAST_ICONS[toast.type];
 
   return (
     <div className={`toast toast-${toast.type}`}>
-      <Icon className="toast-icon" size={18} />
+      <span className="toast-icon">{icon}</span>
       <p className="toast-message">{toast.message}</p>
       <button onClick={() => onRemove(toast.id)} className="toast-close">
         <X size={16} />

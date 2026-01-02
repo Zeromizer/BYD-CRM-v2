@@ -1,14 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactElement } from 'react';
+import { Car, Package, ArrowsClockwise, Truck, Shield, Money, FloppyDisk } from '@phosphor-icons/react';
 import { Button } from '@/components/common';
-import {
-  Save,
-  Car,
-  Package,
-  Repeat,
-  Truck,
-  Shield,
-  Banknote,
-} from 'lucide-react';
 import type { Customer, CustomerUpdate } from '@/types';
 import {
   VEHICLE_MODELS,
@@ -193,13 +185,13 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
     }
   };
 
-  const sections = [
-    { id: 'vehicle' as VsaSection, label: 'Vehicle', icon: Car },
-    { id: 'package' as VsaSection, label: 'Package', icon: Package },
-    { id: 'tradeIn' as VsaSection, label: 'Trade-In', icon: Repeat },
-    { id: 'delivery' as VsaSection, label: 'Delivery', icon: Truck },
-    { id: 'insurance' as VsaSection, label: 'Insurance', icon: Shield },
-    { id: 'loan' as VsaSection, label: 'Loan', icon: Banknote },
+  const sections: { id: VsaSection; label: string; icon: ReactElement }[] = [
+    { id: 'vehicle', label: 'Vehicle', icon: <Car size={16} /> },
+    { id: 'package', label: 'Package', icon: <Package size={16} /> },
+    { id: 'tradeIn', label: 'Trade-In', icon: <ArrowsClockwise size={16} /> },
+    { id: 'delivery', label: 'Delivery', icon: <Truck size={16} /> },
+    { id: 'insurance', label: 'Insurance', icon: <Shield size={16} /> },
+    { id: 'loan', label: 'Loan', icon: <Money size={16} /> },
   ];
 
   const renderSectionContent = () => {
@@ -783,7 +775,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
             className={`vsa-section-button ${activeSection === section.id ? 'active' : ''}`}
             onClick={() => setActiveSection(section.id)}
           >
-            <section.icon size={16} />
+            <span className="section-btn-icon">{section.icon}</span>
             {section.label}
           </button>
         ))}
@@ -794,7 +786,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
 
       <div className="section-actions">
         <Button onClick={handleSave} isLoading={isSaving}>
-          <Save size={16} />
+          <FloppyDisk size={16} className="btn-icon" />
           Save VSA Details
         </Button>
       </div>

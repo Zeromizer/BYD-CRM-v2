@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { X, FloppyDisk, Calendar, Clock, CheckSquare, CaretDown, File, UploadSimple, Check, Warning } from '@phosphor-icons/react';
 import {
   MILESTONES,
   CHECKLISTS,
@@ -10,19 +11,6 @@ import {
 import { REQUIRED_DOCUMENTS, DOCUMENT_STATUS } from '@/constants/documentRequirements';
 import { useMilestoneChecklist } from '@/hooks';
 import { getMilestoneIcon, CheckmarkIcon } from '@/utils';
-import {
-  Calendar,
-  Clock,
-  ListTodo,
-  FileText,
-  Upload,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  ChevronDown,
-  Save,
-  X,
-} from 'lucide-react';
 import type { Customer, DocumentChecklistItem } from '@/types';
 
 /**
@@ -73,11 +61,11 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
           <span className="unsaved-indicator">You have unsaved changes</span>
           <div className="milestone-actions-buttons">
             <button className="btn btn-secondary" onClick={handleCancel} disabled={isSaving}>
-              <X size={14} />
+              <X size={16} className="btn-icon" />
               Cancel
             </button>
             <button className="btn btn-primary" onClick={handleSaveChanges} disabled={isSaving}>
-              <Save size={14} />
+              <FloppyDisk size={16} className="btn-icon" />
               {isSaving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
@@ -163,10 +151,7 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
                     />
                   </div>
                   <span className="checklist-progress-text">{progress}%</span>
-                  <ChevronDown
-                    className={`chevron ${isExpanded ? 'expanded' : ''}`}
-                    size={20}
-                  />
+                  <CaretDown size={16} className={`chevron ${isExpanded ? 'expanded' : ''}`} />
                 </div>
               </button>
 
@@ -176,7 +161,7 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
                   <div className="milestone-date-section">
                     <div className="milestone-date-input-row">
                       <label className="milestone-date-label">
-                        <Calendar size={14} />
+                        <Calendar size={16} className="label-icon" />
                         Target Date:
                       </label>
                       <input
@@ -191,7 +176,7 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
                         if (days === null) return null;
                         return (
                           <span className={`days-remaining ${urgency}`}>
-                            <Clock size={12} />
+                            <Clock size={14} className="clock-icon" />
                             {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'Today' : `${days}d left`}
                           </span>
                         );
@@ -204,7 +189,7 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
                       disabled={isCreatingTodos}
                       style={{ '--milestone-color': milestone.color } as React.CSSProperties}
                     >
-                      <ListTodo size={14} />
+                      <CheckSquare size={16} className="btn-icon" />
                       {isCreatingTodos ? 'Creating...' : 'Create Tasks from Checklist'}
                     </button>
                   </div>
@@ -238,7 +223,7 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
                   {REQUIRED_DOCUMENTS[milestone.id]?.length > 0 && (
                     <div className="milestone-documents-section">
                       <div className="milestone-documents-header">
-                        <FileText size={14} />
+                        <File size={16} className="header-icon" />
                         <span>Required Documents</span>
                       </div>
                       <div className="milestone-documents-list">
@@ -250,15 +235,15 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
                           const getStatusIcon = () => {
                             switch (status) {
                               case DOCUMENT_STATUS.UPLOADED:
-                                return <Upload size={12} className="doc-status-icon uploaded" />;
+                                return <UploadSimple size={14} className="doc-status-icon uploaded" />;
                               case DOCUMENT_STATUS.APPROVED:
-                                return <CheckCircle size={12} className="doc-status-icon approved" />;
+                                return <Check size={14} weight="bold" className="doc-status-icon approved" />;
                               case DOCUMENT_STATUS.REJECTED:
-                                return <XCircle size={12} className="doc-status-icon rejected" />;
+                                return <X size={14} className="doc-status-icon rejected" />;
                               case DOCUMENT_STATUS.EXPIRED:
-                                return <AlertCircle size={12} className="doc-status-icon expired" />;
+                                return <Warning size={14} className="doc-status-icon expired" />;
                               default:
-                                return <Clock size={12} className="doc-status-icon pending" />;
+                                return <Clock size={14} className="doc-status-icon pending" />;
                             }
                           };
 

@@ -1,0 +1,39 @@
+.mobile-dashboard {
+  position: relative;
+  width: 100%;
+  height: calc(100dvh - var(--mobile-header-height));
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.mobile-panels-container {
+  display: flex;
+  height: calc(100% - var(--panel-indicator-height));
+  touch-action: pan-y pinch-zoom;
+}
+
+/* Each panel is always 100vw wide */
+.mobile-panel {
+  flex: 0 0 100vw;
+  width: 100vw;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide other panels when only 1 panel active */
+.mobile-panels-container.panels-1 .mobile-panel:not(:first-child) {
+  display: none;
+}
+
+/* Prevent text selection during swipe */
+.mobile-panels-container.swiping {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Mobile panel content adjustments */
+.mobile-panel > * {
+  height: 100%;
+}

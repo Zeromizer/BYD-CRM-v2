@@ -8,6 +8,9 @@
   border: 1px solid var(--primary);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Main Input Row */
@@ -15,10 +18,12 @@
   display: flex;
   align-items: center;
   gap: 0.375rem;
+  width: 100%;
 }
 
 .task-input {
   flex: 1;
+  min-width: 0; /* Allow input to shrink */
   padding: 0.5rem 0.625rem;
   font-size: 0.8125rem;
   border: none;
@@ -35,6 +40,7 @@
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  flex-shrink: 0; /* Prevent buttons from being pushed out */
 }
 
 .expand-options-btn,
@@ -53,6 +59,29 @@
   font-weight: 600;
 }
 
+/* SVG icons in task form buttons */
+.expand-options-btn svg,
+.submit-task-btn svg,
+.cancel-task-btn svg {
+  width: 14px !important;
+  height: 14px !important;
+  display: block !important;
+  flex-shrink: 0;
+}
+
+.submit-task-btn svg {
+  fill: white !important;
+}
+
+.submit-task-btn:disabled svg {
+  fill: var(--text-muted) !important;
+}
+
+.cancel-task-btn svg,
+.expand-options-btn svg {
+  fill: currentColor !important;
+}
+
 .expand-options-btn {
   background: var(--bg-secondary);
   color: var(--text-muted);
@@ -61,6 +90,11 @@
 .expand-options-btn:hover {
   background: var(--bg-tertiary);
   color: var(--text-primary);
+}
+
+.expand-options-btn .expand-icon {
+  font-size: 0.625rem;
+  line-height: 1;
 }
 
 .submit-task-btn {
@@ -110,6 +144,16 @@
 .option-icon {
   color: var(--text-muted);
   flex-shrink: 0;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+/* SVG option icons */
+.option-group svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  fill: currentColor;
 }
 
 /* Priority Pills */
@@ -205,6 +249,12 @@
   transition: all 0.15s ease;
   font-size: 0.625rem;
   line-height: 1;
+}
+
+.clear-date-btn svg {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
 }
 
 .clear-date-btn:hover {

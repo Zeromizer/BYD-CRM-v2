@@ -6,9 +6,22 @@ import { ProgressSidebar } from '@/components/ProgressSidebar';
 import { useSelectedCustomer, useCustomerStore } from '@/stores';
 import { Modal } from '@/components/common';
 import { useToast } from '@/components/common';
+import { useIsMobile } from '@/hooks/useMediaQuery';
+import { MobileDashboard } from './MobileDashboard';
 import './Dashboard.css';
 
 export function Dashboard() {
+  const isMobile = useIsMobile();
+
+  // Render mobile dashboard on small screens
+  if (isMobile) {
+    return <MobileDashboard />;
+  }
+
+  return <DesktopDashboard />;
+}
+
+function DesktopDashboard() {
   const [showAddModal, setShowAddModal] = useState(false);
   const selectedCustomer = useSelectedCustomer();
   const { createCustomer, selectCustomer } = useCustomerStore();

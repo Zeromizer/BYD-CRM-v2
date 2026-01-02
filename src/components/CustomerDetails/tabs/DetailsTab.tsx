@@ -1,17 +1,6 @@
 import { useState, useEffect } from 'react';
+import { Phone, Envelope, CreditCard, Briefcase, Calendar, MapPin, User, FloppyDisk, UserPlus, Trash } from '@phosphor-icons/react';
 import { Button, useToast } from '@/components/common';
-import {
-  User,
-  Phone,
-  Mail,
-  CreditCard,
-  Briefcase,
-  MapPin,
-  Calendar,
-  Save,
-  UserPlus,
-  Trash2,
-} from 'lucide-react';
 import { useCustomerStore } from '@/stores/useCustomerStore';
 import type { Customer, Guarantor, CustomerUpdate } from '@/types';
 
@@ -125,7 +114,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
         <div className="form-grid">
           <div className="form-group">
             <label className="form-label">
-              <Phone size={14} />
+              <Phone size={16} className="label-icon" />
               Phone
             </label>
             <input
@@ -140,7 +129,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
 
           <div className="form-group">
             <label className="form-label">
-              <Mail size={14} />
+              <Envelope size={16} className="label-icon" />
               Email
             </label>
             <input
@@ -155,7 +144,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
 
           <div className="form-group">
             <label className="form-label">
-              <CreditCard size={14} />
+              <CreditCard size={16} className="label-icon" />
               NRIC/FIN
             </label>
             <input
@@ -170,7 +159,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
 
           <div className="form-group">
             <label className="form-label">
-              <Briefcase size={14} />
+              <Briefcase size={16} className="label-icon" />
               Occupation
             </label>
             <input
@@ -185,7 +174,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
 
           <div className="form-group">
             <label className="form-label">
-              <Calendar size={14} />
+              <Calendar size={16} className="label-icon" />
               Date of Birth
             </label>
             <input
@@ -199,7 +188,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
 
           <div className="form-group">
             <label className="form-label">
-              <Calendar size={14} />
+              <Calendar size={16} className="label-icon" />
               License Start Date
             </label>
             <input
@@ -213,7 +202,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
 
           <div className="form-group full-width">
             <label className="form-label">
-              <MapPin size={14} />
+              <MapPin size={16} className="label-icon" />
               Address
             </label>
             <input
@@ -240,7 +229,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
 
           <div className="form-group">
             <label className="form-label">
-              <User size={14} />
+              <User size={16} className="label-icon" />
               Sales Consultant
             </label>
             <input
@@ -280,7 +269,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
 
         <div className="section-actions">
           <Button onClick={handleSave} isLoading={isSaving}>
-            <Save size={16} />
+            <FloppyDisk size={16} className="btn-icon" />
             Save Changes
           </Button>
         </div>
@@ -292,7 +281,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
           <h3 className="section-title">Guarantors</h3>
           {guarantors.length < 5 && (
             <Button variant="outline" size="sm" onClick={addGuarantor}>
-              <UserPlus size={14} />
+              <UserPlus size={16} className="btn-icon" />
               Add Guarantor
             </Button>
           )}
@@ -314,7 +303,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
                     onClick={() => removeGuarantor(index)}
                     className="danger"
                   >
-                    <Trash2 size={14} />
+                    <Trash size={16} className="btn-icon" />
                   </Button>
                 </div>
 
@@ -438,7 +427,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
         {guarantors.length > 0 && (
           <div className="section-actions">
             <Button onClick={handleSaveGuarantors} isLoading={isSaving}>
-              <Save size={16} />
+              <FloppyDisk size={16} className="btn-icon" />
               Save Guarantors
             </Button>
           </div>

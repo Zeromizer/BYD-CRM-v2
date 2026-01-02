@@ -1,20 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactElement } from 'react';
+import { User, File, Car, FolderOpen, FileXls, PencilSimple, Export, Package, Trash, X } from '@phosphor-icons/react';
 import { useCustomerStore } from '@/stores/useCustomerStore';
 import { Button, Modal } from '@/components/common';
 import { CustomerForm } from '@/components/CustomerForm';
 import { DetailsTab, ProposalTab, VsaTab, DocumentsTab } from './tabs';
-import {
-  User,
-  FileText,
-  Car,
-  FolderOpen,
-  Archive,
-  ArchiveRestore,
-  Trash2,
-  Edit,
-  X,
-  FileSpreadsheet,
-} from 'lucide-react';
+import { MobileSummaryCard } from './MobileSummaryCard';
 import { ExcelPopulateModal } from '@/components/Excel';
 import type { Customer } from '@/types';
 import './CustomerDetails.css';
@@ -24,26 +14,29 @@ type TabId = 'details' | 'proposal' | 'vsa' | 'documents';
 interface Tab {
   id: TabId;
   label: string;
-  icon: typeof User;
+  icon: ReactElement;
 }
 
 const TABS: Tab[] = [
-  { id: 'details', label: 'Details', icon: User },
-  { id: 'proposal', label: 'Proposal', icon: FileText },
-  { id: 'vsa', label: 'VSA', icon: Car },
-  { id: 'documents', label: 'Documents', icon: FolderOpen },
+  { id: 'details', label: 'Details', icon: <User size={18} /> },
+  { id: 'proposal', label: 'Proposal', icon: <File size={18} /> },
+  { id: 'vsa', label: 'VSA', icon: <Car size={18} /> },
+  { id: 'documents', label: 'Documents', icon: <FolderOpen size={18} /> },
 ];
 
 interface CustomerDetailsProps {
   customer: Customer;
   onClose?: () => void;
+  isMobile?: boolean;
+  onBack?: () => void;
 }
 
-export function CustomerDetails({ customer, onClose }: CustomerDetailsProps) {
+export function CustomerDetails({ customer, onClose, isMobile, onBack }: CustomerDetailsProps) {
   const [activeTab, setActiveTab] = useState<TabId>('details');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
+  const [showMobileActions, setShowMobileActions] = useState(false);
 
   const {
     updateCustomer,
@@ -93,74 +86,85 @@ export function CustomerDetails({ customer, onClose }: CustomerDetailsProps) {
   };
 
   return (
-    <div className="customer-details">
-      {/* Header */}
-      <div className="customer-details-header">
-        <div className="customer-details-info">
-          <h2 className="customer-details-name">{customer.name}</h2>
-          {customer.archive_status && (
-            <span className={`archive-badge ${customer.archive_status}`}>
-              {customer.archive_status === 'lost' ? 'Lost' : 'Completed'}
-            </span>
-          )}
-        </div>
+    <div className={`customer-details ${isMobile ? 'mobile' : ''}`}>
+      {/* Mobile Summary Card */}
+      {isMobile && (
+        <MobileSummaryCard
+          customer={customer}
+          onBack={onBack}
+          onMoreActions={() => setShowMobileActions(true)}
+        />
+      )}
 
-        <div className="customer-details-actions">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsExcelModalOpen(true)}
-            title="Generate Excel"
-          >
-            <FileSpreadsheet size={16} />
-          </Button>
+      {/* Desktop Header */}
+      {!isMobile && (
+        <div className="customer-details-header">
+          <div className="customer-details-info">
+            <h2 className="customer-details-name">{customer.name}</h2>
+            {customer.archive_status && (
+              <span className={`archive-badge ${customer.archive_status}`}>
+                {customer.archive_status === 'lost' ? 'Lost' : 'Completed'}
+              </span>
+            )}
+          </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsEditModalOpen(true)}
-            title="Edit customer"
-          >
-            <Edit size={16} />
-          </Button>
-
-          {customer.archive_status ? (
+          <div className="customer-details-actions">
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleUnarchive}
-              title="Unarchive customer"
+              onClick={() => setIsExcelModalOpen(true)}
+              title="Generate Excel"
             >
-              <ArchiveRestore size={16} />
+              <FileXls size={18} className="action-icon" />
             </Button>
-          ) : (
+
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleArchive}
-              title="Archive customer"
+              onClick={() => setIsEditModalOpen(true)}
+              title="Edit customer"
             >
-              <Archive size={16} />
+              <PencilSimple size={18} className="action-icon" />
             </Button>
-          )}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsDeleteModalOpen(true)}
-            title="Delete customer"
-            className="danger"
-          >
-            <Trash2 size={16} />
-          </Button>
+            {customer.archive_status ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleUnarchive}
+                title="Unarchive customer"
+              >
+                <Export size={18} className="action-icon" />
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleArchive}
+                title="Archive customer"
+              >
+                <Package size={18} className="action-icon" />
+              </Button>
+            )}
 
-          {onClose && (
-            <Button variant="ghost" size="sm" onClick={onClose} title="Close">
-              <X size={16} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsDeleteModalOpen(true)}
+              title="Delete customer"
+              className="danger"
+            >
+              <Trash size={18} className="action-icon" />
             </Button>
-          )}
+
+            {onClose && (
+              <Button variant="ghost" size="sm" onClick={onClose} title="Close">
+                <X size={18} className="action-icon" />
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Tabs */}
       <div className="customer-details-tabs">
@@ -170,14 +174,90 @@ export function CustomerDetails({ customer, onClose }: CustomerDetailsProps) {
             className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
           >
-            <tab.icon size={16} />
-            {tab.label}
+            <span className="tab-icon">{tab.icon}</span>
+            {isMobile ? null : tab.label}
+            {isMobile && <span className="tab-label-mobile">{tab.label}</span>}
           </button>
         ))}
       </div>
 
       {/* Tab Content */}
       <div className="customer-details-content">{renderTabContent()}</div>
+
+      {/* Mobile Action Sheet */}
+      {isMobile && showMobileActions && (
+        <>
+          <div
+            className="mobile-action-overlay"
+            onClick={() => setShowMobileActions(false)}
+          />
+          <div className="mobile-action-sheet">
+            <div className="mobile-action-sheet-header">
+              <span>Actions</span>
+              <button
+                type="button"
+                className="mobile-action-close"
+                onClick={() => setShowMobileActions(false)}
+              >
+                <X size={20} className="close-icon" />
+              </button>
+            </div>
+            <button
+              className="mobile-action-item"
+              onClick={() => {
+                setShowMobileActions(false);
+                setIsExcelModalOpen(true);
+              }}
+            >
+              <FileXls size={18} className="action-icon" />
+              <span>Generate Excel</span>
+            </button>
+            <button
+              className="mobile-action-item"
+              onClick={() => {
+                setShowMobileActions(false);
+                setIsEditModalOpen(true);
+              }}
+            >
+              <PencilSimple size={18} className="action-icon" />
+              <span>Edit Customer</span>
+            </button>
+            {customer.archive_status ? (
+              <button
+                className="mobile-action-item"
+                onClick={() => {
+                  setShowMobileActions(false);
+                  handleUnarchive();
+                }}
+              >
+                <Export size={18} className="action-icon" />
+                <span>Unarchive</span>
+              </button>
+            ) : (
+              <button
+                className="mobile-action-item"
+                onClick={() => {
+                  setShowMobileActions(false);
+                  handleArchive();
+                }}
+              >
+                <Package size={18} className="action-icon" />
+                <span>Archive</span>
+              </button>
+            )}
+            <button
+              className="mobile-action-item danger"
+              onClick={() => {
+                setShowMobileActions(false);
+                setIsDeleteModalOpen(true);
+              }}
+            >
+              <Trash size={18} className="action-icon" />
+              <span>Delete</span>
+            </button>
+          </div>
+        </>
+      )}
 
       {/* Edit Modal */}
       <Modal

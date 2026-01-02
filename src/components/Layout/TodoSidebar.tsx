@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { X, Clock, Warning, Funnel, Plus, Check, Trash } from '@phosphor-icons/react';
 import {
   useTodoStore,
   useTodoSidebarOpen,
@@ -6,15 +7,6 @@ import {
   useTodos,
 } from '@/stores';
 import { InlineTaskForm } from '@/components/common';
-import {
-  X,
-  Plus,
-  Check,
-  Clock,
-  AlertTriangle,
-  Filter,
-  Trash2,
-} from 'lucide-react';
 import type { TodoFilter, Priority } from '@/types';
 import './Layout.css';
 
@@ -100,12 +92,12 @@ export function TodoSidebar() {
         {/* Stats */}
         <div className="todo-stats">
           <div className="todo-stat">
-            <Clock size={14} />
+            <Clock size={16} className="stat-icon" />
             <span>{todayTodos.length} today</span>
           </div>
           {overdueTodos.length > 0 && (
             <div className="todo-stat overdue">
-              <AlertTriangle size={14} />
+              <Warning size={16} className="stat-icon" />
               <span>{overdueTodos.length} overdue</span>
             </div>
           )}
@@ -113,7 +105,7 @@ export function TodoSidebar() {
 
         {/* Filters */}
         <div className="todo-filters">
-          <Filter size={14} />
+          <Funnel size={16} className="filter-icon" />
           {FILTER_OPTIONS.map((option) => (
             <button
               key={option.value}
@@ -130,7 +122,7 @@ export function TodoSidebar() {
           <InlineTaskForm onClose={() => setShowAddForm(false)} />
         ) : (
           <button onClick={() => setShowAddForm(true)} className="add-todo-button">
-            <Plus size={18} />
+            <Plus size={16} className="add-icon" />
             <span>Add Task</span>
           </button>
         )}
@@ -154,7 +146,7 @@ export function TodoSidebar() {
                     borderColor: todo.completed ? '#10b981' : PRIORITY_COLORS[todo.priority],
                   }}
                 >
-                  {todo.completed && <Check size={12} />}
+                  {todo.completed && <Check size={14} weight="bold" className="check-icon" />}
                 </button>
                 <div className="todo-content">
                   <p className="todo-text">{todo.text}</p>
@@ -171,7 +163,7 @@ export function TodoSidebar() {
                   onClick={() => deleteTodo(todo.id)}
                   className="todo-delete"
                 >
-                  <Trash2 size={14} />
+                  <Trash size={16} className="delete-icon" />
                 </button>
               </div>
             ))

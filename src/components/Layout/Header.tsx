@@ -1,18 +1,14 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { House, File, FileXls, CheckSquare, Moon, Sun, SignOut, X, List } from '@phosphor-icons/react';
 import { useAuthStore, useProfile, useTodoStore } from '@/stores';
-import {
-  Menu,
-  X,
-  Home,
-  FileText,
-  FileSpreadsheet,
-  CheckSquare,
-  LogOut,
-  Moon,
-  Sun,
-} from 'lucide-react';
 import './Layout.css';
+
+const NAV_ICONS = {
+  '/': House,
+  '/documents': File,
+  '/excel': FileXls,
+};
 
 interface HeaderProps {
   theme: 'light' | 'dark';
@@ -28,9 +24,9 @@ export function Header({ theme, onToggleTheme }: HeaderProps) {
   const toggleTodoSidebar = useTodoStore((state) => state.toggleSidebar);
 
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: Home },
-    { path: '/documents', label: 'Documents', icon: FileText },
-    { path: '/excel', label: 'Excel', icon: FileSpreadsheet },
+    { path: '/' as const, label: 'Dashboard' },
+    { path: '/documents' as const, label: 'Documents' },
+    { path: '/excel' as const, label: 'Excel' },
   ];
 
   const handleSignOut = async () => {
@@ -47,16 +43,19 @@ export function Header({ theme, onToggleTheme }: HeaderProps) {
 
         {/* Desktop Navigation */}
         <nav className="header-nav desktop-only">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`nav-link ${location.pathname === item.path ? 'active' : ''}`}
-            >
-              <item.icon size={18} />
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const Icon = NAV_ICONS[item.path];
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`nav-link ${location.pathname === item.path ? 'active' : ''}`}
+              >
+                <Icon size={18} className="nav-icon" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Right Actions */}
@@ -103,7 +102,7 @@ export function Header({ theme, onToggleTheme }: HeaderProps) {
                   </div>
                   <div className="user-menu-divider" />
                   <button onClick={handleSignOut} className="user-menu-item danger">
-                    <LogOut size={16} />
+                    <SignOut size={18} className="menu-icon" />
                     <span>Sign Out</span>
                   </button>
                 </div>
@@ -116,7 +115,7 @@ export function Header({ theme, onToggleTheme }: HeaderProps) {
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="header-icon-button mobile-only"
           >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            {mobileMenuOpen ? <X size={20} /> : <List size={20} />}
           </button>
         </div>
       </div>
@@ -124,17 +123,20 @@ export function Header({ theme, onToggleTheme }: HeaderProps) {
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
         <nav className="mobile-nav">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`mobile-nav-link ${location.pathname === item.path ? 'active' : ''}`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <item.icon size={20} />
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const Icon = NAV_ICONS[item.path];
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`mobile-nav-link ${location.pathname === item.path ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Icon size={18} className="nav-icon" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
       )}
     </header>

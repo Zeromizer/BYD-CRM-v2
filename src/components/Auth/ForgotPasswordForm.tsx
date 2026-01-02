@@ -1,6 +1,6 @@
 import { useState } from 'react';
+import { Envelope, ArrowLeft, CircleNotch } from '@phosphor-icons/react';
 import { useAuthStore } from '@/stores';
-import { Mail, Loader2, ArrowLeft } from 'lucide-react';
 import './Auth.css';
 
 interface ForgotPasswordFormProps {
@@ -38,7 +38,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
           </div>
           <div className="auth-footer">
             <button type="button" onClick={onBack} className="auth-link">
-              <ArrowLeft size={16} />
+              <ArrowLeft size={16} className="back-icon" />
               Back to Sign In
             </button>
           </div>
@@ -65,7 +65,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
           <div className="form-group">
             <label htmlFor="email" className="form-label">Email</label>
             <div className="input-wrapper">
-              <Mail className="input-icon" size={18} />
+              <Envelope size={18} className="input-icon" />
               <input
                 id="email"
                 type="email"
@@ -86,7 +86,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
           >
             {isLoading ? (
               <>
-                <Loader2 className="spinner" size={18} />
+                <CircleNotch size={18} className="spinner" />
                 Sending...
               </>
             ) : (
@@ -97,7 +97,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
 
         <div className="auth-footer">
           <button type="button" onClick={onBack} className="auth-link">
-            <ArrowLeft size={16} />
+            <ArrowLeft size={16} className="back-icon" />
             Back to Sign In
           </button>
         </div>

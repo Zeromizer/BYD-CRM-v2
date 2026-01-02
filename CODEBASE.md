@@ -16,7 +16,7 @@
 | State | Zustand 5.0.9 |
 | Backend | Supabase (Auth, Database, Storage, Realtime) |
 | AI | Google Gemini 2.5 Flash (document classification) |
-| Icons | lucide-react |
+| Icons | @phosphor-icons/react |
 | Excel | xlsx-populate |
 | PDF | jsPDF |
 | OCR | Tesseract.js |
@@ -112,6 +112,29 @@ Shared logic for milestone checklist management, used by both `MilestoneTracker`
 **Returns:**
 - State: `expandedMilestone`, `currentMilestone`, `localChecklist`, `localMilestoneDates`, `hasChanges`, `isSaving`, `isCreatingTodos`
 - Handlers: `handleMilestoneClick()`, `handleSetCurrentMilestone()`, `handleChecklistToggle()`, `handleMilestoneDateChange()`, `handleCreateTodosFromChecklist()`, `handleSaveChanges()`, `handleCancel()`, `handleClosePanel()`
+
+### useMediaQuery / useIsMobile
+Responsive breakpoint detection for mobile/desktop rendering.
+
+```typescript
+const isMobile = useIsMobile(); // true when viewport <= 768px
+const isTablet = useIsTablet(); // true when viewport <= 1024px
+```
+
+### useSwipeNavigation
+Touch gesture handling for swipe-based panel navigation on mobile.
+
+**Config:**
+- `panelCount` - Number of panels to navigate between
+- `threshold` - Minimum swipe distance to trigger navigation (default: 50px)
+- `velocityThreshold` - Minimum velocity for quick swipes (default: 0.5)
+- `resistance` - Resistance when swiping past bounds (default: 0.3)
+
+**Returns:**
+- `activePanel`, `isSwiping`, `translateX`
+- `setActivePanel(index)` - Programmatically change panel
+- `handlers` - Touch event handlers to spread on container
+- `getTransformStyle()` - CSS transform for panel positioning
 
 ---
 
@@ -211,10 +234,31 @@ Each milestone has 15-25 checklist items.
 ## Component Patterns
 
 ### Dashboard Layout (`Dashboard.tsx`)
-Three-panel layout:
+Responsive layout with mobile/desktop split:
+
+**Desktop** (>768px): Three-panel layout
 1. **Left**: Customer list with search/filter
 2. **Center**: Customer details (tabbed)
 3. **Right**: Progress sidebar (progress, next steps, milestones, tasks)
+
+**Mobile** (≤768px): Swipe-based panel navigation
+- Uses `MobileDashboard` component with `useSwipeNavigation` hook
+- Three full-screen panels: CustomerList → CustomerDetails → ProgressSidebar
+- Panel indicator dots at bottom for navigation
+- Auto-navigates to details panel when customer selected
+
+### MobileSummaryCard (`CustomerDetails/MobileSummaryCard.tsx`)
+Compact customer info card (~200px height) optimized for mobile viewports:
+- **Header Row**: Back button, avatar, name, vehicle, more actions menu
+- **Progress Row**: Milestone badge + progress bar with percentage
+- **Key Info Row**: Next due date + next uncompleted step
+- **Quick Actions**: Call, Message, Email buttons (opens native apps)
+
+### PanelIndicator (`common/PanelIndicator/`)
+Navigation dots for mobile swipe panels:
+- Shows active/inactive states
+- 44px touch targets for accessibility
+- Positioned at bottom of screen
 
 ### ProgressSidebar (`ProgressSidebar/`)
 Right-side panel with four sections:
@@ -290,10 +334,39 @@ npm run preview  # Preview production build
 
 | Commit | Description |
 |--------|-------------|
-| Latest | Task/Todo feature with inline forms, customer-specific tasks |
+| Latest | Mobile optimization with swipe-based panel navigation |
+| Previous | Task/Todo feature with inline forms, customer-specific tasks |
 | 4fffb70 | Excel file classification, batch processing |
 | 0faf764 | Excel integration, document management |
 | 5dd6bd2 | OneDrive sync for scanned documents |
+
+### Mobile Optimization Implementation
+**New Files:**
+- `src/hooks/useMediaQuery.ts` - Responsive breakpoint detection
+- `src/hooks/useSwipeNavigation.ts` - Touch gesture handling for panels
+- `src/components/Dashboard/MobileDashboard.tsx` - Mobile panel container
+- `src/components/Dashboard/MobileDashboard.css` - Mobile dashboard styles
+- `src/components/common/PanelIndicator/` - Navigation dots component
+- `src/components/CustomerDetails/MobileSummaryCard.tsx` - Compact customer card
+- `src/components/CustomerDetails/MobileSummaryCard.css` - Summary card styles
+
+**Key Features:**
+- Swipe-based navigation between three full-screen panels
+- 44px minimum touch targets for accessibility
+- MobileSummaryCard fits 375px viewport without scrolling
+- Quick action buttons (Call, Message, Email) for field sales
+- ProgressSidebar now accessible on mobile (was hidden at 1024px)
+- iOS zoom prevention with 16px input font-size
+- Safe area support for notched phones (100dvh)
+
+**CSS Variables Added:**
+```css
+--touch-target-min: 44px;
+--mobile-padding: 16px;
+--mobile-gap: 12px;
+--mobile-header-height: 48px;
+--panel-indicator-height: 56px;
+```
 
 ### Task Feature Implementation
 - **InlineTaskForm** (`common/InlineTaskForm.tsx`) - Compact inline form for task creation
@@ -334,3 +407,69 @@ export const useCustomerStore = create<State & Actions>((set, get) => ({
 
 export const useCustomers = () => useCustomerStore((s) => s.customers);
 ```
+
+---
+
+## Troubleshooting
+
+### Invisible SVG Icons
+
+When using icon libraries like `@phosphor-icons/react` or `lucide-react`, icons may appear invisible due to CSS conflicts.
+
+**Symptoms:**
+- Buttons appear empty but take up space
+- DevTools shows SVG elements exist but nothing renders
+- Unicode/emoji icons work but SVG icons don't
+
+**Root Causes:**
+1. **Missing `fill` property** - SVGs use `fill` instead of `color` for their paths
+2. **CSS `display` override** - Some styles may set `display: none` or empty `display` on SVGs
+3. **Opacity rules** - Generic selectors like `.header svg { opacity: 0.7 }` can affect icons unintentionally
+
+**Solution - Global CSS Fix:**
+
+Add this to `src/styles/globals.css`:
+
+```css
+/* Global SVG icon fix - ensures all SVGs render with proper fill */
+svg {
+  fill: currentColor;
+}
+
+/* Phosphor icons specific fix */
+svg[xmlns="http://www.w3.org/2000/svg"] {
+  display: inline-block;
+  vertical-align: middle;
+  fill: currentColor;
+}
+```
+
+**Solution - Component-Specific Fix:**
+
+For buttons containing SVG icons, use explicit styling with `!important`:
+
+```css
+.my-button svg {
+  display: block !important;
+  width: 16px !important;
+  height: 16px !important;
+  fill: currentColor !important;
+  flex-shrink: 0;
+}
+```
+
+**Why `!important` is needed:**
+Phosphor and other icon libraries may inject inline styles or have high-specificity CSS that overrides your styles. Using `!important` ensures your styles take precedence.
+
+**Debugging Steps:**
+1. Check if the SVG element exists in DevTools (Elements tab)
+2. Look for `element.style { display: }` or similar inline style overrides
+3. Check if unchecking `display` in DevTools makes the icon appear
+4. Test with Unicode characters (✓, ✕) - if these work, the issue is SVG-specific
+5. Test with inline SVG + explicit `style={{ fill: '#color' }}` to confirm
+
+**Files with SVG styling patterns:**
+- `src/styles/globals.css` - Global SVG fix
+- `src/components/CustomerList/CustomerList.css` - Button SVG styling
+- `src/components/ProgressSidebar/ProgressSidebar.css` - Task button icons
+- `src/components/common/InlineTaskForm.css` - Form button icons

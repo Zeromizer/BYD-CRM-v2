@@ -86,6 +86,13 @@ body {
   --transition-normal: 200ms ease;
   --transition-slow: 300ms ease;
 
+  /* Mobile */
+  --touch-target-min: 44px;
+  --mobile-padding: 16px;
+  --mobile-gap: 12px;
+  --mobile-header-height: 48px;
+  --panel-indicator-height: 56px;
+
   /* Milestone Colors */
   --milestone-test-drive: #3b82f6;
   --milestone-close-deal: #8b5cf6;
@@ -339,4 +346,67 @@ a:hover {
   .form-group.full-width {
     grid-column: 1;
   }
+}
+
+/* Mobile Utilities */
+@media (max-width: 768px) {
+  /* Prevent iOS zoom on input focus */
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="search"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  /* Touch-friendly targets */
+  .touch-target {
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+  }
+
+  /* Safe area for notched phones */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  /* Hide scrollbar on mobile panels */
+  .mobile-scroll-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-scroll-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Mobile-only visibility */
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* Global SVG icon fix - ensures all SVGs render with proper fill */
+svg {
+  fill: currentColor;
+}
+
+/* Phosphor icons specific fix */
+svg[xmlns="http://www.w3.org/2000/svg"] {
+  display: inline-block;
+  vertical-align: middle;
+  fill: currentColor;
 }

@@ -4,16 +4,10 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { CaretDown, Check, X, Flag, Calendar, User, Crosshair } from '@phosphor-icons/react';
 import { useTodoStore } from '@/stores/useTodoStore';
 import { useCustomerStore } from '@/stores';
 import { MILESTONES } from '@/constants/milestones';
-import {
-  Flag,
-  Calendar,
-  User,
-  Target,
-  ChevronDown,
-} from 'lucide-react';
 import type { Priority, MilestoneId, Customer } from '@/types';
 import './InlineTaskForm.css';
 
@@ -150,7 +144,7 @@ export function InlineTaskForm({
               onClick={() => setShowOptions(true)}
               title="More options"
             >
-              <ChevronDown size={14} />
+              <CaretDown size={12} className="expand-icon" />
             </button>
           )}
           <button
@@ -159,7 +153,7 @@ export function InlineTaskForm({
             disabled={isSaving || !text.trim()}
             title="Add task (Enter)"
           >
-            ✓
+            <Check size={14} weight="bold" />
           </button>
           <button
             type="button"
@@ -167,7 +161,7 @@ export function InlineTaskForm({
             onClick={onClose}
             title="Cancel (Esc)"
           >
-            ✕
+            <X size={14} />
           </button>
         </div>
       </div>
@@ -177,7 +171,7 @@ export function InlineTaskForm({
         <div className="task-options-row">
           {/* Priority Selector */}
           <div className="option-group priority-group">
-            <Flag size={12} className="option-icon" />
+            <Flag size={14} className="option-icon" />
             <div className="priority-pills">
               {PRIORITY_OPTIONS.map((option) => (
                 <button
@@ -198,7 +192,7 @@ export function InlineTaskForm({
 
           {/* Due Date */}
           <div className="option-group date-group">
-            <Calendar size={12} className="option-icon" />
+            <Calendar size={14} className="option-icon" />
             <div className="date-options">
               <button
                 type="button"
@@ -228,7 +222,7 @@ export function InlineTaskForm({
                   onClick={() => setDueDate('')}
                   title="Clear date"
                 >
-                  ✕
+                  <X size={12} />
                 </button>
               )}
             </div>
@@ -237,7 +231,7 @@ export function InlineTaskForm({
           {/* Customer Selector (only if not pre-selected) */}
           {!customer && (
             <div className="option-group customer-group">
-              <User size={12} className="option-icon" />
+              <User size={14} className="option-icon" />
               <select
                 value={selectedCustomerId ?? ''}
                 onChange={(e) => setSelectedCustomerId(e.target.value ? Number(e.target.value) : null)}
@@ -255,7 +249,7 @@ export function InlineTaskForm({
 
           {/* Milestone Selector */}
           <div className="option-group milestone-group">
-            <Target size={12} className="option-icon" />
+            <Crosshair size={14} className="option-icon" />
             <select
               value={milestoneId}
               onChange={(e) => setMilestoneId(e.target.value as MilestoneId | '')}

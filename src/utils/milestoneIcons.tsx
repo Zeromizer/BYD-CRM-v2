@@ -1,14 +1,21 @@
 /**
  * Milestone Icon Utilities
  *
- * Shared milestone icon components and helpers.
+ * Shared milestone icon components and helpers using Phosphor Icons.
  */
 
-import { Car, Handshake, ClipboardCheck, Package, Star } from 'lucide-react';
+import { Car, Handshake, ClipboardText, Package, Star, Check } from '@phosphor-icons/react';
+import type { Icon } from '@phosphor-icons/react';
 
-const iconComponents = { Car, Handshake, ClipboardCheck, Package, Star };
+const iconMap: Record<string, Icon> = {
+  Car,
+  Handshake,
+  ClipboardCheck: ClipboardText,
+  Package,
+  Star,
+};
 
-export type MilestoneIconName = keyof typeof iconComponents;
+export type MilestoneIconName = keyof typeof iconMap;
 
 /**
  * Get milestone icon component by name
@@ -18,17 +25,15 @@ export function getMilestoneIcon(
   size = 16,
   color = 'currentColor'
 ): React.ReactNode {
-  const IconComponent = iconComponents[iconName as MilestoneIconName];
-  return IconComponent ? <IconComponent size={size} color={color} strokeWidth={2} /> : null;
+  const IconComponent = iconMap[iconName];
+  return IconComponent ? (
+    <IconComponent size={size} color={color} weight="fill" />
+  ) : null;
 }
 
 /**
- * Checkmark SVG for completed states
+ * Checkmark icon for completed states
  */
 export function CheckmarkIcon({ size = 12, color = 'white' }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="3">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
+  return <Check size={size} color={color} weight="bold" />;
 }

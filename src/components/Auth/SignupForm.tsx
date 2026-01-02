@@ -1,6 +1,6 @@
 import { useState } from 'react';
+import { User, Envelope, Lock, Eye, EyeSlash, CircleNotch } from '@phosphor-icons/react';
 import { useAuthStore } from '@/stores';
-import { Mail, Lock, Eye, EyeOff, User, Loader2 } from 'lucide-react';
 import './Auth.css';
 
 interface SignupFormProps {
@@ -81,7 +81,7 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
           <div className="form-group">
             <label htmlFor="displayName" className="form-label">Name</label>
             <div className="input-wrapper">
-              <User className="input-icon" size={18} />
+              <User size={18} className="input-icon" />
               <input
                 id="displayName"
                 type="text"
@@ -97,7 +97,7 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
           <div className="form-group">
             <label htmlFor="email" className="form-label">Email</label>
             <div className="input-wrapper">
-              <Mail className="input-icon" size={18} />
+              <Envelope size={18} className="input-icon" />
               <input
                 id="email"
                 type="email"
@@ -114,7 +114,7 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
           <div className="form-group">
             <label htmlFor="password" className="form-label">Password</label>
             <div className="input-wrapper">
-              <Lock className="input-icon" size={18} />
+              <Lock size={18} className="input-icon" />
               <input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
@@ -130,7 +130,7 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
                 onClick={() => setShowPassword(!showPassword)}
                 className="password-toggle"
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
@@ -138,7 +138,7 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
           <div className="form-group">
             <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
             <div className="input-wrapper">
-              <Lock className="input-icon" size={18} />
+              <Lock size={18} className="input-icon" />
               <input
                 id="confirmPassword"
                 type={showPassword ? 'text' : 'password'}
@@ -159,7 +159,7 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
           >
             {isLoading ? (
               <>
-                <Loader2 className="spinner" size={18} />
+                <CircleNotch size={18} className="spinner" />
                 Creating account...
               </>
             ) : (

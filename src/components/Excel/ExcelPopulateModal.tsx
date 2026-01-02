@@ -4,9 +4,9 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { FileXls, UploadSimple, DownloadSimple, X } from '@phosphor-icons/react';
 import { Button, Modal } from '@/components/common';
 import { useToast } from '@/components/common';
-import { FileSpreadsheet, Upload, Download, X } from 'lucide-react';
 import { useExcelStore } from '@/stores/useExcelStore';
 import {
   populateExcelTemplate,
@@ -172,7 +172,7 @@ export function ExcelPopulateModal({
         {/* No templates message */}
         {templates.length === 0 && (
           <div className="no-templates">
-            <FileSpreadsheet size={32} />
+            <FileXls size={32} className="empty-icon" />
             <p>No Excel templates available.</p>
             <small>Create templates in the Excel Templates page first.</small>
           </div>
@@ -198,13 +198,13 @@ export function ExcelPopulateModal({
                   className="upload-placeholder"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Upload size={24} />
+                  <UploadSimple size={24} className="upload-icon" />
                   <span>Click to upload Excel file</span>
                   <small>.xlsx or .xls</small>
                 </div>
               ) : (
                 <div className="file-selected">
-                  <FileSpreadsheet size={20} />
+                  <FileXls size={18} className="file-icon" />
                   <span>{uploadedFile.name}</span>
                   <button
                     className="remove-file"
@@ -213,7 +213,7 @@ export function ExcelPopulateModal({
                       if (fileInputRef.current) fileInputRef.current.value = '';
                     }}
                   >
-                    <X size={14} />
+                    <X size={14} className="remove-icon" />
                   </button>
                 </div>
               )}
@@ -254,7 +254,7 @@ export function ExcelPopulateModal({
             Cancel
           </Button>
           <Button onClick={handleGenerate} disabled={!canGenerate || isGenerating}>
-            <Download size={16} />
+            <DownloadSimple size={16} className="btn-icon" />
             {isGenerating ? 'Generating...' : 'Generate & Download'}
           </Button>
         </div>

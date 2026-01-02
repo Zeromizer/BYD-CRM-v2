@@ -1,7 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
+import { CircleNotch } from '@phosphor-icons/react';
 import { useAuthStore, useIsAuthenticated, useAuthInitialized } from '@/stores';
 import { AuthPage } from './AuthPage';
-import { Loader2 } from 'lucide-react';
 import './Auth.css';
 
 interface AuthGuardProps {
@@ -20,7 +20,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   if (!isInitialized) {
     return (
       <div className="auth-loading">
-        <Loader2 className="spinner" size={32} />
+        <CircleNotch size={48} className="spinner large" />
         <p>Loading...</p>
       </div>
     );

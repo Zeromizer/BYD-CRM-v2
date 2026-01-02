@@ -77,8 +77,23 @@
   margin-bottom: 0.625rem;
 }
 
-.section-header svg {
+.section-header > .section-icon {
   opacity: 0.7;
+}
+
+.section-header-actions svg {
+  width: 14px;
+  height: 14px;
+  opacity: 1;
+  display: block;
+  flex-shrink: 0;
+}
+
+.add-task-btn svg,
+.toggle-completed-btn svg {
+  width: 14px;
+  height: 14px;
+  display: block;
 }
 
 /* Progress Section */
@@ -339,6 +354,12 @@
   margin-left: auto;
 }
 
+/* Section header Unicode icons */
+.section-icon {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
 .toggle-completed-btn {
   display: flex;
   align-items: center;
@@ -352,6 +373,11 @@
   border-radius: 3px;
   cursor: pointer;
   transition: all 0.15s ease;
+}
+
+.toggle-completed-btn .toggle-icon {
+  font-size: 0.75rem;
+  line-height: 1;
 }
 
 .toggle-completed-btn:hover {
@@ -371,6 +397,12 @@
   align-items: center;
   justify-content: center;
   transition: all 0.15s ease;
+}
+
+.add-task-btn .add-icon {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .add-task-btn:hover {
@@ -765,15 +797,138 @@
   background: #4b5563;
 }
 
-/* Responsive - Hide on small screens */
+/* Responsive - Hide on small screens (desktop only) */
 @media (max-width: 1200px) {
-  .progress-sidebar {
+  .progress-sidebar:not(.mobile) {
     width: 240px;
   }
 }
 
 @media (max-width: 1024px) {
-  .progress-sidebar {
+  .progress-sidebar:not(.mobile) {
     display: none;
   }
+}
+
+/* ============================================
+   MOBILE STYLES
+   ============================================ */
+
+.progress-sidebar.mobile {
+  width: 100%;
+  height: 100%;
+  border-left: none;
+  display: flex;
+  padding-bottom: var(--panel-indicator-height);
+}
+
+.progress-sidebar.mobile .sidebar-section {
+  padding: var(--mobile-padding);
+}
+
+.progress-sidebar.mobile .section-header {
+  font-size: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Mobile Progress Badge */
+.progress-sidebar.mobile .current-milestone-badge {
+  padding: 12px 16px;
+  font-size: 1rem;
+}
+
+/* Mobile Next Steps */
+.progress-sidebar.mobile .next-step-item {
+  padding: 12px;
+  min-height: var(--touch-target-min);
+  margin: 0 -12px;
+}
+
+.progress-sidebar.mobile .step-checkbox svg {
+  width: 24px;
+  height: 24px;
+}
+
+.progress-sidebar.mobile .step-label {
+  font-size: 0.875rem;
+}
+
+/* Mobile Milestones List */
+.progress-sidebar.mobile .milestone-row {
+  padding: 12px;
+  min-height: 48px;
+}
+
+.progress-sidebar.mobile .milestone-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.progress-sidebar.mobile .milestone-name {
+  font-size: 0.9375rem;
+}
+
+.progress-sidebar.mobile .milestone-progress-bar {
+  height: 8px;
+}
+
+.progress-sidebar.mobile .milestone-percent {
+  font-size: 0.875rem;
+}
+
+/* Mobile Checklist Rows */
+.progress-sidebar.mobile .checklist-row {
+  padding: 12px 8px;
+  min-height: var(--touch-target-min);
+}
+
+.progress-sidebar.mobile .row-checkbox {
+  width: 24px;
+  height: 24px;
+  border-width: 2px;
+}
+
+.progress-sidebar.mobile .row-label {
+  font-size: 0.875rem;
+}
+
+/* Mobile Tasks Section */
+.progress-sidebar.mobile .tasks-section {
+  padding: var(--mobile-padding);
+}
+
+.progress-sidebar.mobile .task-item {
+  padding: 12px;
+  min-height: 48px;
+}
+
+.progress-sidebar.mobile .task-check-btn {
+  width: 32px;
+  height: 32px;
+}
+
+.progress-sidebar.mobile .task-text {
+  font-size: 0.875rem;
+}
+
+.progress-sidebar.mobile .task-menu-btn {
+  width: 32px;
+  height: 32px;
+  opacity: 1; /* Always visible on mobile */
+}
+
+/* Mobile Add Task Button */
+.progress-sidebar.mobile .add-task-btn {
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+}
+
+/* Mobile Save Bar */
+.progress-sidebar.mobile .sidebar-save-bar {
+  padding: 12px var(--mobile-padding);
+}
+
+.progress-sidebar.mobile .sidebar-save-actions button {
+  padding: 8px 16px;
+  font-size: 0.8125rem;
 }
