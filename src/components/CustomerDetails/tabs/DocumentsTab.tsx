@@ -1434,7 +1434,46 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
               {isImageFile(previewDoc.mimeType) ? (
                 <img src={previewDoc.url} alt={previewDoc.name} />
               ) : isPdfFile(previewDoc.mimeType) ? (
-                <iframe src={previewDoc.url} title={previewDoc.name} />
+                isMobile ? (
+                  /* Mobile: Open PDF in new tab (iframes don't work on iOS Safari) */
+                  <div className="mobile-pdf-preview">
+                    <File size={48} className="preview-icon pdf" />
+                    <p className="pdf-filename">{previewDoc.name}</p>
+                    <p className="pdf-hint">PDF preview not supported on mobile browsers</p>
+                    <div className="pdf-actions">
+                      <Button
+                        onClick={() => window.open(previewDoc.url, '_blank')}
+                      >
+                        <Eye size={16} className="btn-icon" />
+                        Open PDF
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            const blob = await downloadDocument(previewDoc.path);
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = previewDoc.name;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(url);
+                          } catch (err) {
+                            setError('Failed to download document');
+                          }
+                        }}
+                      >
+                        <DownloadSimple size={16} className="btn-icon" />
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Desktop: Use iframe */
+                  <iframe src={previewDoc.url} title={previewDoc.name} />
+                )
               ) : isVideoFile(previewDoc.mimeType) ? (
                 <video controls autoPlay className="video-preview">
                   <source src={previewDoc.url} type={previewDoc.mimeType} />
