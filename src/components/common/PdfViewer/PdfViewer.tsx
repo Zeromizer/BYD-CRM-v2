@@ -15,13 +15,13 @@ interface PdfViewerProps {
 export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [scale, setScale] = useState<number | null>(null); // null = auto-fit
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [renderTask, setRenderTask] = useState<pdfjsLib.RenderTask | null>(null);
   const [containerReady, setContainerReady] = useState(false);
 
   // Load PDF document
@@ -101,8 +101,13 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
 
     const renderPage = async () => {
       // Cancel any existing render task
-      if (renderTask) {
-        renderTask.cancel();
+      if (renderTaskRef.current) {
+        try {
+          renderTaskRef.current.cancel();
+        } catch (e) {
+          // Ignore cancel errors
+        }
+        renderTaskRef.current = null;
       }
 
       try {
@@ -115,6 +120,7 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
         if (scale === null && containerRef.current) {
           renderScale = await calculateOptimalScale(pdfDoc, currentPage);
           setScale(renderScale);
+          return; // Will re-render with new scale
         }
         // Fallback if still null
         if (renderScale === null) renderScale = 1;
@@ -138,7 +144,7 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
           canvas: canvas,
         });
 
-        setRenderTask(newRenderTask);
+        renderTaskRef.current = newRenderTask;
         await newRenderTask.promise;
       } catch (err: any) {
         if (err?.name !== 'RenderingCancelledException' && !cancelled) {
@@ -151,8 +157,15 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
 
     return () => {
       cancelled = true;
+      if (renderTaskRef.current) {
+        try {
+          renderTaskRef.current.cancel();
+        } catch (e) {
+          // Ignore cancel errors
+        }
+      }
     };
-  }, [pdfDoc, currentPage, scale, calculateOptimalScale, renderTask, containerReady]);
+  }, [pdfDoc, currentPage, scale, calculateOptimalScale, containerReady]);
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
