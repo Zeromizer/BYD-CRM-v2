@@ -89,6 +89,12 @@
   user-select: none;
 }
 
+/* When zoomed, remove max constraints to allow proper scaling */
+.image-canvas-container.zoomable .preview-image {
+  max-width: none;
+  max-height: none;
+}
+
 /* Cursor states for zoom/pan */
 .image-canvas-container.zoomable {
   cursor: grab;
@@ -137,5 +143,6 @@
 
   .image-canvas-container {
     padding: 0.5rem;
+    overflow: hidden;
   }
 }

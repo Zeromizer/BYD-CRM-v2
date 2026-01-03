@@ -185,9 +185,15 @@
   .pdf-canvas-container {
     padding: 0.5rem;
     align-items: flex-start;
+    overflow: hidden;
+  }
+
+  /* When zoomed in, allow canvas to overflow and be panned */
+  .pdf-canvas-container.zoomable {
+    overflow: hidden;
   }
 
   .pdf-canvas {
-    max-width: 100%;
+    flex-shrink: 0;
   }
 }
