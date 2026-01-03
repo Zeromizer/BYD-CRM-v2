@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { CaretLeft, CaretRight, MagnifyingGlassMinus, MagnifyingGlassPlus, DownloadSimple, ArrowsOut, Printer } from '@phosphor-icons/react';
 import './PdfViewer.css';
@@ -23,6 +23,13 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [containerReady, setContainerReady] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const positionStartRef = useRef({ x: 0, y: 0 });
+
+  // Track if we're zoomed in beyond auto-fit
+  const initialScaleRef = useRef<number | null>(null);
 
   // Load PDF document
   useEffect(() => {
@@ -119,6 +126,7 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
         let renderScale = scale;
         if (scale === null && containerRef.current) {
           renderScale = await calculateOptimalScale(pdfDoc, currentPage);
+          initialScaleRef.current = renderScale; // Store initial scale
           setScale(renderScale);
           return; // Will re-render with new scale
         }
@@ -200,6 +208,64 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
       });
     }
   };
+
+  // Check if zoomed in beyond initial scale
+  const isZoomedIn = useMemo(() => {
+    if (scale === null || initialScaleRef.current === null) return false;
+    return scale > initialScaleRef.current;
+  }, [scale]);
+
+  // Mouse drag handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!isZoomedIn) return;
+    e.preventDefault();
+    setIsDragging(true);
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
+    positionStartRef.current = { ...position };
+  }, [isZoomedIn, position]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+    setPosition({
+      x: positionStartRef.current.x + dx,
+      y: positionStartRef.current.y + dy,
+    });
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Touch drag handlers for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!isZoomedIn) return;
+    const touch = e.touches[0];
+    setIsDragging(true);
+    dragStartRef.current = { x: touch.clientX, y: touch.clientY };
+    positionStartRef.current = { ...position };
+  }, [isZoomedIn, position]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - dragStartRef.current.x;
+    const dy = touch.clientY - dragStartRef.current.y;
+    setPosition({
+      x: positionStartRef.current.x + dx,
+      y: positionStartRef.current.y + dy,
+    });
+  }, [isDragging]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Reset position when page changes or zoom resets
+  useEffect(() => {
+    setPosition({ x: 0, y: 0 });
+  }, [currentPage]);
 
   if (loading) {
     return (
@@ -290,8 +356,24 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
       </div>
 
       {/* Canvas container with scroll */}
-      <div className="pdf-canvas-container">
-        <canvas ref={canvasRef} className="pdf-canvas" />
+      <div
+        className={`pdf-canvas-container ${isDragging ? 'dragging' : ''} ${isZoomedIn ? 'zoomable' : ''}`}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <canvas
+          ref={canvasRef}
+          className="pdf-canvas"
+          style={{
+            transform: `translate(${position.x}px, ${position.y}px)`,
+          }}
+          draggable={false}
+        />
       </div>
 
       {/* Filename footer */}

@@ -127,6 +127,21 @@
 .pdf-canvas {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   background: white;
+  transition: transform 0.1s ease;
+  user-select: none;
+}
+
+/* Cursor states for zoom/pan */
+.pdf-canvas-container.zoomable {
+  cursor: grab;
+}
+
+.pdf-canvas-container.zoomable.dragging {
+  cursor: grabbing;
+}
+
+.pdf-canvas-container.dragging .pdf-canvas {
+  transition: none;
 }
 
 /* Filename footer */

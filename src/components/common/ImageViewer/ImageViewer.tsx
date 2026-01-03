@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { MagnifyingGlassMinus, MagnifyingGlassPlus, DownloadSimple, ArrowsOut, Printer, ArrowCounterClockwise } from '@phosphor-icons/react';
 import './ImageViewer.css';
 
@@ -11,18 +11,29 @@ interface ImageViewerProps {
 export function ImageViewer({ url, filename, onDownload }: ImageViewerProps) {
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const positionStartRef = useRef({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleZoomIn = () => {
     setScale((prev) => Math.min(prev * 1.25, 4));
   };
 
   const handleZoomOut = () => {
-    setScale((prev) => Math.max(prev / 1.25, 0.25));
+    const newScale = Math.max(scale / 1.25, 0.25);
+    setScale(newScale);
+    // Reset position if zooming back to fit
+    if (newScale <= 1) {
+      setPosition({ x: 0, y: 0 });
+    }
   };
 
   const handleResetZoom = () => {
     setScale(1);
     setRotation(0);
+    setPosition({ x: 0, y: 0 });
   };
 
   const handleRotate = () => {
@@ -55,6 +66,53 @@ export function ImageViewer({ url, filename, onDownload }: ImageViewerProps) {
       printWindow.document.close();
     }
   };
+
+  // Mouse drag handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (scale <= 1) return; // Only allow drag when zoomed in
+    e.preventDefault();
+    setIsDragging(true);
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
+    positionStartRef.current = { ...position };
+  }, [scale, position]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+    setPosition({
+      x: positionStartRef.current.x + dx,
+      y: positionStartRef.current.y + dy,
+    });
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Touch drag handlers for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (scale <= 1) return;
+    const touch = e.touches[0];
+    setIsDragging(true);
+    dragStartRef.current = { x: touch.clientX, y: touch.clientY };
+    positionStartRef.current = { ...position };
+  }, [scale, position]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - dragStartRef.current.x;
+    const dy = touch.clientY - dragStartRef.current.y;
+    setPosition({
+      x: positionStartRef.current.x + dx,
+      y: positionStartRef.current.y + dy,
+    });
+  }, [isDragging]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
 
   return (
     <div className="image-viewer">
@@ -120,14 +178,25 @@ export function ImageViewer({ url, filename, onDownload }: ImageViewerProps) {
       </div>
 
       {/* Image container with zoom and pan */}
-      <div className="image-canvas-container">
+      <div
+        ref={containerRef}
+        className={`image-canvas-container ${isDragging ? 'dragging' : ''} ${scale > 1 ? 'zoomable' : ''}`}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         <img
           src={url}
           alt={filename || 'Preview'}
           className="preview-image"
           style={{
-            transform: `scale(${scale}) rotate(${rotation}deg)`,
+            transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
           }}
+          draggable={false}
         />
       </div>
 
