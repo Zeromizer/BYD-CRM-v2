@@ -1,12 +1,14 @@
 import { useState, useEffect, type ReactElement } from 'react';
-import { User, File, Car, FolderOpen, FileXls, PencilSimple, Export, Package, Trash, X } from '@phosphor-icons/react';
+import { User, File, Car, FolderOpen, FileXls, FileDoc, PencilSimple, Export, Package, Trash, X } from '@phosphor-icons/react';
 import { useCustomerStore } from '@/stores/useCustomerStore';
 import { Button, Modal } from '@/components/common';
 import { CustomerForm } from '@/components/CustomerForm';
 import { DetailsTab, ProposalTab, VsaTab, DocumentsTab } from './tabs';
 import { MobileSummaryCard } from './MobileSummaryCard';
 import { ExcelPopulateModal } from '@/components/Excel';
-import type { Customer } from '@/types';
+import { PrintManager } from '@/components/Documents/PrintManager';
+import { useDocumentStore } from '@/stores/useDocumentStore';
+import type { Customer, DocumentTemplate } from '@/types';
 import './CustomerDetails.css';
 
 type TabId = 'details' | 'proposal' | 'vsa' | 'documents';
@@ -37,6 +39,9 @@ export function CustomerDetails({ customer, onClose, isMobile, onBack }: Custome
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
+  const [showDocTemplateSelect, setShowDocTemplateSelect] = useState(false);
+  const [selectedDocTemplate, setSelectedDocTemplate] = useState<DocumentTemplate | null>(null);
+  const [showPrintManager, setShowPrintManager] = useState(false);
 
   const {
     updateCustomer,
@@ -45,6 +50,13 @@ export function CustomerDetails({ customer, onClose, isMobile, onBack }: Custome
     unarchiveCustomer,
     isSaving,
   } = useCustomerStore();
+
+  const { templates, fetchTemplates } = useDocumentStore();
+
+  // Fetch templates on mount
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
 
   // Reset tab when customer changes
   useEffect(() => {
@@ -116,6 +128,15 @@ export function CustomerDetails({ customer, onClose, isMobile, onBack }: Custome
               title="Generate Excel"
             >
               <FileXls size={18} className="action-icon" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDocTemplateSelect(true)}
+              title="Generate Document"
+            >
+              <FileDoc size={18} className="action-icon" />
             </Button>
 
             <Button
@@ -216,6 +237,16 @@ export function CustomerDetails({ customer, onClose, isMobile, onBack }: Custome
               className="mobile-action-item"
               onClick={() => {
                 setShowMobileActions(false);
+                setShowDocTemplateSelect(true);
+              }}
+            >
+              <FileDoc size={18} className="action-icon" />
+              <span>Generate Document</span>
+            </button>
+            <button
+              className="mobile-action-item"
+              onClick={() => {
+                setShowMobileActions(false);
                 setIsEditModalOpen(true);
               }}
             >
@@ -311,6 +342,104 @@ export function CustomerDetails({ customer, onClose, isMobile, onBack }: Custome
         customer={customer}
         guarantors={customer.guarantors}
       />
+
+      {/* Document Template Selection Modal */}
+      <Modal
+        isOpen={showDocTemplateSelect}
+        onClose={() => setShowDocTemplateSelect(false)}
+        title="Select Document Template"
+        size="lg"
+      >
+        <div className="template-select-modal">
+          <p className="template-select-description">
+            Select a template to generate a document for <strong>{customer.name}</strong>
+          </p>
+
+          {templates.length === 0 ? (
+            <div className="no-templates">
+              <File size={32} className="empty-icon" />
+              <p>No document templates available</p>
+              <p className="hint">Create templates in the Documents section first</p>
+            </div>
+          ) : (
+            <div className="template-categories">
+              {Object.entries(
+                templates.reduce((acc, template) => {
+                  const category = template.category || 'other';
+                  if (!acc[category]) acc[category] = [];
+                  acc[category].push(template);
+                  return acc;
+                }, {} as Record<string, DocumentTemplate[]>)
+              ).map(([category, categoryTemplates]) => {
+                const categoryLabels: Record<string, string> = {
+                  vsa: 'Vehicle Sales Agreement',
+                  insurance: 'Insurance',
+                  delivery: 'Delivery',
+                  test_drive: 'Test Drive',
+                  finance: 'Finance',
+                  other: 'Other',
+                };
+                return (
+                  <div key={category} className="template-category">
+                    <h4 className="category-title">{categoryLabels[category] || category}</h4>
+                    <div className="template-grid">
+                      {categoryTemplates.map((template) => (
+                        <button
+                          key={template.id}
+                          className="template-card"
+                          onClick={() => {
+                            setSelectedDocTemplate(template);
+                            setShowDocTemplateSelect(false);
+                            setShowPrintManager(true);
+                          }}
+                        >
+                          {template.image_url ? (
+                            <img
+                              src={template.image_url}
+                              alt={template.name}
+                              className="template-thumbnail"
+                            />
+                          ) : (
+                            <div className="template-placeholder">
+                              <File size={24} className="placeholder-icon" />
+                            </div>
+                          )}
+                          <span className="template-name">{template.name}</span>
+                          <span className="template-fields">
+                            {Object.keys(template.fields || {}).length} fields
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Print Manager */}
+      {showPrintManager && selectedDocTemplate && (
+        <Modal
+          isOpen={showPrintManager}
+          onClose={() => {
+            setShowPrintManager(false);
+            setSelectedDocTemplate(null);
+          }}
+          title=""
+          size="full"
+        >
+          <PrintManager
+            template={selectedDocTemplate}
+            customer={customer}
+            onClose={() => {
+              setShowPrintManager(false);
+              setSelectedDocTemplate(null);
+            }}
+          />
+        </Modal>
+      )}
     </div>
   );
 }

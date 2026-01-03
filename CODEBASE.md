@@ -282,6 +282,14 @@ Global task sidebar (accessible from header):
 - Inline task creation with `InlineTaskForm`
 - Stats showing today's and overdue task counts
 
+### CustomerDetails Header Actions
+Action buttons in header (desktop) and action sheet (mobile):
+- **Generate Excel** (FileXls icon) - Opens ExcelPopulateModal for Excel template generation
+- **Generate Document** (FileDoc icon) - Opens template selector → PrintManager for PDF generation
+- **Edit** (PencilSimple icon) - Opens CustomerForm modal
+- **Archive/Unarchive** (Package/Export icon) - Toggle archive status
+- **Delete** (Trash icon) - Delete confirmation modal
+
 ### CustomerDetails Tabs
 - **DetailsTab**: Basic info, address, vehicle
 - **VsaTab**: VSA details, financing, trade-in
@@ -514,7 +522,8 @@ const results = await classifyDocumentsWithVisionClaudeParallel(
 
 | Commit | Description |
 |--------|-------------|
-| Latest | Document thumbnail card grid layout with large previews |
+| Latest | Add Generate Document button to CustomerDetails header |
+| Previous | Document thumbnail card grid layout with large previews |
 | Previous | Mobile documents tab optimization with action sheets |
 | Previous | Vision+Claude OCR pipeline with parallel processing |
 | Previous | Mobile optimization with swipe-based panel navigation |
