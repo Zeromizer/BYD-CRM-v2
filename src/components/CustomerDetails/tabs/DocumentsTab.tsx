@@ -22,6 +22,10 @@ import {
   classifyDocuments,
   type ClassificationResult,
 } from '@/services/documentClassifierService';
+import {
+  classifyDocumentsWithVisionClaudeParallel,
+  type VisionClaudeResult,
+} from '@/services/intelligentOcrService';
 import { PrintManager } from '@/components/Documents/PrintManager';
 import type { Customer, DocumentChecklistItem, MilestoneId, DocumentTemplate, DocumentChecklistState } from '@/types';
 
@@ -113,7 +117,8 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
   // AI Classification state
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState('');
-  const [classifiedFiles, setClassifiedFiles] = useState<{ file: File; name: string; classification: ClassificationResult }[]>([]);
+  const [scanMethod, setScanMethod] = useState<'claude' | 'vision-claude'>('claude');
+  const [classifiedFiles, setClassifiedFiles] = useState<{ file: File; name: string; classification: ClassificationResult | VisionClaudeResult }[]>([]);
   const [showClassificationResults, setShowClassificationResults] = useState(false);
 
   // All uploads state (for viewing all migrated documents)
@@ -587,7 +592,8 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
     if (migrationFiles.length === 0) return;
 
     setIsScanning(true);
-    setScanProgress('Starting AI scan...');
+    const methodLabel = scanMethod === 'vision-claude' ? 'Vision + Claude' : 'Claude';
+    setScanProgress(`Starting ${methodLabel} scan...`);
 
     try {
       // Convert MigrationFile[] to format needed for classification
@@ -595,16 +601,32 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
         .filter(mf => mf.file) // Only files that have File object
         .map(mf => ({ file: mf.file!, name: mf.name }));
 
-      const results = await classifyDocuments(
-        filesToScan,
-        (current, total, filename, result) => {
-          setScanProgress(`Scanning ${current}/${total}: ${filename}${result ? ` → ${result.documentTypeName}` : ''}`);
-        }
-      );
+      let results: { file: File; name: string; classification: ClassificationResult | VisionClaudeResult }[];
+
+      if (scanMethod === 'vision-claude') {
+        // Use Vision + Claude hybrid OCR with parallel processing (4 concurrent)
+        const visionResults = await classifyDocumentsWithVisionClaudeParallel(
+          filesToScan,
+          (current, total, filename, result) => {
+            setScanProgress(`[Vision+Claude] ${current}/${total}: ${filename}${result ? ` → ${result.documentTypeName}` : ''}`);
+          },
+          4 // Process 4 documents in parallel
+        );
+        results = visionResults;
+      } else {
+        // Use existing Claude-only method
+        const claudeResults = await classifyDocuments(
+          filesToScan,
+          (current, total, filename, result) => {
+            setScanProgress(`[Claude] ${current}/${total}: ${filename}${result ? ` → ${result.documentTypeName}` : ''}`);
+          }
+        );
+        results = claudeResults;
+      }
 
       setClassifiedFiles(results);
       setShowClassificationResults(true);
-      toastSuccess(`Scanned ${results.length} documents with AI`);
+      toastSuccess(`Scanned ${results.length} documents with ${methodLabel}`);
     } catch (err) {
       console.error('AI scan failed:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -1284,6 +1306,41 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                 </div>
               )}
 
+              {/* Scan Method Selector */}
+              {migrationFiles.length > 0 && !isScanning && !isMigrating && (
+                <div className="scan-method-selector">
+                  <h4>Choose OCR Method:</h4>
+                  <div className="scan-method-options">
+                    <label className={`scan-method-option ${scanMethod === 'claude' ? 'selected' : ''}`}>
+                      <input
+                        type="radio"
+                        name="scanMethod"
+                        value="claude"
+                        checked={scanMethod === 'claude'}
+                        onChange={() => setScanMethod('claude')}
+                      />
+                      <div className="scan-method-content">
+                        <span className="scan-method-name">Claude Vision</span>
+                        <span className="scan-method-desc">Current method - direct image analysis</span>
+                      </div>
+                    </label>
+                    <label className={`scan-method-option ${scanMethod === 'vision-claude' ? 'selected' : ''}`}>
+                      <input
+                        type="radio"
+                        name="scanMethod"
+                        value="vision-claude"
+                        checked={scanMethod === 'vision-claude'}
+                        onChange={() => setScanMethod('vision-claude')}
+                      />
+                      <div className="scan-method-content">
+                        <span className="scan-method-name">Vision + Claude <span className="testing-badge">Testing</span></span>
+                        <span className="scan-method-desc">Google Vision OCR + Claude - higher accuracy text extraction</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
+
               {(isScanning || isMigrating) && (scanProgress || migrationProgress) && (
                 <div className="migration-progress">
                   <CircleNotch size={16} className="spin" />
@@ -1318,46 +1375,99 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
             // Step 2: Show AI classification results
             <>
               <p className="migration-description">
-                AI has classified <strong>{classifiedFiles.length}</strong> documents. Review and adjust if needed:
+                <span className="ocr-method-badge">
+                  {scanMethod === 'vision-claude' ? 'Vision + Claude' : 'Claude Vision'}
+                </span>
+                {' '}classified <strong>{classifiedFiles.length}</strong> documents. Review and adjust if needed:
               </p>
 
               <div className="classification-results">
                 <div className="file-list-scroll">
-                  {classifiedFiles.map((item, index) => (
-                    <div key={index} className="classified-file-item">
-                      <div className="classified-file-info">
-                        <File size={16} className="file-icon" />
-                        <span className="file-name">{item.name}</span>
-                        <span className={`confidence ${item.classification.confidence >= 75 ? 'high' : item.classification.confidence >= 50 ? 'medium' : 'low'}`}>
-                          {item.classification.confidence}%
-                        </span>
-                      </div>
-                      <div className="classified-file-type">
-                        <select
-                          value={item.classification.documentType}
-                          onChange={(e) => handleUpdateClassification(index, e.target.value)}
-                          className="type-select"
-                        >
-                          <option value="nric_front">NRIC Front</option>
-                          <option value="nric_back">NRIC Back</option>
-                          <option value="driving_license">Driving License</option>
-                          <option value="vsa">VSA</option>
-                          <option value="insurance_quote">Insurance Quote</option>
-                          <option value="insurance_policy">Insurance Policy</option>
-                          <option value="payment_proof">Payment Proof</option>
-                          <option value="loan_approval">Loan Approval</option>
-                          <option value="delivery_checklist">Delivery Checklist</option>
-                          <option value="other">Other</option>
-                        </select>
-                        <span className="folder-badge">{item.classification.folder}</span>
-                      </div>
-                      {item.classification.customerName && (
-                        <div className="extracted-name">
-                          Customer: {item.classification.customerName}
+                  {classifiedFiles.map((item, index) => {
+                    const hasOcrMethod = 'ocrMethod' in item.classification;
+                    const visionResult = hasOcrMethod ? item.classification as VisionClaudeResult : null;
+                    const isExcelParse = visionResult?.ocrMethod === 'excel-parse';
+
+                    return (
+                      <div key={index} className="classified-file-item">
+                        <div className="classified-file-info">
+                          <File size={16} className="file-icon" />
+                          <span className="file-name">{item.name}</span>
+                          <span className={`confidence ${item.classification.confidence >= 75 ? 'high' : item.classification.confidence >= 50 ? 'medium' : 'low'}`}>
+                            {item.classification.confidence}%
+                          </span>
+                          {isExcelParse && <span className="method-badge excel">Excel</span>}
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        <div className="classified-file-type">
+                          <select
+                            value={item.classification.documentType}
+                            onChange={(e) => handleUpdateClassification(index, e.target.value)}
+                            className="type-select"
+                          >
+                            <option value="nric_front">NRIC Front</option>
+                            <option value="nric_back">NRIC Back</option>
+                            <option value="driving_license">Driving License</option>
+                            <option value="vsa">VSA</option>
+                            <option value="insurance_quote">Insurance Quote</option>
+                            <option value="insurance_policy">Insurance Policy</option>
+                            <option value="payment_proof">Payment Proof</option>
+                            <option value="loan_approval">Loan Approval</option>
+                            <option value="delivery_checklist">Delivery Checklist</option>
+                            <option value="other">Other</option>
+                          </select>
+                          <span className="folder-badge">{item.classification.folder}</span>
+                        </div>
+                        {item.classification.customerName && (
+                          <div className="extracted-name">
+                            Customer: {item.classification.customerName}
+                          </div>
+                        )}
+                        {/* Show extracted data for Vision+Claude results */}
+                        {visionResult && visionResult.extractedData && (
+                          <div className="extracted-data">
+                            {visionResult.extractedData.nric && (
+                              <span className="extracted-field">NRIC: {visionResult.extractedData.nric}</span>
+                            )}
+                            {visionResult.extractedData.vehicleModel && (
+                              <span className="extracted-field">Vehicle: {visionResult.extractedData.vehicleModel}</span>
+                            )}
+                            {visionResult.extractedData.phone && (
+                              <span className="extracted-field">Phone: {visionResult.extractedData.phone}</span>
+                            )}
+                          </div>
+                        )}
+                        {/* Show Excel-specific data */}
+                        {isExcelParse && visionResult?.excelData && (
+                          <div className="excel-info">
+                            <span className="excel-stats">
+                              {visionResult.excelData.rowCount} rows, {visionResult.excelData.columnCount} cols
+                              {visionResult.excelData.sheetNames.length > 1 && ` (${visionResult.excelData.sheetNames.length} sheets)`}
+                            </span>
+                            {visionResult.excelData.headers && visionResult.excelData.headers.length > 0 && (
+                              <details className="excel-headers">
+                                <summary>Headers: {visionResult.excelData.headers.slice(0, 3).join(', ')}{visionResult.excelData.headers.length > 3 ? '...' : ''}</summary>
+                                <div className="headers-list">{visionResult.excelData.headers.join(', ')}</div>
+                              </details>
+                            )}
+                          </div>
+                        )}
+                        {/* Show raw text preview for Vision+Claude (OCR text) */}
+                        {visionResult && visionResult.rawText && !isExcelParse && (
+                          <details className="raw-text-preview">
+                            <summary>View OCR Text ({visionResult.rawText.length} chars)</summary>
+                            <pre>{visionResult.rawText.substring(0, 500)}{visionResult.rawText.length > 500 ? '...' : ''}</pre>
+                          </details>
+                        )}
+                        {/* Show data preview for Excel files */}
+                        {isExcelParse && visionResult?.rawText && (
+                          <details className="raw-text-preview">
+                            <summary>View Data Preview</summary>
+                            <pre>{visionResult.rawText.substring(0, 800)}{visionResult.rawText.length > 800 ? '...' : ''}</pre>
+                          </details>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

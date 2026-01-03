@@ -197,13 +197,11 @@ export async function classifyDocument(
 }
 
 async function classifyImageOrPdfDocument(file: File): Promise<DocumentClassification> {
-  const buffer = Buffer.from(await file.arrayBuffer());
-
   // Try specific extractors first (higher accuracy)
 
   // Try NRIC extraction
   try {
-    const result = await extractNricData(buffer);
+    const result = await extractNricData(file);
     if (result.structuredData.validation.confidence === 'high') {
       return {
         documentType: 'nric',
@@ -223,7 +221,7 @@ async function classifyImageOrPdfDocument(file: File): Promise<DocumentClassific
 
   // Try VSA form extraction
   try {
-    const result = await extractVsaFormData(buffer);
+    const result = await extractVsaFormData(file);
     if (result.structuredData.validation.allFieldsPresent) {
       return {
         documentType: 'vsa_form',
@@ -246,7 +244,7 @@ async function classifyImageOrPdfDocument(file: File): Promise<DocumentClassific
 
   // Generic document classification
   const genericResult = await extractDocumentData<any>(
-    buffer,
+    file,
     'unknown',
     getGenericClassificationPrompt()
   );

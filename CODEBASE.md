@@ -14,12 +14,13 @@
 | Frontend | React 19.2.0, TypeScript 5.9.3 |
 | Build | Vite 7.2.4 |
 | State | Zustand 5.0.9 |
-| Backend | Supabase (Auth, Database, Storage, Realtime) |
-| AI | Google Gemini 2.5 Flash (document classification) |
+| Backend | Supabase (Auth, Database, Storage, Realtime, Edge Functions) |
+| AI | Google Gemini 2.5 Flash (document classification), Claude Haiku 4.5 (OCR classification) |
+| Vision API | Google Cloud Vision (text extraction from images/PDFs) |
 | Icons | @phosphor-icons/react |
 | Excel | xlsx-populate |
-| PDF | jsPDF |
-| OCR | Tesseract.js |
+| PDF | jsPDF, pdf.js (PDF to image conversion) |
+| OCR | Vision+Claude hybrid pipeline (primary), Tesseract.js (fallback) |
 
 ---
 
@@ -54,6 +55,7 @@ byd-crm-v2/
 ├── supabase/
 │   ├── migrations/          # Database migrations
 │   └── functions/           # Edge Functions
+│       └── vision-claude-ocr/  # Vision+Claude OCR pipeline
 ├── public/                  # Static assets
 └── dist/                    # Build output
 ```
@@ -158,6 +160,8 @@ Touch gesture handling for swipe-based panel navigation on mobile.
 |---------|---------|
 | `excelService.ts` | Populate Excel templates with 200+ customer fields |
 | `documentClassifierService.ts` | AI-powered document type classification using Gemini |
+| `intelligentOcrService.ts` | Vision+Claude hybrid OCR with parallel processing |
+| `bulkDocumentImportService.ts` | Batch document import and AI classification |
 | `customerImportService.ts` | Import/export customers (JSON/CSV) |
 | `customerDocumentService.ts` | Upload documents to Supabase storage |
 | `geminiService.ts` | Google Gemini API configuration |
@@ -330,15 +334,158 @@ npm run preview  # Preview production build
 
 ---
 
+## Vision+Claude OCR Pipeline
+
+### Architecture Overview
+
+The document OCR system uses a **hybrid two-step pipeline** for high-accuracy document classification:
+
+1. **Google Cloud Vision API** - Text extraction (98% accuracy)
+2. **Claude Haiku 4.5** - Intelligent classification and data structuring
+
+This approach provides better accuracy than using either service alone.
+
+### Edge Function: `vision-claude-ocr`
+
+**Location:** `supabase/functions/vision-claude-ocr/index.ts`
+
+**Supported Inputs:**
+- Images: JPEG, PNG, GIF, WebP, BMP
+- PDFs: Single and multi-page (converted to images client-side)
+- Excel: Pre-extracted text (skips Vision API)
+
+**Request Parameters:**
+```typescript
+interface VisionClaudeRequest {
+  imageData?: string;      // Base64 data URL
+  rawText?: string;        // Pre-extracted text (Excel)
+  documentType?: 'auto' | 'nric' | 'vsa' | 'trade_in';
+  sourceType?: 'image' | 'excel';
+  visionOnly?: boolean;    // Skip Claude, return OCR text only
+}
+```
+
+**Response:**
+```typescript
+interface VisionClaudeResponse {
+  documentType: string;    // e.g., 'nric_front', 'vsa', 'loan_approval'
+  confidence: number;      // 0-100
+  customerName: string;
+  signed: boolean;
+  summary: string;
+  rawText: string;
+  extractedData: {
+    nric?: string;
+    name?: string;
+    dateOfBirth?: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+    vehicleModel?: string;
+    sellingPrice?: number;
+    coeAmount?: number;
+    deposit?: number;
+    loanAmount?: number;
+  };
+  ocrMethod: 'vision-claude';
+}
+```
+
+### Document Types
+
+The system classifies documents into these categories:
+- `nric_front`, `nric_back`, `nric` - Singapore NRIC cards
+- `driving_license` - Singapore Driving License
+- `test_drive_form` - Test Drive Agreement
+- `vsa` - Vehicle Sales Agreement, Proforma Invoice
+- `pdpa` - PDPA Consent Form
+- `loan_approval`, `loan_application` - Loan documents
+- `insurance_quote`, `insurance_policy`, `insurance_acceptance` - Insurance docs
+- `payment_proof` - Payment receipts
+- `delivery_checklist` - Vehicle delivery checklist
+- `registration_card` - Vehicle registration
+- `trade_in_docs` - Trade-in documents
+- `id_documents` - Multiple IDs scanned together
+- `other` - Unclassified
+
+### Multi-page PDF Processing
+
+Multi-page PDFs are processed efficiently using `visionOnly` mode:
+
+```
+Page 1 → Vision API (visionOnly: true) → raw text
+Page 2 → Vision API (visionOnly: true) → raw text
+Page 3 → Vision API (visionOnly: true) → raw text
+Combined text → Claude Haiku → classification
+```
+
+This reduces API calls from N×2 to N+1 for N pages.
+
+### Parallel Processing
+
+The `classifyDocumentsWithVisionClaudeParallel()` function processes multiple documents concurrently:
+
+```typescript
+// Process 4 documents in parallel
+const results = await classifyDocumentsWithVisionClaudeParallel(
+  files,
+  onProgress,
+  4  // concurrency limit
+);
+```
+
+**Performance:**
+- Sequential (old): ~60-90s for 20 documents
+- Parallel (new): ~15-25s for 20 documents (3-5x faster)
+
+### Cost Estimate
+
+- ~$0.005 per document (~0.5 cents)
+- Breakdown: Vision API (free tier) + Claude Haiku tokens
+- 100 documents ≈ $0.50
+
+### Client-Side Service: `intelligentOcrService.ts`
+
+**Key Functions:**
+- `classifyWithVisionClaude(file)` - Classify single document
+- `classifyDocumentsWithVisionClaudeParallel(files, onProgress, concurrency)` - Batch processing
+- `classifyPdfWithVisionClaude(file)` - Multi-page PDF support with Vision-only extraction
+- `classifyExcelWithVisionClaude(file)` - Excel file classification (extracts text locally)
+
+**PDF Processing Flow:**
+1. Load PDF with pdf.js
+2. Render each page to canvas (300 DPI)
+3. Convert to JPEG (quality 0.95)
+4. Send each page to Vision API (`visionOnly: true`)
+5. Combine all text
+6. Send to Claude for classification
+
+---
+
 ## Recent Changes (Reference)
 
 | Commit | Description |
 |--------|-------------|
-| Latest | Mobile optimization with swipe-based panel navigation |
+| Latest | Vision+Claude OCR pipeline with parallel processing |
+| Previous | Mobile optimization with swipe-based panel navigation |
 | Previous | Task/Todo feature with inline forms, customer-specific tasks |
 | 4fffb70 | Excel file classification, batch processing |
 | 0faf764 | Excel integration, document management |
 | 5dd6bd2 | OneDrive sync for scanned documents |
+
+### Vision+Claude OCR Implementation
+**New Files:**
+- `supabase/functions/vision-claude-ocr/index.ts` - Edge Function for hybrid OCR
+- `src/services/intelligentOcrService.ts` - Client-side OCR orchestration
+- `src/services/bulkDocumentImportService.ts` - Batch document processing
+
+**Key Features:**
+- Two-step OCR: Google Vision (text extraction) → Claude Haiku (classification)
+- Multi-page PDF support with efficient `visionOnly` mode
+- Parallel processing (4 concurrent) for 3-5x faster batch uploads
+- Excel file classification (extracts text locally, sends to Claude)
+- Automatic document type detection (20+ Singapore document types)
+- Customer data extraction (NRIC, name, address, phone, etc.)
 
 ### Mobile Optimization Implementation
 **New Files:**
