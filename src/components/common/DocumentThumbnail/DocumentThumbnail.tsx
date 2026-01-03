@@ -1,13 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { File, FilePdf, FileXls, FileDoc, FileVideo, Image as ImageIcon } from '@phosphor-icons/react';
-import * as pdfjsLib from 'pdfjs-dist';
 import './DocumentThumbnail.css';
 
-// Set PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString();
+// In-memory thumbnail cache to avoid regenerating
+const thumbnailCache = new Map<string, string>();
+
+// Lazy load PDF.js only when needed
+let pdfjsPromise: Promise<typeof import('pdfjs-dist')> | null = null;
+const getPdfjs = () => {
+  if (!pdfjsPromise) {
+    pdfjsPromise = import('pdfjs-dist').then((pdfjs) => {
+      pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+        'pdfjs-dist/build/pdf.worker.min.mjs',
+        import.meta.url
+      ).toString();
+      return pdfjs;
+    });
+  }
+  return pdfjsPromise;
+};
 
 interface DocumentThumbnailProps {
   url: string;
@@ -17,16 +28,21 @@ interface DocumentThumbnailProps {
   onClick?: () => void;
 }
 
-export function DocumentThumbnail({
+function DocumentThumbnailBase({
   url,
   mimeType,
   filename = '',
   size = 'md',
   onClick
 }: DocumentThumbnailProps) {
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(() => {
+    // Check cache immediately on mount
+    return thumbnailCache.get(url) || null;
+  });
+  const [loading, setLoading] = useState(!thumbnailCache.has(url));
   const [error, setError] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const isImage = mimeType?.startsWith('image/');
   const isPdf = mimeType === 'application/pdf';
@@ -38,34 +54,59 @@ export function DocumentThumbnail({
                  mimeType?.includes('document') ||
                  filename?.match(/\.(docx?|doc)$/i);
 
+  // Use IntersectionObserver to detect when thumbnail is visible
   useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '100px' } // Start loading 100px before visible
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  // Generate thumbnail only when visible
+  useEffect(() => {
+    if (!isVisible || !url || thumbnailUrl) return;
+
     let cancelled = false;
 
     const generateThumbnail = async () => {
-      if (!url) {
+      // Check cache again (in case another instance cached it)
+      const cached = thumbnailCache.get(url);
+      if (cached) {
+        setThumbnailUrl(cached);
         setLoading(false);
-        setError(true);
         return;
       }
 
       try {
         if (isImage) {
-          // For images, just use the URL directly
+          // For images, use the URL directly (browser will cache)
           setThumbnailUrl(url);
+          thumbnailCache.set(url, url);
           setLoading(false);
         } else if (isPdf) {
-          // Generate PDF thumbnail from first page
-          const loadingTask = pdfjsLib.getDocument(url);
+          // Lazy load PDF.js and generate thumbnail
+          const pdfjs = await getPdfjs();
+          const loadingTask = pdfjs.getDocument(url);
           const pdf = await loadingTask.promise;
           const page = await pdf.getPage(1);
 
-          // Calculate scale to fit thumbnail size (render at 2x for better quality)
+          // Smaller render size for thumbnails
           const targetSize = size === 'sm' ? 48 : size === 'md' ? 64 : size === 'lg' ? 80 : size === 'xl' ? 120 : 200;
           const viewport = page.getViewport({ scale: 1 });
-          const scale = (targetSize * 2) / Math.min(viewport.width, viewport.height); // 2x for retina quality
+          const scale = (targetSize * 1.5) / Math.min(viewport.width, viewport.height);
           const scaledViewport = page.getViewport({ scale });
 
-          // Create canvas and render
           const canvas = document.createElement('canvas');
           canvas.width = scaledViewport.width;
           canvas.height = scaledViewport.height;
@@ -79,17 +120,21 @@ export function DocumentThumbnail({
             }).promise;
 
             if (!cancelled) {
-              setThumbnailUrl(canvas.toDataURL('image/jpeg', 0.8));
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+              thumbnailCache.set(url, dataUrl);
+              setThumbnailUrl(dataUrl);
               setLoading(false);
             }
           }
+
+          // Clean up PDF resources
+          pdf.destroy();
         } else {
-          // For other file types, no thumbnail generation
           setLoading(false);
         }
       } catch (err) {
-        console.error('Error generating thumbnail:', err);
         if (!cancelled) {
+          console.error('Error generating thumbnail:', err);
           setError(true);
           setLoading(false);
         }
@@ -101,7 +146,7 @@ export function DocumentThumbnail({
     return () => {
       cancelled = true;
     };
-  }, [url, mimeType, isImage, isPdf, size]);
+  }, [isVisible, url, mimeType, isImage, isPdf, size, thumbnailUrl]);
 
   const handleClick = () => {
     if (onClick) {
@@ -133,10 +178,16 @@ export function DocumentThumbnail({
 
   return (
     <div
+      ref={containerRef}
       className={`document-thumbnail ${sizeClass} ${onClick ? 'clickable' : ''}`}
       onClick={handleClick}
     >
-      {loading ? (
+      {!isVisible ? (
+        // Placeholder before visible - show fallback icon immediately
+        <div className="thumbnail-fallback">
+          {renderFallbackIcon()}
+        </div>
+      ) : loading ? (
         <div className="thumbnail-loading">
           <div className="thumbnail-spinner" />
         </div>
@@ -145,6 +196,7 @@ export function DocumentThumbnail({
           src={thumbnailUrl}
           alt={filename || 'Document thumbnail'}
           className="thumbnail-image"
+          loading="lazy"
           onError={() => setError(true)}
         />
       ) : (
@@ -155,3 +207,6 @@ export function DocumentThumbnail({
     </div>
   );
 }
+
+// Memoize to prevent unnecessary re-renders
+export const DocumentThumbnail = memo(DocumentThumbnailBase);

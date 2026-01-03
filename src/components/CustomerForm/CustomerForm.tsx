@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Camera, User, Phone, Envelope, CreditCard, Briefcase, MapPin } from '@phosphor-icons/react';
 import { Button } from '@/components/common';
-import { IDScanner, type ScannedData } from '@/components/IDScanner';
+import type { ScannedData } from '@/components/IDScanner';
 import './CustomerForm.css';
+
+// Lazy load IDScanner to avoid loading tesseract.js until needed
+const IDScanner = lazy(() => import('@/components/IDScanner').then(m => ({ default: m.IDScanner })));
 
 interface CustomerFormProps {
   initialData?: Record<string, unknown>;
@@ -245,12 +248,16 @@ export function CustomerForm({ initialData, onSubmit, onCancel, isLoading }: Cus
         </div>
       </form>
 
-      {/* ID Scanner Modal */}
-      <IDScanner
-        isOpen={showScanner}
-        onClose={() => setShowScanner(false)}
-        onDataExtracted={handleScanData}
-      />
+      {/* ID Scanner Modal - Lazy loaded */}
+      {showScanner && (
+        <Suspense fallback={<div className="scanner-loading">Loading scanner...</div>}>
+          <IDScanner
+            isOpen={showScanner}
+            onClose={() => setShowScanner(false)}
+            onDataExtracted={handleScanData}
+          />
+        </Suspense>
+      )}
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { UploadSimple, DownloadSimple, Plus, MagnifyingGlass, Package, File, X } from '@phosphor-icons/react';
-import { useCustomerStore, useCustomers, useSelectedCustomerId } from '@/stores';
+import { useCustomerStore, useCustomers, useSelectedCustomerId, useHasMoreCustomers, useIsLoadingMoreCustomers } from '@/stores';
 import { MILESTONES, getOverallProgress } from '@/constants';
 import { Modal, Button, useToast } from '@/components/common';
 import {
@@ -34,14 +34,37 @@ export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
 
   const customers = useCustomers();
   const selectedCustomerId = useSelectedCustomerId();
-  const { selectCustomer, fetchCustomers, subscribeToChanges, createCustomer, saveGuarantors } = useCustomerStore();
+  const hasMore = useHasMoreCustomers();
+  const isLoadingMore = useIsLoadingMoreCustomers();
+  const { selectCustomer, fetchCustomers, fetchMoreCustomers, subscribeToChanges, createCustomer, saveGuarantors } = useCustomerStore();
   const { success, error: toastError } = useToast();
+
+  // Ref for infinite scroll sentinel
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchCustomers();
     const unsubscribe = subscribeToChanges();
     return unsubscribe;
   }, [fetchCustomers, subscribeToChanges]);
+
+  // Infinite scroll using Intersection Observer
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+          fetchMoreCustomers();
+        }
+      },
+      { rootMargin: '100px' }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, fetchMoreCustomers]);
 
   const filteredCustomers = useMemo(() => {
     let result = customers;
@@ -314,14 +337,25 @@ export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
             <p>No customers found</p>
           </div>
         ) : (
-          filteredCustomers.map((customer) => (
-            <CustomerCard
-              key={customer.id}
-              customer={customer}
-              isSelected={customer.id === selectedCustomerId}
-              onSelect={() => selectCustomer(customer.id)}
-            />
-          ))
+          <>
+            {filteredCustomers.map((customer) => (
+              <CustomerCard
+                key={customer.id}
+                customer={customer}
+                isSelected={customer.id === selectedCustomerId}
+                onSelect={() => selectCustomer(customer.id)}
+              />
+            ))}
+            {/* Infinite scroll sentinel */}
+            <div ref={loadMoreRef} className="load-more-sentinel">
+              {isLoadingMore && (
+                <div className="loading-more">
+                  <div className="loading-spinner-small" />
+                  <span>Loading more...</span>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 

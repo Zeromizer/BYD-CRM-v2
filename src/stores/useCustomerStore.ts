@@ -9,18 +9,24 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Customer, CustomerInsert, CustomerUpdate, Guarantor, MilestoneId } from '@/types';
 import { getDefaultChecklistState, getDefaultMilestoneDates, getDefaultDocumentChecklistState } from '@/constants';
 
+// Pagination settings
+const PAGE_SIZE = 50;
+
 interface CustomerState {
   customers: Customer[];
   selectedCustomerId: number | null;
   isLoading: boolean;
+  isLoadingMore: boolean;
   isSaving: boolean;
   error: string | null;
+  hasMore: boolean;
   _channel: RealtimeChannel | null;
 }
 
 interface CustomerActions {
   // CRUD
   fetchCustomers: () => Promise<void>;
+  fetchMoreCustomers: () => Promise<void>;
   fetchCustomerById: (id: number) => Promise<Customer | null>;
   createCustomer: (data: Partial<CustomerInsert>) => Promise<Customer>;
   updateCustomer: (id: number, updates: CustomerUpdate) => Promise<void>;
@@ -52,23 +58,59 @@ export const useCustomerStore = create<CustomerState & CustomerActions>((set, ge
   customers: [],
   selectedCustomerId: null,
   isLoading: false,
+  isLoadingMore: false,
   isSaving: false,
   error: null,
+  hasMore: true,
   _channel: null,
 
   fetchCustomers: async () => {
     set({ isLoading: true, error: null });
     try {
+      // Fetch all columns - needed for customer details view
       const { data, error } = await getSupabase()
         .from('customers')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(0, PAGE_SIZE - 1);
 
       if (error) throw error;
 
-      set({ customers: data as Customer[], isLoading: false });
+      const customers = data as Customer[];
+      set({
+        customers,
+        isLoading: false,
+        hasMore: customers.length === PAGE_SIZE,
+      });
     } catch (error) {
       set({ error: (error as Error).message, isLoading: false });
+    }
+  },
+
+  fetchMoreCustomers: async () => {
+    const { customers, isLoadingMore, hasMore } = get();
+    if (isLoadingMore || !hasMore) return;
+
+    set({ isLoadingMore: true, error: null });
+    try {
+      const offset = customers.length;
+      // Fetch all columns - needed for customer details view
+      const { data, error } = await getSupabase()
+        .from('customers')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1);
+
+      if (error) throw error;
+
+      const newCustomers = data as Customer[];
+      set({
+        customers: [...customers, ...newCustomers],
+        isLoadingMore: false,
+        hasMore: newCustomers.length === PAGE_SIZE,
+      });
+    } catch (error) {
+      set({ error: (error as Error).message, isLoadingMore: false });
     }
   },
 
@@ -439,3 +481,11 @@ export const useSelectedCustomer = () => {
   const selectedId = useCustomerStore((state) => state.selectedCustomerId);
   return customers.find((c) => c.id === selectedId) || null;
 };
+
+// Pagination selectors
+export const useHasMoreCustomers = () => useCustomerStore((state) => state.hasMore);
+export const useIsLoadingMoreCustomers = () => useCustomerStore((state) => state.isLoadingMore);
+
+// Granular selectors for performance
+export const useCustomerById = (id: number) => useCustomerStore((state) => state.customers.find((c) => c.id === id));
+export const useCustomerIds = () => useCustomerStore((state) => state.customers.map((c) => c.id));

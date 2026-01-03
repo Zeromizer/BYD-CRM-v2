@@ -9,6 +9,13 @@ export default defineConfig({
   base: '/BYD-CRM-v2/',
   plugins: [
     react(),
+    // React Compiler disabled - causes significant dev mode slowdown
+    // Re-enable for production builds once stable:
+    // react({
+    //   babel: {
+    //     plugins: [['babel-plugin-react-compiler', {}]],
+    //   },
+    // }),
     nodePolyfills({
       include: ['buffer', 'process'],
       globals: {
@@ -25,5 +32,18 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-pdf': ['pdfjs-dist', 'jspdf'],
+          'vendor-excel': ['xlsx', 'xlsx-populate'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-ocr': ['tesseract.js'],
+        },
+      },
+    },
   },
 })

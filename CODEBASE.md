@@ -522,7 +522,8 @@ const results = await classifyDocumentsWithVisionClaudeParallel(
 
 | Commit | Description |
 |--------|-------------|
-| Latest | Add Generate Document button to CustomerDetails header |
+| Latest | Enterprise optimization: code splitting, pagination, error boundaries |
+| Previous | Add Generate Document button to CustomerDetails header |
 | Previous | Document thumbnail card grid layout with large previews |
 | Previous | Mobile documents tab optimization with action sheets |
 | Previous | Vision+Claude OCR pipeline with parallel processing |
@@ -681,6 +682,45 @@ import { createPortal } from 'react-dom';
   - Dropdown menu for actions
 - **ProgressSidebar Tasks Section** - Customer-specific tasks with show/hide completed toggle
 - **TodoSidebar** - Global task view with filters (replaced old `prompt()` dialog)
+
+### Enterprise Optimization Implementation
+**Modified Files:**
+- `vite.config.ts` - Manual chunks for vendor splitting (React Compiler disabled for dev performance)
+- `src/App.tsx` - Route-based code splitting with React.lazy, ErrorBoundary wrapper
+- `src/stores/useCustomerStore.ts` - Pagination with infinite scroll (50 per page)
+- `src/components/CustomerList/CustomerList.tsx` - Infinite scroll with IntersectionObserver
+- `src/components/CustomerDetails/CustomerDetails.tsx` - Lazy loading for ExcelPopulateModal, PrintManager
+- `src/components/CustomerForm/CustomerForm.tsx` - Lazy loading for IDScanner
+- `src/components/common/DocumentThumbnail/DocumentThumbnail.tsx` - Lazy viewport loading, caching, memoization
+- `src/context/ThemeContext.tsx` - Memoized context value to prevent unnecessary re-renders
+
+**New Files:**
+- `src/components/common/ErrorBoundary/` - Graceful error handling with fallback UI
+- `src/utils/debug.ts` - Environment-aware logging utility
+
+**Key Features:**
+- **Code Splitting** - Heavy libraries (pdfjs-dist, xlsx, jspdf, tesseract.js) in separate chunks
+- **Lazy Loading** - Dashboard, Documents, Excel pages loaded on demand
+- **Pagination** - Customer list loads 50 at a time with infinite scroll
+- **Error Boundaries** - Prevents app crashes, shows fallback UI
+- **Vendor Chunking** - React, Supabase, PDF, Excel, OCR in separate bundles
+- **Thumbnail Optimization** - IntersectionObserver for viewport-based loading, in-memory caching, lazy PDF.js import
+- **Context Memoization** - ThemeContext uses useMemo/useCallback to prevent cascade re-renders
+
+**Bundle Structure (after optimization):**
+```
+vendor-react.js     ~49KB   - React, React-DOM, Router
+vendor-supabase.js  ~169KB  - Supabase client
+vendor-pdf.js       ~822KB  - PDF.js (lazy loaded)
+vendor-excel.js     ~687KB  - xlsx, xlsx-populate (lazy loaded)
+index.js            ~217KB  - Main application
+PrintManager.js     ~14KB   - Print feature (lazy loaded)
+```
+
+**Performance Notes:**
+- React Compiler (`babel-plugin-react-compiler`) is installed but disabled - causes significant dev mode slowdown
+- Can be re-enabled for production-only builds once stable
+- DocumentThumbnail caches generated PDF thumbnails in memory to avoid re-rendering
 
 ---
 

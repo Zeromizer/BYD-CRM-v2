@@ -1,15 +1,17 @@
-import { useState, useEffect, type ReactElement } from 'react';
+import { useState, useEffect, lazy, Suspense, type ReactElement } from 'react';
 import { User, File, Car, FolderOpen, FileXls, FileDoc, PencilSimple, Export, Package, Trash, X } from '@phosphor-icons/react';
 import { useCustomerStore } from '@/stores/useCustomerStore';
 import { Button, Modal } from '@/components/common';
 import { CustomerForm } from '@/components/CustomerForm';
 import { DetailsTab, ProposalTab, VsaTab, DocumentsTab } from './tabs';
 import { MobileSummaryCard } from './MobileSummaryCard';
-import { ExcelPopulateModal } from '@/components/Excel';
-import { PrintManager } from '@/components/Documents/PrintManager';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import type { Customer, DocumentTemplate } from '@/types';
 import './CustomerDetails.css';
+
+// Lazy load heavy components (jsPDF, xlsx-populate)
+const ExcelPopulateModal = lazy(() => import('@/components/Excel').then(m => ({ default: m.ExcelPopulateModal })));
+const PrintManager = lazy(() => import('@/components/Documents/PrintManager').then(m => ({ default: m.PrintManager })));
 
 type TabId = 'details' | 'proposal' | 'vsa' | 'documents';
 
@@ -335,13 +337,17 @@ export function CustomerDetails({ customer, onClose, isMobile, onBack }: Custome
         </div>
       </Modal>
 
-      {/* Excel Populate Modal */}
-      <ExcelPopulateModal
-        isOpen={isExcelModalOpen}
-        onClose={() => setIsExcelModalOpen(false)}
-        customer={customer}
-        guarantors={customer.guarantors}
-      />
+      {/* Excel Populate Modal - Lazy loaded */}
+      {isExcelModalOpen && (
+        <Suspense fallback={<div className="modal-loading">Loading...</div>}>
+          <ExcelPopulateModal
+            isOpen={isExcelModalOpen}
+            onClose={() => setIsExcelModalOpen(false)}
+            customer={customer}
+            guarantors={customer.guarantors}
+          />
+        </Suspense>
+      )}
 
       {/* Document Template Selection Modal */}
       <Modal
@@ -419,7 +425,7 @@ export function CustomerDetails({ customer, onClose, isMobile, onBack }: Custome
         </div>
       </Modal>
 
-      {/* Print Manager */}
+      {/* Print Manager - Lazy loaded */}
       {showPrintManager && selectedDocTemplate && (
         <Modal
           isOpen={showPrintManager}
@@ -430,14 +436,16 @@ export function CustomerDetails({ customer, onClose, isMobile, onBack }: Custome
           title=""
           size="full"
         >
-          <PrintManager
-            template={selectedDocTemplate}
-            customer={customer}
-            onClose={() => {
-              setShowPrintManager(false);
-              setSelectedDocTemplate(null);
-            }}
-          />
+          <Suspense fallback={<div className="modal-loading">Loading...</div>}>
+            <PrintManager
+              template={selectedDocTemplate}
+              customer={customer}
+              onClose={() => {
+                setShowPrintManager(false);
+                setSelectedDocTemplate(null);
+              }}
+            />
+          </Suspense>
         </Modal>
       )}
     </div>

@@ -6,3 +6,4 @@ export { PdfViewer } from './PdfViewer';
 export { ImageViewer } from './ImageViewer';
 export { ExcelViewer } from './ExcelViewer';
 export { DocumentThumbnail } from './DocumentThumbnail';
+export { ErrorBoundary, ErrorFallback } from './ErrorBoundary';

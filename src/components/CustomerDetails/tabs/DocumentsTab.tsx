@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { Export, FolderOpen, File, CircleNotch, Warning, X, Eye, DownloadSimple, Trash, UploadSimple, Sparkle, Plus } from '@phosphor-icons/react';
 import { useIsMobile } from '@/hooks/useMediaQuery';
@@ -28,8 +28,10 @@ import {
   classifyDocumentsWithVisionClaudeParallel,
   type VisionClaudeResult,
 } from '@/services/intelligentOcrService';
-import { PrintManager } from '@/components/Documents/PrintManager';
 import type { Customer, DocumentChecklistItem, MilestoneId, DocumentTemplate, DocumentChecklistState } from '@/types';
+
+// Lazy load PrintManager to avoid loading jsPDF until needed
+const PrintManager = lazy(() => import('@/components/Documents/PrintManager').then(m => ({ default: m.PrintManager })));
 
 interface DocumentsTabProps {
   customer: Customer;
@@ -762,14 +764,16 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
     other: 'Other',
   };
 
-  // If showing print manager, render it full screen
+  // If showing print manager, render it full screen (lazy loaded)
   if (showPrintManager && selectedTemplate) {
     return (
-      <PrintManager
-        template={selectedTemplate}
-        customer={customer}
-        onClose={handleClosePrintManager}
-      />
+      <Suspense fallback={<div className="modal-loading">Loading print manager...</div>}>
+        <PrintManager
+          template={selectedTemplate}
+          customer={customer}
+          onClose={handleClosePrintManager}
+        />
+      </Suspense>
     );
   }
 
