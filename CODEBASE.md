@@ -18,8 +18,8 @@
 | AI | Google Gemini 2.5 Flash (document classification), Claude Haiku 4.5 (OCR classification) |
 | Vision API | Google Cloud Vision (text extraction from images/PDFs) |
 | Icons | @phosphor-icons/react |
-| Excel | xlsx-populate |
-| PDF | jsPDF, pdf.js (PDF to image conversion) |
+| Excel | xlsx-populate (generation), xlsx (preview extraction) |
+| PDF | jsPDF (generation), pdf.js (rendering, thumbnails) |
 | OCR | Vision+Claude hybrid pipeline (primary), Tesseract.js (fallback) |
 
 ---
@@ -40,7 +40,7 @@ byd-crm-v2/
 │   │   ├── MilestoneSidebar/# (Legacy) Vertical milestone icon bar
 │   │   ├── Documents/       # Document management
 │   │   ├── Excel/           # Excel template management
-│   │   └── common/          # Button, Modal, Toast, InlineTaskForm
+│   │   └── common/          # Button, Modal, Toast, InlineTaskForm, DocumentThumbnail, PdfViewer, ImageViewer, ExcelViewer
 │   ├── hooks/               # Custom React hooks
 │   ├── utils/               # Shared utility functions
 │   ├── services/            # Business logic & API integrations
@@ -286,7 +286,55 @@ Global task sidebar (accessible from header):
 - **DetailsTab**: Basic info, address, vehicle
 - **VsaTab**: VSA details, financing, trade-in
 - **ProposalTab**: Proposal and benefits
-- **DocumentsTab**: Document checklist and uploads
+- **DocumentsTab**: Document checklist with card grid layout and large thumbnails
+
+### Common Components (`src/components/common/`)
+
+#### DocumentThumbnail
+Renders document previews with PDF first-page rendering and file type icons.
+
+**Props:**
+```typescript
+interface DocumentThumbnailProps {
+  url: string;
+  mimeType: string;
+  filename?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  onClick?: () => void;
+}
+```
+
+**Size Variants:**
+| Size | Desktop | Mobile | Use Case |
+|------|---------|--------|----------|
+| sm | 40×40px | 36×36px | Inline list items |
+| md | 52×52px | 44×44px | Default |
+| lg | 64×64px | 56×56px | Emphasized items |
+| xl | 100% width, 4:3 aspect | 100% width | Card grid with max-width |
+| full | 100% width, 4:3 aspect | 100% width | Full-width cards |
+
+**Features:**
+- PDF thumbnail generation using pdf.js (first page, 2x scale for retina)
+- Direct image URL for image files
+- File type icons for Excel, Word, Video, and generic files
+- Loading spinner during thumbnail generation
+- Error fallback to file type icon
+
+#### PdfViewer / ImageViewer
+Full-screen document viewers with zoom, pan, and navigation controls.
+
+**Features:**
+- Pinch-to-zoom on mobile (touch gestures)
+- Click-and-drag panning when zoomed
+- Page navigation for multi-page PDFs
+- Download button in toolbar
+
+#### ExcelViewer
+Download prompt for Excel files (Supabase signed URLs cannot be previewed via Google/Microsoft viewers).
+
+**Features:**
+- Displays Excel icon and filename
+- Single download button to open in native app
 
 ### Form Handling
 - Controlled components with local state
@@ -466,7 +514,8 @@ const results = await classifyDocumentsWithVisionClaudeParallel(
 
 | Commit | Description |
 |--------|-------------|
-| Latest | Mobile documents tab optimization with action sheets |
+| Latest | Document thumbnail card grid layout with large previews |
+| Previous | Mobile documents tab optimization with action sheets |
 | Previous | Vision+Claude OCR pipeline with parallel processing |
 | Previous | Mobile optimization with swipe-based panel navigation |
 | Previous | Task/Todo feature with inline forms, customer-specific tasks |
@@ -561,6 +610,55 @@ import { createPortal } from 'react-dom';
 - Mobile action overlay: `z-index: 1000`
 - Mobile action sheet: `z-index: 1001`
 - Modal overlay: `z-index: 1100`
+
+### Document Thumbnail Card Grid Implementation
+**New Files:**
+- `src/components/common/DocumentThumbnail/DocumentThumbnail.tsx` - Thumbnail component with PDF rendering
+- `src/components/common/DocumentThumbnail/DocumentThumbnail.css` - Size variants and responsive styles
+- `src/components/common/DocumentThumbnail/index.ts` - Module export
+
+**Modified Files:**
+- `src/components/CustomerDetails/tabs/DocumentsTab.tsx` - Card grid layout for all views
+- `src/components/CustomerDetails/CustomerDetails.css` - Card grid CSS (~150 new lines)
+- `src/components/common/ExcelViewer/ExcelViewer.tsx` - Simplified to download prompt
+- `src/components/common/index.ts` - Added DocumentThumbnail export
+
+**Key Features:**
+- **Card-based grid layout** - Documents displayed as cards with large thumbnails (4x larger than before)
+- **PDF thumbnail generation** - First page rendered at 2x scale for retina displays
+- **Responsive grid** - `repeat(auto-fill, minmax(140px, 1fr))` on desktop, 2-column on mobile
+- **Unified mobile layout** - Both "All Uploads" and category views use flat 2-column grid
+- **Excel download prompt** - Replaces failed Google Docs Viewer (Supabase signed URLs incompatible)
+
+**Desktop Layout:**
+```
++----------------+ +----------------+ +----------------+
+|   [THUMBNAIL]  | |   [THUMBNAIL]  | |   [THUMBNAIL]  |
+|    (4:3 ratio) | |    (4:3 ratio) | |    (4:3 ratio) |
+|----------------|  |----------------|  |----------------|
+| filename.pdf   | | image.jpeg     | | doc.xlsx       |
+| 1/3/2026       | | 1/3/2026       | | 1/3/2026       |
+| [👁] [⬇] [🗑]  | | [👁] [⬇] [🗑]  | | [👁] [⬇] [🗑]  |
++----------------+ +----------------+ +----------------+
+```
+
+**Mobile Layout (2-column grid):**
+```
++------------------+ +------------------+
+|   [THUMBNAIL]    | |   [THUMBNAIL]    |
+|     (4:3 ratio)  | |     (4:3 ratio)  |
+|------------------|  |------------------|
+| filename.pdf     | | image.jpeg       |
+| 1/3/2026         | | 1/3/2026         |
++------------------+ +------------------+
+```
+
+**CSS Classes:**
+- `.folder-documents-grid` - Desktop card grid container
+- `.document-card` - Individual card with thumbnail + info
+- `.document-card-thumbnail` - Thumbnail wrapper with 4:3 aspect ratio
+- `.mobile-documents-list` - Mobile 2-column grid
+- `.mobile-document-card` - Mobile card variant
 
 ### Task Feature Implementation
 - **InlineTaskForm** (`common/InlineTaskForm.tsx`) - Compact inline form for task creation

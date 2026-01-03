@@ -21,7 +21,6 @@
     "tesseract.js": "^7.0.0",
     "xlsx": "^0.18.5",
     "xlsx-populate": "^1.21.0",
-    "xlsx-preview": "^1.0.4",
     "zustand": "^5.0.9"
   },
   "devDependencies": {

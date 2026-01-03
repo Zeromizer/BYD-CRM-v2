@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Export, FolderOpen, File, CircleNotch, Warning, X, Check, Circle, Eye, DownloadSimple, Trash, UploadSimple, Sparkle, CaretRight, Plus } from '@phosphor-icons/react';
+import { Export, FolderOpen, File, CircleNotch, Warning, X, Eye, DownloadSimple, Trash, UploadSimple, Sparkle, Plus } from '@phosphor-icons/react';
 import { useIsMobile } from '@/hooks/useMediaQuery';
-import { Button, Modal, useToast, PdfViewer, ImageViewer, ExcelViewer } from '@/components/common';
+import { Button, Modal, useToast, PdfViewer, ImageViewer, ExcelViewer, DocumentThumbnail } from '@/components/common';
 import { useCustomerStore } from '@/stores/useCustomerStore';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import {
@@ -847,7 +847,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
             )}
 
             {activeCategory === 'all_uploads' ? (
-              /* Mobile All Uploads View */
+              /* Mobile All Uploads View - Flat 2-column grid like category view */
               <div className="mobile-documents-list">
                 {allUploads.length === 0 ? (
                   <div className="no-uploads">
@@ -855,45 +855,41 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                     <p>No documents uploaded yet</p>
                   </div>
                 ) : (
-                  allUploads.map((folder) => (
-                    <div key={folder.documentType} className="mobile-upload-folder">
-                      <div className="mobile-folder-title">
-                        <FolderOpen size={16} className="folder-icon" />
-                        {folder.documentType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                        <span className="folder-count">({folder.documents.length})</span>
-                      </div>
-                      {folder.documents.map((doc) => (
-                        <button
-                          key={doc.id}
-                          className="mobile-document-card uploaded"
-                          onClick={() => {
-                            setSelectedDocForAction({
-                              docId: folder.documentType,
-                              doc,
-                              label: doc.name,
-                              isUploaded: true,
-                            });
-                            setShowDocActionSheet(true);
-                          }}
-                        >
-                          <div className="mobile-doc-status">
-                            <Check size={14} weight="bold" />
-                          </div>
-                          <div className="mobile-doc-info">
-                            <span className="mobile-doc-label">{doc.name}</span>
-                            <span className="mobile-doc-filename">
-                              {new Date(doc.uploadedAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <CaretRight size={18} className="mobile-doc-chevron" />
-                        </button>
-                      ))}
-                    </div>
-                  ))
+                  /* Flatten all folders into a single grid */
+                  allUploads.flatMap((folder) =>
+                    folder.documents.map((doc) => (
+                      <button
+                        key={doc.id}
+                        className="mobile-document-card uploaded"
+                        onClick={() => {
+                          setSelectedDocForAction({
+                            docId: folder.documentType,
+                            doc,
+                            label: doc.name,
+                            isUploaded: true,
+                          });
+                          setShowDocActionSheet(true);
+                        }}
+                      >
+                        <DocumentThumbnail
+                          url={doc.url}
+                          mimeType={doc.mimeType}
+                          filename={doc.name}
+                          size="full"
+                        />
+                        <div className="mobile-doc-info">
+                          <span className="mobile-doc-label">{doc.name}</span>
+                          <span className="mobile-doc-filename">
+                            {new Date(doc.uploadedAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </button>
+                    ))
+                  )
                 )}
               </div>
             ) : (
-              /* Mobile Category View */
+              /* Mobile Category View - 2-column grid */
               <div className="mobile-documents-list">
                 {activeDocuments.map((doc: any) => {
                   const isUploaded = getDocumentStatus(doc.id, doc.alternateIds);
@@ -921,20 +917,24 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                         setShowDocActionSheet(true);
                       }}
                     >
-                      <div className="mobile-doc-status">
-                        {isUploaded ? (
-                          <Check size={14} weight="bold" />
-                        ) : (
-                          <Circle size={14} />
-                        )}
-                      </div>
+                      {docs.length > 0 ? (
+                        <DocumentThumbnail
+                          url={docs[0].url}
+                          mimeType={docs[0].mimeType}
+                          filename={docs[0].name}
+                          size="full"
+                        />
+                      ) : (
+                        <div className="mobile-doc-status">
+                          <UploadSimple size={24} />
+                        </div>
+                      )}
                       <div className="mobile-doc-info">
                         <span className="mobile-doc-label">{doc.label}</span>
                         {docs.length > 0 && (
                           <span className="mobile-doc-filename">{docs[0].name}</span>
                         )}
                       </div>
-                      <CaretRight size={18} className="mobile-doc-chevron" />
                     </button>
                   );
                 })}
@@ -1243,42 +1243,50 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                       {folder.documentType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                       <span className="folder-count">({folder.documents.length})</span>
                     </h4>
-                    <div className="folder-documents">
+                    <div className="folder-documents-grid">
                       {folder.documents.map((doc) => (
                         <div
                           key={doc.id}
-                          className={`document-item uploaded ${selectedDocs.has(doc.path) ? 'selected' : ''}`}
+                          className={`document-card uploaded ${selectedDocs.has(doc.path) ? 'selected' : ''}`}
                         >
-                          <div className="document-info">
+                          <div className="document-card-thumbnail">
                             <input
                               type="checkbox"
                               checked={selectedDocs.has(doc.path)}
                               onChange={() => toggleDocSelection(doc.path)}
-                              className="doc-checkbox"
+                              className="document-card-checkbox"
+                              onClick={(e) => e.stopPropagation()}
                             />
-                            <File size={16} className="document-icon" />
-                            <div className="document-details">
-                              <span className="document-label">{doc.name}</span>
-                              <span className="document-filename">
-                                {new Date(doc.uploadedAt).toLocaleDateString()}
-                              </span>
+                            <DocumentThumbnail
+                              url={doc.url}
+                              mimeType={doc.mimeType}
+                              filename={doc.name}
+                              size="full"
+                              onClick={() => {
+                                setPreviewDoc(doc);
+                                setShowPreviewModal(true);
+                              }}
+                            />
+                          </div>
+                          <div className="document-card-info">
+                            <div className="document-card-name" title={doc.name}>{doc.name}</div>
+                            <div className="document-card-date">
+                              {new Date(doc.uploadedAt).toLocaleDateString()}
                             </div>
                           </div>
-                          <div className="document-actions">
-                            <Button
-                              variant="ghost"
-                              size="sm"
+                          <div className="document-card-actions">
+                            <button
+                              className="action-btn"
                               onClick={() => {
                                 setPreviewDoc(doc);
                                 setShowPreviewModal(true);
                               }}
                               title="View"
                             >
-                              <Eye size={16} className="action-icon" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
+                              <Eye size={16} />
+                            </button>
+                            <button
+                              className="action-btn"
                               onClick={async () => {
                                 try {
                                   const blob = await downloadDocument(doc.path);
@@ -1296,20 +1304,18 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                               }}
                               title="Download"
                             >
-                              <DownloadSimple size={16} className="action-icon" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
+                              <DownloadSimple size={16} />
+                            </button>
+                            <button
+                              className="action-btn danger"
                               onClick={() => {
                                 setDocToDelete({ docId: folder.documentType, doc });
                                 setShowDeleteConfirm(true);
                               }}
                               title="Delete"
-                              className="danger"
                             >
-                              <Trash size={16} className="action-icon" />
-                            </Button>
+                              <Trash size={16} />
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -1320,8 +1326,8 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
             )}
           </div>
         ) : (
-          /* Category View */
-          <div className="documents-list">
+          /* Category View - Card Grid */
+          <div className="documents-grid">
             {activeDocuments.map((doc: any) => {
               const isUploaded = getDocumentStatus(doc.id, doc.alternateIds);
               const isUploading = uploadingDocId === doc.id;
@@ -1339,76 +1345,74 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
               return (
                 <div
                   key={doc.id}
-                  className={`document-item ${isUploaded ? 'uploaded' : ''}`}
+                  className={`document-card ${isUploaded ? 'uploaded' : 'pending'}`}
                 >
-                  <div className="document-info">
-                    {isUploaded ? (
-                      <Check size={14} weight="bold" className="status-icon uploaded" />
+                  <div className="document-card-thumbnail">
+                    {docs.length > 0 ? (
+                      <DocumentThumbnail
+                        url={docs[0].url}
+                        mimeType={docs[0].mimeType}
+                        filename={docs[0].name}
+                        size="full"
+                        onClick={() => handleView(doc.id)}
+                      />
                     ) : (
-                      <Circle size={14} className="status-icon pending" />
-                    )}
-                    <File size={16} className="document-icon" />
-                    <div className="document-details">
-                      <span className="document-label">{doc.label}</span>
-                      {docs.length > 0 && (
-                        <span className="document-filename">{docs[0].name}</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="document-actions">
-                    {isUploading ? (
-                      <div className="uploading-indicator">
-                        <CircleNotch size={14} className="spin" />
-                        Uploading...
-                      </div>
-                    ) : isUploaded ? (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleView(doc.id)}
-                          title="View"
-                        >
-                          <Eye size={16} className="action-icon" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDownload(doc.id)}
-                          title="Download"
-                        >
-                          <DownloadSimple size={16} className="action-icon" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteClick(doc.id)}
-                          title="Delete"
-                          className="danger"
-                        >
-                          <Trash size={16} className="action-icon" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleUploadClick(doc.id)}
-                          title="Replace"
-                        >
-                          <UploadSimple size={16} className="action-icon" />
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
+                      <button
+                        className="document-card-upload-btn"
                         onClick={() => handleUploadClick(doc.id)}
+                        disabled={isUploading}
                       >
-                        <UploadSimple size={16} className="action-icon" />
-                        Upload
-                      </Button>
+                        {isUploading ? (
+                          <CircleNotch size={24} className="spin" />
+                        ) : (
+                          <>
+                            <UploadSimple size={24} />
+                            <span>Upload</span>
+                          </>
+                        )}
+                      </button>
                     )}
                   </div>
+                  <div className="document-card-info">
+                    <div className="document-card-name" title={doc.label}>{doc.label}</div>
+                    {docs.length > 0 && (
+                      <div className="document-card-date" title={docs[0].name}>
+                        {docs[0].name}
+                      </div>
+                    )}
+                  </div>
+                  {isUploaded && (
+                    <div className="document-card-actions">
+                      <button
+                        className="action-btn"
+                        onClick={() => handleView(doc.id)}
+                        title="View"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        className="action-btn"
+                        onClick={() => handleDownload(doc.id)}
+                        title="Download"
+                      >
+                        <DownloadSimple size={16} />
+                      </button>
+                      <button
+                        className="action-btn"
+                        onClick={() => handleUploadClick(doc.id)}
+                        title="Replace"
+                      >
+                        <UploadSimple size={16} />
+                      </button>
+                      <button
+                        className="action-btn danger"
+                        onClick={() => handleDeleteClick(doc.id)}
+                        title="Delete"
+                      >
+                        <Trash size={16} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}

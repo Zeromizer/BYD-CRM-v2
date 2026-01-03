@@ -1174,6 +1174,151 @@
   margin-bottom: 0;
 }
 
+/* Document Card Grid Layout */
+.folder-documents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  padding: 0.75rem;
+}
+
+.document-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.15s ease;
+}
+
+.document-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.document-card.uploaded {
+  background: var(--success-alpha);
+  border-color: var(--success);
+}
+
+.document-card.selected {
+  border-color: var(--accent-color, #3b82f6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.document-card-thumbnail {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: var(--bg-tertiary);
+  cursor: pointer;
+}
+
+.document-card-checkbox {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 1;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--accent-color, #3b82f6);
+}
+
+.document-card-info {
+  padding: 8px 10px;
+  min-width: 0;
+}
+
+.document-card-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 2px;
+}
+
+.document-card-date {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.document-card-actions {
+  display: flex;
+  gap: 2px;
+  padding: 6px 8px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+}
+
+.document-card-actions .action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.document-card-actions .action-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.document-card-actions .action-btn.danger:hover {
+  background: var(--danger-alpha);
+  color: var(--danger);
+}
+
+/* Documents Grid for Category View */
+.documents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.document-card.pending {
+  opacity: 0.7;
+}
+
+.document-card.pending .document-card-thumbnail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.document-card-upload-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.document-card-upload-btn:hover {
+  color: var(--accent-color);
+  background: var(--bg-hover);
+}
+
+.document-card-upload-btn span {
+  font-size: 0.6875rem;
+}
+
 /* AI Classification Results */
 .classification-results {
   background-color: var(--bg-secondary);
@@ -2136,26 +2281,31 @@
   flex-direction: column;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  padding: 12px var(--mobile-padding, 16px);
 }
 
-/* Mobile Documents List */
+/* Mobile Documents List - Grid Layout */
 .documents-tab .mobile-documents-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
-  padding: var(--mobile-padding, 16px);
 }
 
-/* Mobile Document Card */
+/* Mobile Documents Grid for folders */
+.documents-tab .mobile-documents-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+/* Mobile Document Card - Compact Vertical Card Layout */
 .documents-tab .mobile-document-card {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px var(--mobile-padding, 16px);
+  flex-direction: column;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  min-height: var(--touch-target-min, 44px);
+  border-radius: 6px;
+  overflow: hidden;
   cursor: pointer;
   text-align: left;
   width: 100%;
@@ -2176,72 +2326,82 @@
   background: rgba(34, 197, 94, 0.15);
 }
 
-/* Mobile Document Status Circle */
+/* Mobile Document Thumbnail */
+.documents-tab .mobile-doc-thumbnail {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Mobile Document Status Circle - for pending cards */
 .documents-tab .mobile-doc-status {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  width: 100%;
+  aspect-ratio: 4/3;
   background: var(--bg-tertiary);
   color: var(--text-muted);
 }
 
 .documents-tab .mobile-document-card.uploaded .mobile-doc-status {
-  background: var(--success);
-  color: white;
+  background: var(--success-alpha);
+  color: var(--success);
 }
 
-/* Mobile Document Info */
+/* Mobile Document Info - Compact */
 .documents-tab .mobile-doc-info {
-  flex: 1;
+  padding: 6px 8px;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .documents-tab .mobile-doc-label {
-  font-size: 0.9375rem;
+  font-size: 0.6875rem;
   font-weight: 500;
   color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.3;
 }
 
 .documents-tab .mobile-doc-filename {
-  font-size: 0.75rem;
+  font-size: 0.625rem;
   color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.2;
 }
 
 .documents-tab .mobile-doc-chevron {
-  flex-shrink: 0;
-  color: var(--text-muted);
+  display: none; /* Hidden in card layout */
 }
 
 /* Mobile Upload Folder */
 .documents-tab .mobile-upload-folder {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
 .documents-tab .mobile-folder-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.8125rem;
+  gap: 6px;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: capitalize;
-  padding: 0 4px;
+  padding: 0 2px;
 }
 
 .documents-tab .mobile-folder-title .folder-icon {
