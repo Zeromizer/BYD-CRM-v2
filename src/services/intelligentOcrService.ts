@@ -9,7 +9,9 @@
  * sophisticated document understanding.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+// TODO: Uncomment when implementing
+// import Anthropic from '@anthropic-ai/sdk';
+// import vision from '@google-cloud/vision';
 
 // Types
 export interface NricData {
@@ -51,58 +53,57 @@ export interface OcrResult<T = any> {
 }
 
 // Google Cloud Vision OCR
-async function extractTextWithVision(imageBuffer: Buffer): Promise<string> {
-  // Placeholder - implement based on your setup
-  // Option 1: Use @google-cloud/vision SDK
-  // Option 2: Use REST API with fetch
+async function extractTextWithVision(_imageBuffer: Buffer): Promise<string> {
+  // TODO: Implement when @google-cloud/vision is installed
+  // const vision = await import('@google-cloud/vision');
+  // const client = new vision.ImageAnnotatorClient({
+  //   apiKey: import.meta.env.VITE_GOOGLE_CLOUD_API_KEY
+  // });
+  //
+  // const [result] = await client.textDetection({
+  //   image: { content: imageBuffer }
+  // });
+  //
+  // return result.fullTextAnnotation?.text || '';
 
-  const vision = await import('@google-cloud/vision');
-  const client = new vision.ImageAnnotatorClient({
-    apiKey: import.meta.env.VITE_GOOGLE_CLOUD_API_KEY
-  });
-
-  const [result] = await client.textDetection({
-    image: { content: imageBuffer }
-  });
-
-  return result.fullTextAnnotation?.text || '';
+  throw new Error('Vision OCR not implemented yet. Install @google-cloud/vision to use this feature.');
 }
 
 // Claude Haiku 4.5 - Intelligent Processing
 async function processWithClaude<T>(
-  rawText: string,
-  documentType: 'nric' | 'passport' | 'vsa_form' | 'trade_in_doc',
-  systemPrompt: string
+  _rawText: string,
+  _documentType: 'nric' | 'passport' | 'vsa_form' | 'trade_in_doc',
+  _systemPrompt: string
 ): Promise<T> {
-  const anthropic = new Anthropic({
-    apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY
-  });
+  // TODO: Implement when @anthropic-ai/sdk is installed
+  // const anthropic = new Anthropic({
+  //   apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY
+  // });
+  //
+  // const response = await anthropic.messages.create({
+  //   model: 'claude-haiku-4-5-20241022',
+  //   max_tokens: 1024,
+  //   system: [
+  //     {
+  //       type: 'text',
+  //       text: systemPrompt,
+  //       cache_control: { type: 'ephemeral' }
+  //     }
+  //   ],
+  //   messages: [
+  //     {
+  //       role: 'user',
+  //       content: `Extract and validate information from this ${documentType} OCR text:\n\n${rawText}`
+  //     }
+  //   ]
+  // });
+  //
+  // const content = response.content[0];
+  // if (content.type === 'text') {
+  //   return JSON.parse(content.text);
+  // }
 
-  const response = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20241022',
-    max_tokens: 1024,
-    // Enable prompt caching for system prompt (saves 90% on repeated calls)
-    system: [
-      {
-        type: 'text',
-        text: systemPrompt,
-        cache_control: { type: 'ephemeral' }
-      }
-    ],
-    messages: [
-      {
-        role: 'user',
-        content: `Extract and validate information from this ${documentType} OCR text:\n\n${rawText}`
-      }
-    ]
-  });
-
-  const content = response.content[0];
-  if (content.type === 'text') {
-    return JSON.parse(content.text);
-  }
-
-  throw new Error('Unexpected response format from Claude');
+  throw new Error('Claude processing not implemented yet. Install @anthropic-ai/sdk to use this feature.');
 }
 
 /**

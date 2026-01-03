@@ -14,7 +14,8 @@
 
 import type { Customer } from '@/types';
 import { extractNricData, extractVsaFormData, extractDocumentData } from './intelligentOcrService';
-import { parseExcelFile } from './excelService';
+// TODO: Uncomment when implementing Excel parsing
+// import { parseExcelFile } from './excelService';
 
 // ==================== TYPES ====================
 
@@ -258,10 +259,9 @@ async function classifyImageOrPdfDocument(file: File): Promise<DocumentClassific
   };
 }
 
-async function classifyExcelDocument(file: File): Promise<DocumentClassification> {
-  // Parse Excel file
-  const sheets = await parseExcelFile(file);
-
+async function classifyExcelDocument(_file: File): Promise<DocumentClassification> {
+  // TODO: Parse Excel file when implementing
+  // const sheets = await parseExcelFile(file);
   // For now, simple heuristic - would expand with xlsx-populate cell reading
   // In real implementation, read cells to detect VSA template vs customer list
 
@@ -324,7 +324,7 @@ export async function matchDocumentToCustomer(
     const exactMatch = customers.find((c) => c.nric === extractedData.nric);
     if (exactMatch) {
       return {
-        customerId: exactMatch.id,
+        customerId: String(exactMatch.id),
         customer: exactMatch,
         confidence: 'high',
         matchType: 'nric_exact',
@@ -349,7 +349,7 @@ export async function matchDocumentToCustomer(
     if (nameMatches.length > 0) {
       const bestMatch = nameMatches[0];
       return {
-        customerId: bestMatch.customer.id,
+        customerId: String(bestMatch.customer.id),
         customer: bestMatch.customer,
         confidence: bestMatch.similarity > 0.95 ? 'high' : 'medium',
         matchType: 'name_fuzzy',
@@ -369,7 +369,7 @@ export async function matchDocumentToCustomer(
 
     if (contactMatch) {
       return {
-        customerId: contactMatch.id,
+        customerId: String(contactMatch.id),
         customer: contactMatch,
         confidence: 'medium',
         matchType: 'contact',
@@ -452,7 +452,7 @@ export async function processBulkDocuments(
   onProgress?: (progress: BulkImportProgress) => void
 ): Promise<ProcessedDocument[]> {
   const scannedFiles = scanFiles(files);
-  const { supported, unsupported } = filterSupportedFiles(scannedFiles);
+  const { supported } = filterSupportedFiles(scannedFiles);
 
   const processedDocuments: ProcessedDocument[] = [];
   let completedCount = 0;
