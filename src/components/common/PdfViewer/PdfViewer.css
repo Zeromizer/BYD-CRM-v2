@@ -81,10 +81,16 @@
 }
 
 .pdf-toolbar-btn svg {
-  display: block;
-  width: 18px;
-  height: 18px;
-  fill: currentColor;
+  display: block !important;
+  width: 18px !important;
+  height: 18px !important;
+  color: var(--text-secondary) !important;
+  fill: var(--text-secondary) !important;
+}
+
+.pdf-toolbar-btn:hover:not(:disabled) svg {
+  color: var(--text-primary) !important;
+  fill: var(--text-primary) !important;
 }
 
 .pdf-toolbar-btn:hover:not(:disabled) {
