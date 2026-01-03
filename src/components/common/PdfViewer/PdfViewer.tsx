@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { CaretLeft, CaretRight, MagnifyingGlassMinus, MagnifyingGlassPlus, DownloadSimple, ArrowsOut } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, MagnifyingGlassMinus, MagnifyingGlassPlus, DownloadSimple, ArrowsOut, Printer } from '@phosphor-icons/react';
 import './PdfViewer.css';
 
 // Set worker source for pdf.js
@@ -178,6 +178,16 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
     window.open(url, '_blank');
   };
 
+  const handlePrint = () => {
+    // Open PDF in new window and trigger print
+    const printWindow = window.open(url, '_blank');
+    if (printWindow) {
+      printWindow.addEventListener('load', () => {
+        printWindow.print();
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="pdf-viewer-loading">
@@ -246,6 +256,13 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
             title="Open in new tab"
           >
             <ArrowsOut size={18} />
+          </button>
+          <button
+            className="pdf-toolbar-btn"
+            onClick={handlePrint}
+            title="Print"
+          >
+            <Printer size={18} />
           </button>
           {onDownload && (
             <button
