@@ -522,7 +522,9 @@ const results = await classifyDocumentsWithVisionClaudeParallel(
 
 | Commit | Description |
 |--------|-------------|
-| Latest | Enterprise optimization: code splitting, pagination, error boundaries |
+| Latest | PrintManager back page photo attachment for double-sided printing |
+| Previous | Mobile action sheet portal fix for swipe containers |
+| Previous | Enterprise optimization: code splitting, pagination, error boundaries |
 | Previous | Add Generate Document button to CustomerDetails header |
 | Previous | Document thumbnail card grid layout with large previews |
 | Previous | Mobile documents tab optimization with action sheets |
@@ -721,6 +723,68 @@ PrintManager.js     ~14KB   - Print feature (lazy loaded)
 - React Compiler (`babel-plugin-react-compiler`) is installed but disabled - causes significant dev mode slowdown
 - Can be re-enabled for production-only builds once stable
 - DocumentThumbnail caches generated PDF thumbnails in memory to avoid re-rendering
+
+### PrintManager Back Page Photo Attachment
+**Modified Files:**
+- `src/components/Documents/PrintManager.tsx` - Back page photo selection and PDF/print generation
+- `src/components/Documents/PrintManager.css` - Photo modal and mobile action bar styles
+- `src/components/CustomerDetails/CustomerDetails.tsx` - Portal rendering for mobile action sheet
+
+**Key Features:**
+- **Photo selection modal** - Select up to 4 photos from customer's documents folder
+- **2x2 grid layout** - Photos positioned in quadrants for double-sided printing
+- **PDF generation** - Back page added after each template page with photos
+- **Print preview** - Separate `.page` containers for proper visual separation
+- **Mobile support** - Photo button in bottom action bar, compact on small screens
+
+**Photo Selection Flow:**
+1. Click "Back" button (Images icon) in toolbar or mobile action bar
+2. Modal opens with customer photos from all document subfolders
+3. Select up to 4 photos (numbered positions 1-4)
+4. Photos appear on back page in 2x2 grid when printing or downloading PDF
+
+**Print Preview HTML Structure:**
+```html
+<div class="page front-page">
+  <img src="[template with customer data]" />
+</div>
+<div class="page back-page">
+  <div class="photo-grid">
+    <img src="photo1.jpg" /> <img src="photo2.jpg" />
+    <img src="photo3.jpg" /> <img src="photo4.jpg" />
+  </div>
+</div>
+```
+
+**CSS Page Styling:**
+```css
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 10px auto;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+@media print {
+  .page {
+    page-break-after: always;
+  }
+}
+```
+
+**Portal Pattern for Mobile Overlays:**
+Mobile action sheets use `createPortal` to escape swipe container overflow clipping:
+```typescript
+import { createPortal } from 'react-dom';
+
+{showMobileActions && createPortal(
+  <>
+    <div className="mobile-action-overlay" onClick={close} />
+    <div className="mobile-action-sheet">...</div>
+  </>,
+  document.body
+)}
+```
 
 ---
 

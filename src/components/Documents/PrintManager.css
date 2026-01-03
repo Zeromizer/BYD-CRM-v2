@@ -412,9 +412,451 @@
 .pm-modal-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 0.5rem;
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border-color);
+}
+
+/* Back Page Photo Selection */
+.pm-photo-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+}
+
+.pm-photo-description {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.pm-selected-photos {
+  margin-bottom: 1.5rem;
+}
+
+.pm-selected-photos h4,
+.pm-available-photos h4 {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pm-selected-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.pm-selected-photo {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--primary);
+}
+
+.pm-selected-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pm-remove-photo {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: rgba(239, 68, 68, 0.9);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.pm-remove-photo:hover {
+  transform: scale(1.1);
+}
+
+.pm-photo-position {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background-color: var(--primary);
+  border-radius: 50%;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pm-available-photos {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.pm-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.5rem;
+}
+
+.pm-photo-item {
+  position: relative;
+  aspect-ratio: 1;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: none;
+  padding: 0;
+}
+
+.pm-photo-item:hover:not(:disabled) {
+  border-color: var(--primary);
+}
+
+.pm-photo-item.selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-alpha, rgba(59, 130, 246, 0.3));
+}
+
+.pm-photo-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pm-photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pm-photo-check {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: var(--primary);
+  border-radius: 50%;
+  color: white;
+}
+
+.pm-photo-name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 4px 6px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  color: white;
+  font-size: 0.625rem;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.pm-loading {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+/* Has photos indicator */
+.btn.has-photos {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Mobile Bottom Action Bar - hidden on desktop */
+.pm-mobile-actions {
+  display: none;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  /* Show mobile bottom action bar */
+  .pm-mobile-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.5rem;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+    background-color: var(--bg-primary);
+    border-top: 1px solid var(--border-color);
+    z-index: 20;
+    gap: 0.5rem;
+  }
+
+  .pm-mobile-zoom {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 2px;
+    flex-shrink: 0;
+  }
+
+  .pm-mobile-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .pm-mobile-btn:active {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  .pm-mobile-fit {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    padding: 0 0.375rem;
+  }
+
+  .pm-mobile-zoom-level {
+    min-width: 36px;
+    text-align: center;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .pm-mobile-main-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-shrink: 0;
+  }
+
+  .pm-mobile-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.5rem 0.625rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s ease;
+  }
+
+  .pm-mobile-action-btn:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  .pm-mobile-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .pm-mobile-action-btn.primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: white;
+  }
+
+  .pm-mobile-action-btn.has-photos {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .pm-mobile-action-btn svg {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Hide desktop toolbar right section on mobile (redundant with bottom bar) */
+  .pm-toolbar-right {
+    display: none;
+  }
+
+  /* Hide zoom controls in toolbar (moved to bottom bar) */
+  .pm-toolbar-center .zoom-controls {
+    display: none;
+  }
+
+  /* Adjust preview container for bottom bar */
+  .pm-preview-container {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .pm-toolbar {
+    flex-wrap: nowrap;
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .pm-toolbar-left {
+    flex: 0 0 auto;
+  }
+
+  .pm-toolbar-left .pm-divider,
+  .pm-toolbar-left .pm-title {
+    display: none;
+  }
+
+  /* Back button - smaller on mobile */
+  .pm-toolbar-left .btn {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .pm-toolbar-center {
+    flex: 1;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  .pm-toolbar-center .pm-divider {
+    display: none;
+  }
+
+  /* Customer selector on mobile - takes remaining space */
+  .pm-customer-selector {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .pm-customer-selector .selected-customer {
+    width: 100%;
+    max-width: none;
+    overflow: hidden;
+  }
+
+  .pm-customer-selector .selected-customer span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Template navigation - compact */
+  .template-navigation {
+    flex-shrink: 0;
+  }
+
+  .template-navigation span {
+    min-width: 40px;
+    font-size: 0.75rem;
+  }
+
+  /* Template button - icon only */
+  .pm-toolbar-center > .btn {
+    padding: 0.375rem 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .pm-toolbar-center > .btn .btn-text {
+    display: none;
+  }
+
+  /* Preview container */
+  .pm-preview-container {
+    padding: 0.5rem;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .pm-toolbar {
+    padding: 0.375rem;
+  }
+
+  .pm-toolbar-center {
+    gap: 0.375rem;
+  }
+
+  /* Back button - icon only on very small screens */
+  .pm-toolbar-left .btn .btn-text {
+    display: none;
+  }
+
+  .pm-toolbar-left .btn {
+    padding: 0.375rem;
+  }
+
+  /* Customer selector - smaller */
+  .pm-customer-selector .selected-customer {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .pm-customer-selector .selected-customer .customer-icon {
+    display: none;
+  }
+
+  /* Template navigation */
+  .template-navigation button {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Mobile bottom bar - icon only */
+  .pm-mobile-action-btn {
+    padding: 0.5rem;
+  }
+
+  .pm-mobile-action-btn span {
+    display: none;
+  }
+
+  .pm-mobile-action-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Hide fit button on very small screens */
+  .pm-mobile-fit {
+    display: none;
+  }
+
+  .pm-mobile-zoom-level {
+    min-width: 32px;
+  }
+
+  .pm-mobile-btn {
+    min-width: 28px;
+    height: 28px;
+  }
 }
 
 /* Print Styles */

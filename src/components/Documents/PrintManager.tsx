@@ -4,11 +4,12 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, User, File, CaretLeft, CaretRight, DownloadSimple, Printer, MagnifyingGlass, X, Check } from '@phosphor-icons/react';
+import { ArrowLeft, User, File, CaretLeft, CaretRight, DownloadSimple, Printer, MagnifyingGlass, X, Check, Images, Trash } from '@phosphor-icons/react';
 import { Button, Modal } from '@/components/common';
 import { jsPDF } from 'jspdf';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { useCustomerStore } from '@/stores/useCustomerStore';
+import { getAllCustomerDocuments, type CustomerDocument } from '@/services/customerDocumentService';
 import { formatCurrencySGD as formatCurrency } from '@/utils/formatting';
 import type { DocumentTemplate, Customer, Guarantor } from '@/types';
 import './PrintManager.css';
@@ -33,6 +34,12 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [canvasSize, setCanvasSize] = useState<{ width: number; height: number } | null>(null);
 
+  // Back page photo attachment state
+  const [backPagePhotos, setBackPagePhotos] = useState<CustomerDocument[]>([]);
+  const [showPhotoSelect, setShowPhotoSelect] = useState(false);
+  const [customerPhotos, setCustomerPhotos] = useState<CustomerDocument[]>([]);
+  const [isLoadingPhotos, setIsLoadingPhotos] = useState(false);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const printRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -43,6 +50,49 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
     fetchTemplates();
     fetchCustomers();
   }, [fetchTemplates, fetchCustomers]);
+
+  // Load customer photos when customer changes
+  const loadCustomerPhotos = useCallback(async () => {
+    if (!selectedCustomer) {
+      setCustomerPhotos([]);
+      return;
+    }
+
+    setIsLoadingPhotos(true);
+    try {
+      const allDocs = await getAllCustomerDocuments(selectedCustomer.name);
+      // Flatten all documents from all folders and filter to only images
+      const images: CustomerDocument[] = [];
+      for (const folder of allDocs) {
+        for (const doc of folder.documents) {
+          if (
+            doc.mimeType.startsWith('image/') ||
+            /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(doc.name)
+          ) {
+            images.push(doc);
+          }
+        }
+      }
+      setCustomerPhotos(images);
+    } catch (error) {
+      console.error('Error loading customer photos:', error);
+      setCustomerPhotos([]);
+    } finally {
+      setIsLoadingPhotos(false);
+    }
+  }, [selectedCustomer]);
+
+  // Load photos when photo select modal opens
+  useEffect(() => {
+    if (showPhotoSelect && selectedCustomer) {
+      loadCustomerPhotos();
+    }
+  }, [showPhotoSelect, selectedCustomer, loadCustomerPhotos]);
+
+  // Clear back page photos when customer changes
+  useEffect(() => {
+    setBackPagePhotos([]);
+  }, [selectedCustomer?.id]);
 
   // Draw canvas with template image and customer data
   const drawCanvas = useCallback(() => {
@@ -405,6 +455,72 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
         const pdfHeight = (tempCanvas.height * pdfWidth) / tempCanvas.width;
 
         pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+
+        // Add back page with photos after each template (for double-sided printing)
+        if (backPagePhotos.length > 0) {
+          pdf.addPage();
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
+          const margin = 20;
+          const gap = 10;
+
+          // Calculate quadrant dimensions (2x2 grid)
+          const quadrantWidth = (pageWidth - margin * 2 - gap) / 2;
+          const quadrantHeight = (pageHeight - margin * 2 - gap) / 2;
+
+          // Load and place each photo
+          for (let j = 0; j < Math.min(backPagePhotos.length, 4); j++) {
+            const photo = backPagePhotos[j];
+            const row = Math.floor(j / 2);
+            const col = j % 2;
+
+            const x = margin + col * (quadrantWidth + gap);
+            const y = margin + row * (quadrantHeight + gap);
+
+            try {
+              // Load image
+              const photoImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = photo.url;
+              });
+
+              // Calculate aspect ratio fit
+              const imgAspect = photoImg.width / photoImg.height;
+              const quadrantAspect = quadrantWidth / quadrantHeight;
+
+              let drawWidth = quadrantWidth;
+              let drawHeight = quadrantHeight;
+              let drawX = x;
+              let drawY = y;
+
+              if (imgAspect > quadrantAspect) {
+                // Image is wider - fit to width
+                drawHeight = quadrantWidth / imgAspect;
+                drawY = y + (quadrantHeight - drawHeight) / 2;
+              } else {
+                // Image is taller - fit to height
+                drawWidth = quadrantHeight * imgAspect;
+                drawX = x + (quadrantWidth - drawWidth) / 2;
+              }
+
+              // Create canvas to convert image
+              const photoCanvas = document.createElement('canvas');
+              photoCanvas.width = photoImg.width;
+              photoCanvas.height = photoImg.height;
+              const photoCtx = photoCanvas.getContext('2d');
+              if (photoCtx) {
+                photoCtx.drawImage(photoImg, 0, 0);
+                const photoData = photoCanvas.toDataURL('image/jpeg', 0.9);
+                pdf.addImage(photoData, 'JPEG', drawX, drawY, drawWidth, drawHeight);
+              }
+            } catch (err) {
+              console.error(`Error loading photo ${j}:`, err);
+            }
+          }
+        }
       }
 
       // Save PDF
@@ -427,6 +543,16 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
 
     const imgData = canvas.toDataURL('image/png');
 
+    // Build back page HTML with photos in 2x2 grid
+    let backPageHtml = '';
+    if (backPagePhotos.length > 0) {
+      const photoHtml = backPagePhotos
+        .slice(0, 4)
+        .map((photo) => `<img src="${photo.url}" crossorigin="anonymous" />`)
+        .join('');
+      backPageHtml = `<div class="back-page"><div class="photo-grid">${photoHtml}</div></div>`;
+    }
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
@@ -434,35 +560,110 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
           <title></title>
           <style>
             @page {
-              size: auto;
+              size: A4;
               margin: 0;
+            }
+            * {
+              box-sizing: border-box;
+            }
+            html, body {
+              margin: 0;
+              padding: 0;
+              width: 100%;
+              background: #f0f0f0;
+            }
+            .page {
+              width: 210mm;
+              min-height: 297mm;
+              margin: 10px auto;
+              background: white;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+              overflow: hidden;
+            }
+            .front-page img {
+              width: 100%;
+              height: auto;
+              display: block;
+            }
+            .back-page {
+              width: 100%;
+              height: 297mm;
+              padding: 10mm;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+            .photo-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              grid-template-rows: 1fr 1fr;
+              gap: 5mm;
+              width: 100%;
+              height: 100%;
+            }
+            .photo-grid img {
+              width: 100%;
+              height: 100%;
+              object-fit: contain;
+              background: #fafafa;
             }
             @media print {
               html, body {
-                margin: 0;
-                padding: 0;
-                width: 100%;
-                height: 100%;
+                background: white;
               }
-              img {
+              .page {
                 width: 100%;
+                min-height: auto;
                 height: auto;
-                display: block;
+                margin: 0;
+                box-shadow: none;
+                page-break-after: always;
               }
-            }
-            body {
-              margin: 0;
-              padding: 0;
-            }
-            img {
-              max-width: 100%;
-              height: auto;
-              display: block;
+              .page:last-child {
+                page-break-after: auto;
+              }
+              .back-page {
+                height: 100vh;
+              }
             }
           </style>
         </head>
         <body>
-          <img src="${imgData}" onload="window.print(); window.close();" />
+          <div class="page front-page">
+            <img src="${imgData}" />
+          </div>
+          ${backPagePhotos.length > 0 ? `
+          <div class="page back-page">
+            <div class="photo-grid">
+              ${backPagePhotos.slice(0, 4).map((photo) => `<img src="${photo.url}" crossorigin="anonymous" />`).join('')}
+            </div>
+          </div>
+          ` : ''}
+          <script>
+            // Wait for all images to load before printing
+            const images = document.querySelectorAll('img');
+            let loaded = 0;
+            const total = images.length;
+            if (total === 0) {
+              window.print();
+              window.close();
+            }
+            images.forEach(img => {
+              if (img.complete) {
+                loaded++;
+                if (loaded === total) { window.print(); window.close(); }
+              } else {
+                img.onload = () => {
+                  loaded++;
+                  if (loaded === total) { window.print(); window.close(); }
+                };
+                img.onerror = () => {
+                  loaded++;
+                  if (loaded === total) { window.print(); window.close(); }
+                };
+              }
+            });
+          </script>
         </body>
       </html>
     `);
@@ -553,6 +754,18 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
             Templates ({selectedTemplates.length})
           </Button>
 
+          {/* Back page photos button */}
+          {selectedCustomer && (
+            <Button
+              variant={backPagePhotos.length > 0 ? 'outline' : 'ghost'}
+              onClick={() => setShowPhotoSelect(true)}
+              className={backPagePhotos.length > 0 ? 'has-photos' : ''}
+            >
+              <Images size={16} className="photos-icon" />
+              Back ({backPagePhotos.length}/4)
+            </Button>
+          )}
+
           <div className="pm-divider" />
 
           {/* Zoom controls */}
@@ -586,6 +799,49 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
           <Button onClick={handlePrint} disabled={!selectedCustomer} leftIcon={<Printer size={16} />}>
             Print
           </Button>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Action Bar */}
+      <div className="pm-mobile-actions">
+        <div className="pm-mobile-zoom">
+          <button className="pm-mobile-btn" onClick={() => setZoom((z) => Math.max(0.1, z - 0.1))}>
+            -
+          </button>
+          <span className="pm-mobile-zoom-level">{Math.round(zoom * 100)}%</span>
+          <button className="pm-mobile-btn" onClick={() => setZoom((z) => Math.min(3, z + 0.1))}>
+            +
+          </button>
+          <button className="pm-mobile-btn pm-mobile-fit" onClick={fitToScreen}>
+            Fit
+          </button>
+        </div>
+        <div className="pm-mobile-main-actions">
+          {selectedCustomer && (
+            <button
+              className={`pm-mobile-action-btn ${backPagePhotos.length > 0 ? 'has-photos' : ''}`}
+              onClick={() => setShowPhotoSelect(true)}
+            >
+              <Images size={20} />
+              <span>{backPagePhotos.length}/4</span>
+            </button>
+          )}
+          <button
+            className="pm-mobile-action-btn"
+            onClick={generatePdf}
+            disabled={!selectedCustomer || isGeneratingPdf}
+          >
+            <DownloadSimple size={20} />
+            <span>PDF</span>
+          </button>
+          <button
+            className="pm-mobile-action-btn primary"
+            onClick={handlePrint}
+            disabled={!selectedCustomer}
+          >
+            <Printer size={20} />
+            <span>Print</span>
+          </button>
         </div>
       </div>
 
@@ -708,6 +964,86 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
 
           <div className="pm-modal-actions">
             <Button onClick={() => setShowTemplateSelect(false)}>Done</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Back Page Photo Select Modal */}
+      <Modal
+        isOpen={showPhotoSelect}
+        onClose={() => setShowPhotoSelect(false)}
+        title="Select Back Page Photos"
+        size="lg"
+      >
+        <div className="pm-photo-modal">
+          <p className="pm-photo-description">
+            Select up to 4 photos to print on the back page (2x2 grid)
+          </p>
+
+          {/* Selected photos preview */}
+          {backPagePhotos.length > 0 && (
+            <div className="pm-selected-photos">
+              <h4>Selected Photos ({backPagePhotos.length}/4)</h4>
+              <div className="pm-selected-grid">
+                {backPagePhotos.map((photo, index) => (
+                  <div key={photo.id} className="pm-selected-photo">
+                    <img src={photo.url} alt={photo.name} />
+                    <button
+                      className="pm-remove-photo"
+                      onClick={() => setBackPagePhotos((prev) => prev.filter((_, i) => i !== index))}
+                    >
+                      <Trash size={14} />
+                    </button>
+                    <span className="pm-photo-position">{index + 1}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Available photos */}
+          <div className="pm-available-photos">
+            <h4>Customer Photos</h4>
+            {isLoadingPhotos ? (
+              <div className="pm-loading">Loading photos...</div>
+            ) : customerPhotos.length === 0 ? (
+              <div className="pm-empty">No photos found in customer documents</div>
+            ) : (
+              <div className="pm-photo-grid">
+                {customerPhotos.map((photo) => {
+                  const isSelected = backPagePhotos.some((p) => p.id === photo.id);
+                  return (
+                    <button
+                      key={photo.id}
+                      className={`pm-photo-item ${isSelected ? 'selected' : ''}`}
+                      onClick={() => {
+                        if (isSelected) {
+                          setBackPagePhotos((prev) => prev.filter((p) => p.id !== photo.id));
+                        } else if (backPagePhotos.length < 4) {
+                          setBackPagePhotos((prev) => [...prev, photo]);
+                        }
+                      }}
+                      disabled={!isSelected && backPagePhotos.length >= 4}
+                    >
+                      <img src={photo.url} alt={photo.name} />
+                      {isSelected && (
+                        <div className="pm-photo-check">
+                          <Check size={16} weight="bold" />
+                        </div>
+                      )}
+                      <span className="pm-photo-name">{photo.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="pm-modal-actions">
+            <Button variant="outline" onClick={() => setBackPagePhotos([])}>
+              Clear All
+            </Button>
+            <Button onClick={() => setShowPhotoSelect(false)}>Done</Button>
           </div>
         </div>
       </Modal>

@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense, type ReactElement } from 'react';
+import { createPortal } from 'react-dom';
 import { User, File, Car, FolderOpen, FileXls, FileDoc, PencilSimple, Export, Package, Trash, X } from '@phosphor-icons/react';
 import { useCustomerStore } from '@/stores/useCustomerStore';
 import { Button, Modal } from '@/components/common';
@@ -207,8 +208,8 @@ export function CustomerDetails({ customer, onClose, isMobile, onBack }: Custome
       {/* Tab Content */}
       <div className="customer-details-content">{renderTabContent()}</div>
 
-      {/* Mobile Action Sheet */}
-      {isMobile && showMobileActions && (
+      {/* Mobile Action Sheet - rendered via portal to escape swipe container overflow */}
+      {isMobile && showMobileActions && createPortal(
         <>
           <div
             className="mobile-action-overlay"
@@ -289,7 +290,8 @@ export function CustomerDetails({ customer, onClose, isMobile, onBack }: Custome
               <span>Delete</span>
             </button>
           </div>
-        </>
+        </>,
+        document.body
       )}
 
       {/* Edit Modal */}
