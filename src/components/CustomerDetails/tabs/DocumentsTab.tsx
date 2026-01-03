@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Export, FolderOpen, File, CircleNotch, Warning, X, Check, Circle, Eye, DownloadSimple, Trash, UploadSimple, Sparkle, CaretRight, Plus } from '@phosphor-icons/react';
 import { useIsMobile } from '@/hooks/useMediaQuery';
-import { Button, Modal, useToast, PdfViewer } from '@/components/common';
+import { Button, Modal, useToast, PdfViewer, ImageViewer } from '@/components/common';
 import { useCustomerStore } from '@/stores/useCustomerStore';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import {
@@ -1432,7 +1432,25 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
           {previewDoc && (
             <>
               {isImageFile(previewDoc.mimeType) ? (
-                <img src={previewDoc.url} alt={previewDoc.name} />
+                <ImageViewer
+                  url={previewDoc.url}
+                  filename={previewDoc.name}
+                  onDownload={async () => {
+                    try {
+                      const blob = await downloadDocument(previewDoc.path);
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = previewDoc.name;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+                    } catch (err) {
+                      setError('Failed to download document');
+                    }
+                  }}
+                />
               ) : isPdfFile(previewDoc.mimeType) ? (
                 <PdfViewer
                   url={previewDoc.url}
