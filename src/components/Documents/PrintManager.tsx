@@ -543,16 +543,6 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
 
     const imgData = canvas.toDataURL('image/png');
 
-    // Build back page HTML with photos in 2x2 grid
-    let backPageHtml = '';
-    if (backPagePhotos.length > 0) {
-      const photoHtml = backPagePhotos
-        .slice(0, 4)
-        .map((photo) => `<img src="${photo.url}" crossorigin="anonymous" />`)
-        .join('');
-      backPageHtml = `<div class="back-page"><div class="photo-grid">${photoHtml}</div></div>`;
-    }
-
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
