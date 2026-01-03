@@ -114,81 +114,44 @@
   font-size: 0.75rem;
 }
 
-.excel-row-count {
-  font-size: 0.75rem;
-  color: var(--text-muted, #666);
-  padding-right: 0.5rem;
-}
-
-/* Table container */
-.excel-table-container {
+/* HTML container for xlsx-preview output */
+.excel-html-container {
   flex: 1;
   overflow: auto;
-  background: var(--bg-primary, #fff);
+  background: white;
   -webkit-overflow-scrolling: touch;
 }
 
-.excel-table {
-  width: 100%;
+/* Style the xlsx-preview generated table */
+.excel-html-container table {
   border-collapse: collapse;
-  font-size: 0.8125rem;
-  min-width: max-content;
+  min-width: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 12px;
 }
 
-.excel-table th,
-.excel-table td {
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-  border: 1px solid var(--border-color, #e0e0e0);
-  white-space: nowrap;
+.excel-html-container td,
+.excel-html-container th {
+  border: 1px solid #d4d4d4;
+  padding: 4px 8px;
+  min-width: 60px;
   max-width: 300px;
   overflow: hidden;
   text-overflow: ellipsis;
+  vertical-align: middle;
 }
 
-.excel-table th {
-  background: var(--bg-secondary, #f5f5f5);
+.excel-html-container tr:first-child td,
+.excel-html-container tr:first-child th {
+  background: #f5f5f5;
   font-weight: 600;
-  color: var(--text-primary);
-  position: sticky;
-  top: 0;
-  z-index: 1;
 }
 
-.excel-table td {
-  background: var(--bg-primary, #fff);
-  color: var(--text-secondary);
-}
-
-.excel-table tbody tr:hover td {
-  background: var(--bg-hover, #f0f0f0);
-}
-
-.excel-row-number {
-  width: 50px;
-  min-width: 50px;
-  text-align: center !important;
-  color: var(--text-muted, #999) !important;
-  font-size: 0.75rem;
-  background: var(--bg-secondary, #f5f5f5) !important;
-}
-
-.excel-table thead .excel-row-number {
-  background: var(--bg-tertiary, #e8e8e8) !important;
-}
-
-.excel-col-header {
-  text-align: center !important;
-  font-weight: 500;
-  color: var(--text-muted, #666) !important;
-  min-width: 80px;
-}
-
-.excel-empty {
-  text-align: center !important;
-  padding: 2rem !important;
-  color: var(--text-muted, #999);
-  font-style: italic;
+/* Ensure images in cells are sized appropriately */
+.excel-html-container img {
+  max-width: 200px;
+  max-height: 100px;
+  object-fit: contain;
 }
 
 /* Filename footer */
@@ -231,18 +194,13 @@
     display: none;
   }
 
-  .excel-row-count {
-    display: none;
+  .excel-html-container table {
+    font-size: 11px;
   }
 
-  .excel-table th,
-  .excel-table td {
-    padding: 0.375rem 0.5rem;
-    font-size: 0.75rem;
-  }
-
-  .excel-row-number {
-    width: 40px;
-    min-width: 40px;
+  .excel-html-container td,
+  .excel-html-container th {
+    padding: 3px 6px;
+    min-width: 50px;
   }
 }

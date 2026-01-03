@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import * as XLSX from 'xlsx';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CaretLeft, CaretRight, DownloadSimple, ArrowsOut, Table } from '@phosphor-icons/react';
 import './ExcelViewer.css';
+
+// Dynamic import for xlsx-preview
+let xlsxPreview: typeof import('xlsx-preview') | null = null;
 
 interface ExcelViewerProps {
   url: string;
@@ -9,62 +11,49 @@ interface ExcelViewerProps {
   onDownload?: () => void;
 }
 
-interface SheetData {
+interface SheetHtml {
   name: string;
-  rows: (string | number | boolean | null)[][];
-  colCount: number;
-}
-
-// Convert column index to Excel letter (0 = A, 1 = B, ..., 26 = AA, etc.)
-function getColumnLetter(index: number): string {
-  let letter = '';
-  let num = index;
-  while (num >= 0) {
-    letter = String.fromCharCode((num % 26) + 65) + letter;
-    num = Math.floor(num / 26) - 1;
-  }
-  return letter;
+  html: string;
 }
 
 export function ExcelViewer({ url, filename, onDownload }: ExcelViewerProps) {
-  const [sheets, setSheets] = useState<SheetData[]>([]);
+  const [sheets, setSheets] = useState<SheetHtml[]>([]);
   const [currentSheetIndex, setCurrentSheetIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const loadExcel = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
+      // Dynamically import xlsx-preview
+      if (!xlsxPreview) {
+        xlsxPreview = await import('xlsx-preview');
+      }
+
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch Excel file');
       }
 
-      const arrayBuffer = await response.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const blob = await response.blob();
 
-      const loadedSheets: SheetData[] = workbook.SheetNames.map((sheetName) => {
-        const worksheet = workbook.Sheets[sheetName];
+      // Convert to HTML with styles, separating sheets
+      const result = await xlsxPreview.xlsx2Html(blob, {
+        output: 'string',
+        separateSheets: true,
+      }) as string[];
 
-        // Get all rows as-is, no header assumption
-        const rows = XLSX.utils.sheet_to_json<(string | number | boolean | null)[]>(
-          worksheet,
-          { header: 1, defval: null, blankrows: false }
-        );
+      // Get sheet names from the workbook
+      // xlsx-preview doesn't expose sheet names directly, so we'll parse from HTML or use generic names
+      const sheetData: SheetHtml[] = result.map((html, index) => ({
+        name: `Sheet ${index + 1}`,
+        html,
+      }));
 
-        // Find max column count across all rows
-        const colCount = rows.reduce((max, row) => Math.max(max, row.length), 0);
-
-        return {
-          name: sheetName,
-          rows,
-          colCount,
-        };
-      });
-
-      setSheets(loadedSheets);
+      setSheets(sheetData);
       setCurrentSheetIndex(0);
     } catch (err) {
       console.error('Error loading Excel:', err);
@@ -165,9 +154,6 @@ export function ExcelViewer({ url, filename, onDownload }: ExcelViewerProps) {
         </div>
 
         <div className="excel-toolbar-right">
-          <span className="excel-row-count">
-            {currentSheet.rows.length} rows
-          </span>
           <button
             className="excel-toolbar-btn"
             onClick={handleOpenExternal}
@@ -187,41 +173,12 @@ export function ExcelViewer({ url, filename, onDownload }: ExcelViewerProps) {
         </div>
       </div>
 
-      {/* Table container */}
-      <div className="excel-table-container">
-        <table className="excel-table">
-          <thead>
-            <tr>
-              <th className="excel-row-number"></th>
-              {Array.from({ length: currentSheet.colCount }, (_, i) => (
-                <th key={i} className="excel-col-header">{getColumnLetter(i)}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {currentSheet.rows.length === 0 ? (
-              <tr>
-                <td colSpan={currentSheet.colCount + 1} className="excel-empty">
-                  No data in this sheet
-                </td>
-              </tr>
-            ) : (
-              currentSheet.rows.map((row, rowIndex) => (
-                <tr key={rowIndex}>
-                  <td className="excel-row-number">{rowIndex + 1}</td>
-                  {Array.from({ length: currentSheet.colCount }, (_, colIndex) => (
-                    <td key={colIndex}>
-                      {row[colIndex] !== null && row[colIndex] !== undefined
-                        ? String(row[colIndex])
-                        : ''}
-                    </td>
-                  ))}
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* HTML Preview container */}
+      <div
+        ref={containerRef}
+        className="excel-html-container"
+        dangerouslySetInnerHTML={{ __html: currentSheet.html }}
+      />
 
       {/* Filename footer */}
       {filename && (
