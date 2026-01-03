@@ -81,16 +81,13 @@
 }
 
 .pdf-toolbar-btn svg {
-  display: block !important;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
   width: 18px !important;
   height: 18px !important;
-  color: var(--text-secondary) !important;
-  fill: var(--text-secondary) !important;
-}
-
-.pdf-toolbar-btn:hover:not(:disabled) svg {
-  color: var(--text-primary) !important;
-  fill: var(--text-primary) !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
 }
 
 .pdf-toolbar-btn:hover:not(:disabled) {

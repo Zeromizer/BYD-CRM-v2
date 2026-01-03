@@ -219,7 +219,7 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
             disabled={currentPage <= 1}
             title="Previous page"
           >
-            <CaretLeft size={18} weight="bold" />
+            <CaretLeft size={18} weight="bold" style={{ color: 'var(--text-secondary)' }} />
           </button>
           <span className="pdf-page-info">
             {currentPage} / {totalPages}
@@ -230,7 +230,7 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
             disabled={currentPage >= totalPages}
             title="Next page"
           >
-            <CaretRight size={18} weight="bold" />
+            <CaretRight size={18} weight="bold" style={{ color: 'var(--text-secondary)' }} />
           </button>
         </div>
 
@@ -240,7 +240,7 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
             onClick={handleZoomOut}
             title="Zoom out"
           >
-            <MagnifyingGlassMinus size={18} weight="bold" />
+            <MagnifyingGlassMinus size={18} weight="bold" style={{ color: 'var(--text-secondary)' }} />
           </button>
           <span className="pdf-zoom-info">{scale ? Math.round(scale * 100) : 100}%</span>
           <button
@@ -248,21 +248,21 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
             onClick={handleZoomIn}
             title="Zoom in"
           >
-            <MagnifyingGlassPlus size={18} weight="bold" />
+            <MagnifyingGlassPlus size={18} weight="bold" style={{ color: 'var(--text-secondary)' }} />
           </button>
           <button
             className="pdf-toolbar-btn"
             onClick={handleOpenExternal}
             title="Open in new tab"
           >
-            <ArrowsOut size={18} weight="bold" />
+            <ArrowsOut size={18} weight="bold" style={{ color: 'var(--text-secondary)' }} />
           </button>
           <button
             className="pdf-toolbar-btn"
             onClick={handlePrint}
             title="Print"
           >
-            <Printer size={18} weight="bold" />
+            <Printer size={18} weight="bold" style={{ color: 'var(--text-secondary)' }} />
           </button>
           {onDownload && (
             <button
@@ -270,7 +270,7 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
               onClick={onDownload}
               title="Download"
             >
-              <DownloadSimple size={18} weight="bold" />
+              <DownloadSimple size={18} weight="bold" style={{ color: 'var(--text-secondary)' }} />
             </button>
           )}
         </div>
