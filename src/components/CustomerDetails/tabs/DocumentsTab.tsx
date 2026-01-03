@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Export, FolderOpen, File, CircleNotch, Warning, X, Check, Circle, Eye, DownloadSimple, Trash, UploadSimple, Sparkle, CaretRight, Plus } from '@phosphor-icons/react';
 import { useIsMobile } from '@/hooks/useMediaQuery';
-import { Button, Modal, useToast, PdfViewer, ImageViewer } from '@/components/common';
+import { Button, Modal, useToast, PdfViewer, ImageViewer, ExcelViewer } from '@/components/common';
 import { useCustomerStore } from '@/stores/useCustomerStore';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import {
@@ -1477,31 +1477,25 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                   Your browser does not support video playback.
                 </video>
               ) : isExcelFile(previewDoc.mimeType, previewDoc.name) ? (
-                <div className="excel-preview">
-                  <File size={48} className="preview-icon excel" />
-                  <p className="excel-filename">{previewDoc.name}</p>
-                  <p>Excel files cannot be previewed in browser</p>
-                  <Button
-                    onClick={async () => {
-                      try {
-                        const blob = await downloadDocument(previewDoc.path);
-                        const url = URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = previewDoc.name;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(url);
-                      } catch (err) {
-                        setError('Failed to download document');
-                      }
-                    }}
-                  >
-                    <DownloadSimple size={16} className="btn-icon" />
-                    Download Excel File
-                  </Button>
-                </div>
+                <ExcelViewer
+                  url={previewDoc.url}
+                  filename={previewDoc.name}
+                  onDownload={async () => {
+                    try {
+                      const blob = await downloadDocument(previewDoc.path);
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = previewDoc.name;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+                    } catch (err) {
+                      setError('Failed to download document');
+                    }
+                  }}
+                />
               ) : (
                 <div className="unsupported-preview">
                   <File size={48} className="preview-icon" />

@@ -4,3 +4,4 @@ export { Button, type ButtonProps } from './Button';
 export { InlineTaskForm } from './InlineTaskForm';
 export { PdfViewer } from './PdfViewer';
 export { ImageViewer } from './ImageViewer';
+export { ExcelViewer } from './ExcelViewer';
