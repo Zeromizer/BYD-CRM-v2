@@ -18,10 +18,11 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [scale, setScale] = useState(1);
+  const [scale, setScale] = useState<number | null>(null); // null = auto-fit
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [renderTask, setRenderTask] = useState<pdfjsLib.RenderTask | null>(null);
+  const [containerReady, setContainerReady] = useState(false);
 
   // Load PDF document
   useEffect(() => {
@@ -59,6 +60,21 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
     };
   }, [url]);
 
+  // Wait for container to be ready with proper dimensions
+  useEffect(() => {
+    const checkContainer = () => {
+      if (containerRef.current && containerRef.current.clientWidth > 0) {
+        setContainerReady(true);
+      }
+    };
+
+    // Check immediately and after a small delay (for modal animation)
+    checkContainer();
+    const timer = setTimeout(checkContainer, 100);
+
+    return () => clearTimeout(timer);
+  }, [loading]);
+
   // Calculate optimal scale based on container width
   const calculateOptimalScale = useCallback(async (pdf: pdfjsLib.PDFDocumentProxy, pageNum: number) => {
     const page = await pdf.getPage(pageNum);
@@ -66,16 +82,20 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
     const container = containerRef.current;
 
     if (container) {
-      const containerWidth = container.clientWidth - 32; // Account for padding
+      // Use the canvas container for width calculation (minus padding)
+      const canvasContainer = container.querySelector('.pdf-canvas-container');
+      const containerWidth = canvasContainer
+        ? canvasContainer.clientWidth - 16 // Less padding on mobile
+        : container.clientWidth - 32;
       const optimalScale = containerWidth / viewport.width;
-      return Math.min(optimalScale, 2); // Cap at 2x scale
+      return Math.min(Math.max(optimalScale, 0.5), 2); // Between 0.5x and 2x
     }
     return 1;
   }, []);
 
   // Render current page
   useEffect(() => {
-    if (!pdfDoc || !canvasRef.current) return;
+    if (!pdfDoc || !canvasRef.current || !containerReady) return;
 
     let cancelled = false;
 
@@ -90,12 +110,14 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
 
         if (cancelled) return;
 
-        // Calculate optimal scale on first load
+        // Calculate optimal scale if auto-fit (scale === null)
         let renderScale = scale;
-        if (scale === 1 && containerRef.current) {
+        if (scale === null && containerRef.current) {
           renderScale = await calculateOptimalScale(pdfDoc, currentPage);
           setScale(renderScale);
         }
+        // Fallback if still null
+        if (renderScale === null) renderScale = 1;
 
         const viewport = page.getViewport({ scale: renderScale });
         const canvas = canvasRef.current!;
@@ -130,7 +152,7 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
     return () => {
       cancelled = true;
     };
-  }, [pdfDoc, currentPage, scale, calculateOptimalScale, renderTask]);
+  }, [pdfDoc, currentPage, scale, calculateOptimalScale, renderTask, containerReady]);
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
@@ -145,11 +167,11 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
   };
 
   const handleZoomIn = () => {
-    setScale((prev) => Math.min(prev * 1.25, 3));
+    setScale((prev) => Math.min((prev || 1) * 1.25, 3));
   };
 
   const handleZoomOut = () => {
-    setScale((prev) => Math.max(prev / 1.25, 0.5));
+    setScale((prev) => Math.max((prev || 1) / 1.25, 0.5));
   };
 
   const handleOpenExternal = () => {
@@ -210,7 +232,7 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
           >
             <MagnifyingGlassMinus size={18} />
           </button>
-          <span className="pdf-zoom-info">{Math.round(scale * 100)}%</span>
+          <span className="pdf-zoom-info">{scale ? Math.round(scale * 100) : 100}%</span>
           <button
             className="pdf-toolbar-btn"
             onClick={handleZoomIn}

@@ -135,6 +135,10 @@
 
 /* Mobile adjustments */
 @media (max-width: 768px) {
+  .pdf-viewer {
+    min-height: 400px;
+  }
+
   .pdf-toolbar {
     padding: 0.375rem 0.5rem;
   }
@@ -155,5 +159,10 @@
 
   .pdf-canvas-container {
     padding: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .pdf-canvas {
+    max-width: 100%;
   }
 }
