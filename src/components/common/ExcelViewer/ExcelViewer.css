@@ -177,6 +177,13 @@
   background: var(--bg-tertiary, #e8e8e8) !important;
 }
 
+.excel-col-header {
+  text-align: center !important;
+  font-weight: 500;
+  color: var(--text-muted, #666) !important;
+  min-width: 80px;
+}
+
 .excel-empty {
   text-align: center !important;
   padding: 2rem !important;

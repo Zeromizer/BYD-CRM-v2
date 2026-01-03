@@ -11,8 +11,19 @@ interface ExcelViewerProps {
 
 interface SheetData {
   name: string;
-  data: (string | number | boolean | null)[][];
-  headers: string[];
+  rows: (string | number | boolean | null)[][];
+  colCount: number;
+}
+
+// Convert column index to Excel letter (0 = A, 1 = B, ..., 26 = AA, etc.)
+function getColumnLetter(index: number): string {
+  let letter = '';
+  let num = index;
+  while (num >= 0) {
+    letter = String.fromCharCode((num % 26) + 65) + letter;
+    num = Math.floor(num / 26) - 1;
+  }
+  return letter;
 }
 
 export function ExcelViewer({ url, filename, onDownload }: ExcelViewerProps) {
@@ -36,23 +47,20 @@ export function ExcelViewer({ url, filename, onDownload }: ExcelViewerProps) {
 
       const loadedSheets: SheetData[] = workbook.SheetNames.map((sheetName) => {
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json<(string | number | boolean | null)[]>(
+
+        // Get all rows as-is, no header assumption
+        const rows = XLSX.utils.sheet_to_json<(string | number | boolean | null)[]>(
           worksheet,
-          { header: 1, defval: null }
+          { header: 1, defval: null, blankrows: false }
         );
 
-        // First row as headers, rest as data
-        const headers = jsonData.length > 0
-          ? (jsonData[0] as (string | number | boolean | null)[]).map((h, i) =>
-              h !== null && h !== undefined ? String(h) : `Column ${i + 1}`
-            )
-          : [];
-        const data = jsonData.slice(1);
+        // Find max column count across all rows
+        const colCount = rows.reduce((max, row) => Math.max(max, row.length), 0);
 
         return {
           name: sheetName,
-          headers,
-          data,
+          rows,
+          colCount,
         };
       });
 
@@ -158,7 +166,7 @@ export function ExcelViewer({ url, filename, onDownload }: ExcelViewerProps) {
 
         <div className="excel-toolbar-right">
           <span className="excel-row-count">
-            {currentSheet.data.length} rows
+            {currentSheet.rows.length} rows
           </span>
           <button
             className="excel-toolbar-btn"
@@ -184,24 +192,24 @@ export function ExcelViewer({ url, filename, onDownload }: ExcelViewerProps) {
         <table className="excel-table">
           <thead>
             <tr>
-              <th className="excel-row-number">#</th>
-              {currentSheet.headers.map((header, i) => (
-                <th key={i}>{header}</th>
+              <th className="excel-row-number"></th>
+              {Array.from({ length: currentSheet.colCount }, (_, i) => (
+                <th key={i} className="excel-col-header">{getColumnLetter(i)}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {currentSheet.data.length === 0 ? (
+            {currentSheet.rows.length === 0 ? (
               <tr>
-                <td colSpan={currentSheet.headers.length + 1} className="excel-empty">
+                <td colSpan={currentSheet.colCount + 1} className="excel-empty">
                   No data in this sheet
                 </td>
               </tr>
             ) : (
-              currentSheet.data.map((row, rowIndex) => (
+              currentSheet.rows.map((row, rowIndex) => (
                 <tr key={rowIndex}>
                   <td className="excel-row-number">{rowIndex + 1}</td>
-                  {currentSheet.headers.map((_, colIndex) => (
+                  {Array.from({ length: currentSheet.colCount }, (_, colIndex) => (
                     <td key={colIndex}>
                       {row[colIndex] !== null && row[colIndex] !== undefined
                         ? String(row[colIndex])
