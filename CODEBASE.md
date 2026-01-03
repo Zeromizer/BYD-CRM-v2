@@ -466,7 +466,8 @@ const results = await classifyDocumentsWithVisionClaudeParallel(
 
 | Commit | Description |
 |--------|-------------|
-| Latest | Vision+Claude OCR pipeline with parallel processing |
+| Latest | Mobile documents tab optimization with action sheets |
+| Previous | Vision+Claude OCR pipeline with parallel processing |
 | Previous | Mobile optimization with swipe-based panel navigation |
 | Previous | Task/Todo feature with inline forms, customer-specific tasks |
 | 4fffb70 | Excel file classification, batch processing |
@@ -514,6 +515,52 @@ const results = await classifyDocumentsWithVisionClaudeParallel(
 --mobile-header-height: 48px;
 --panel-indicator-height: 56px;
 ```
+
+### Mobile Documents Tab Optimization
+**Modified Files:**
+- `src/components/CustomerDetails/tabs/DocumentsTab.tsx` - Mobile-specific layout with action sheets
+- `src/components/CustomerDetails/CustomerDetails.css` - Mobile document card styles (~225 new lines)
+- `src/components/common/Modal/Modal.tsx` - Added portal rendering for proper z-index
+
+**Key Features:**
+- **Dropdown category selector** - Replaces horizontal scrolling buttons, saves vertical space
+- **FAB button** (+) - Opens "Add Document" action sheet for Generate/Import
+- **Tap-to-open document cards** - No inline action buttons, touch-friendly
+- **Document action sheet** - View, Download, Replace, Delete (portaled to body)
+- **Portal rendering** - Action sheets and modals render via `createPortal` to escape swipe container overflow clipping
+
+**Mobile Layout Structure:**
+```
+┌─────────────────────────────────┐
+│ [Identification (2/4)     ▼] [+]│  ← Dropdown + FAB
+├─────────────────────────────────┤
+│ ● NRIC Front                   >│  ← Tap opens action sheet
+│   TEE_HOCK_SENG_nric_front...   │
+├─────────────────────────────────┤
+│ ● NRIC Back                    >│
+│   TEE_HOCK_SENG_nric_back...    │
+└─────────────────────────────────┘
+```
+
+**Portal Pattern for Mobile Overlays:**
+The mobile swipe panels use `overflow: hidden` which clips fixed-position elements. Solution:
+```typescript
+import { createPortal } from 'react-dom';
+
+// Render action sheet outside swipe container
+{showActionSheet && createPortal(
+  <>
+    <div className="mobile-action-overlay" onClick={close} />
+    <div className="mobile-action-sheet">...</div>
+  </>,
+  document.body
+)}
+```
+
+**Z-Index Hierarchy:**
+- Mobile action overlay: `z-index: 1000`
+- Mobile action sheet: `z-index: 1001`
+- Modal overlay: `z-index: 1100`
 
 ### Task Feature Implementation
 - **InlineTaskForm** (`common/InlineTaskForm.tsx`) - Compact inline form for task creation

@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from '@phosphor-icons/react';
 import './Modal.css';
 
@@ -48,7 +49,7 @@ export function Modal({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div
         className={`modal-container modal-${size}`}
@@ -66,6 +67,7 @@ export function Modal({
         )}
         <div className="modal-content">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

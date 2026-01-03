@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Export, FolderOpen, File, CircleNotch, Warning, X, Check, Circle, Eye, DownloadSimple, Trash, UploadSimple, Sparkle } from '@phosphor-icons/react';
+import { createPortal } from 'react-dom';
+import { Export, FolderOpen, File, CircleNotch, Warning, X, Check, Circle, Eye, DownloadSimple, Trash, UploadSimple, Sparkle, CaretRight, Plus } from '@phosphor-icons/react';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 import { Button, Modal, useToast } from '@/components/common';
 import { useCustomerStore } from '@/stores/useCustomerStore';
 import { useDocumentStore } from '@/stores/useDocumentStore';
@@ -127,6 +129,17 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
   // Multi-select state for bulk delete
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Mobile state
+  const isMobile = useIsMobile();
+  const [showDocActionSheet, setShowDocActionSheet] = useState(false);
+  const [selectedDocForAction, setSelectedDocForAction] = useState<{
+    docId: string;
+    doc: CustomerDocument | null;
+    label: string;
+    isUploaded: boolean;
+  } | null>(null);
+  const [showAddDocSheet, setShowAddDocSheet] = useState(false);
 
   const { updateCustomer } = useCustomerStore();
   const { success: toastSuccess, error: toastError } = useToast();
@@ -783,28 +796,324 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
         hidden
       />
 
-      {/* Category Sidebar */}
-      <div className="documents-sidebar">
-        {/* Generate Document Button */}
-        <Button
-          className="generate-doc-btn"
-          onClick={handleGenerateDocument}
-          leftIcon={<Export size={16} />}
-        >
-          Generate Document
-        </Button>
+      {/* Mobile Layout */}
+      {isMobile ? (
+        <>
+          {/* Mobile Category Header */}
+          <div className="mobile-category-header">
+            <select
+              className="mobile-category-select"
+              value={activeCategory}
+              onChange={(e) => setActiveCategory(e.target.value)}
+            >
+              {DOCUMENT_CATEGORIES.map((cat) => {
+                const progress = getCategoryProgress(cat.id);
+                return (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.label} ({progress.completed}/{progress.total})
+                  </option>
+                );
+              })}
+              <option value="all_uploads">
+                All Uploads ({allUploads.reduce((sum, f) => sum + f.documents.length, 0)})
+              </option>
+            </select>
+            <button
+              className="mobile-action-fab"
+              onClick={() => setShowAddDocSheet(true)}
+              title="Add Document"
+            >
+              <Plus size={20} weight="bold" />
+            </button>
+          </div>
 
-        {/* Import from Folder Button */}
-        <Button
-          className="generate-doc-btn"
-          variant="outline"
-          onClick={() => migrationInputRef.current?.click()}
-          leftIcon={<FolderOpen size={16} />}
-        >
-          Import from Folder
-        </Button>
+          {/* Mobile Documents List */}
+          <div className="mobile-documents-content">
+            {isLoading && (
+              <div className="loading-indicator">
+                <CircleNotch size={16} className="spin" />
+                Loading...
+              </div>
+            )}
 
-        <div className="sidebar-divider" />
+            {error && (
+              <div className="documents-error">
+                <Warning size={16} className="error-icon" />
+                <span>{error}</span>
+                <button onClick={() => setError(null)}>
+                  <X size={16} className="close-icon" />
+                </button>
+              </div>
+            )}
+
+            {activeCategory === 'all_uploads' ? (
+              /* Mobile All Uploads View */
+              <div className="mobile-documents-list">
+                {allUploads.length === 0 ? (
+                  <div className="no-uploads">
+                    <File size={32} className="empty-icon" />
+                    <p>No documents uploaded yet</p>
+                  </div>
+                ) : (
+                  allUploads.map((folder) => (
+                    <div key={folder.documentType} className="mobile-upload-folder">
+                      <div className="mobile-folder-title">
+                        <FolderOpen size={16} className="folder-icon" />
+                        {folder.documentType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                        <span className="folder-count">({folder.documents.length})</span>
+                      </div>
+                      {folder.documents.map((doc) => (
+                        <button
+                          key={doc.id}
+                          className="mobile-document-card uploaded"
+                          onClick={() => {
+                            setSelectedDocForAction({
+                              docId: folder.documentType,
+                              doc,
+                              label: doc.name,
+                              isUploaded: true,
+                            });
+                            setShowDocActionSheet(true);
+                          }}
+                        >
+                          <div className="mobile-doc-status">
+                            <Check size={14} weight="bold" />
+                          </div>
+                          <div className="mobile-doc-info">
+                            <span className="mobile-doc-label">{doc.name}</span>
+                            <span className="mobile-doc-filename">
+                              {new Date(doc.uploadedAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <CaretRight size={18} className="mobile-doc-chevron" />
+                        </button>
+                      ))}
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              /* Mobile Category View */
+              <div className="mobile-documents-list">
+                {activeDocuments.map((doc: any) => {
+                  const isUploaded = getDocumentStatus(doc.id, doc.alternateIds);
+                  let docs = uploadedDocs[doc.id] || [];
+                  if (docs.length === 0 && doc.alternateIds) {
+                    for (const altId of doc.alternateIds) {
+                      if (uploadedDocs[altId] && uploadedDocs[altId].length > 0) {
+                        docs = uploadedDocs[altId];
+                        break;
+                      }
+                    }
+                  }
+
+                  return (
+                    <button
+                      key={doc.id}
+                      className={`mobile-document-card ${isUploaded ? 'uploaded' : ''}`}
+                      onClick={() => {
+                        setSelectedDocForAction({
+                          docId: doc.id,
+                          doc: docs[0] || null,
+                          label: doc.label,
+                          isUploaded,
+                        });
+                        setShowDocActionSheet(true);
+                      }}
+                    >
+                      <div className="mobile-doc-status">
+                        {isUploaded ? (
+                          <Check size={14} weight="bold" />
+                        ) : (
+                          <Circle size={14} />
+                        )}
+                      </div>
+                      <div className="mobile-doc-info">
+                        <span className="mobile-doc-label">{doc.label}</span>
+                        {docs.length > 0 && (
+                          <span className="mobile-doc-filename">{docs[0].name}</span>
+                        )}
+                      </div>
+                      <CaretRight size={18} className="mobile-doc-chevron" />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Add Document Action Sheet - Portal to body for proper z-index */}
+          {showAddDocSheet && createPortal(
+            <>
+              <div
+                className="mobile-action-overlay"
+                onClick={() => setShowAddDocSheet(false)}
+              />
+              <div className="mobile-action-sheet doc-action-sheet">
+                <div className="mobile-action-sheet-header">
+                  <span>Add Document</span>
+                  <button
+                    className="mobile-action-close"
+                    onClick={() => setShowAddDocSheet(false)}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                <button
+                  className="mobile-action-item"
+                  onClick={() => {
+                    setShowAddDocSheet(false);
+                    handleGenerateDocument();
+                  }}
+                >
+                  <Export size={20} />
+                  <span>Generate Document</span>
+                </button>
+                <button
+                  className="mobile-action-item"
+                  onClick={() => {
+                    setShowAddDocSheet(false);
+                    migrationInputRef.current?.click();
+                  }}
+                >
+                  <FolderOpen size={20} />
+                  <span>Import from Folder</span>
+                </button>
+              </div>
+            </>,
+            document.body
+          )}
+
+          {/* Mobile Document Action Sheet - Portal to body for proper z-index */}
+          {showDocActionSheet && selectedDocForAction && createPortal(
+            <>
+              <div
+                className="mobile-action-overlay"
+                onClick={() => {
+                  setShowDocActionSheet(false);
+                  setSelectedDocForAction(null);
+                }}
+              />
+              <div className="mobile-action-sheet doc-action-sheet">
+                <div className="doc-action-sheet-header">
+                  <span className="doc-action-sheet-title">
+                    {selectedDocForAction.label}
+                  </span>
+                  {selectedDocForAction.doc && (
+                    <span className="doc-action-sheet-subtitle">
+                      {selectedDocForAction.doc.name}
+                    </span>
+                  )}
+                </div>
+
+                {selectedDocForAction.isUploaded ? (
+                  <>
+                    <button
+                      className="mobile-action-item"
+                      onClick={() => {
+                        setShowDocActionSheet(false);
+                        if (selectedDocForAction.doc) {
+                          setPreviewDoc(selectedDocForAction.doc);
+                          setShowPreviewModal(true);
+                        }
+                      }}
+                    >
+                      <Eye size={20} />
+                      <span>View Document</span>
+                    </button>
+                    <button
+                      className="mobile-action-item"
+                      onClick={async () => {
+                        setShowDocActionSheet(false);
+                        if (selectedDocForAction.doc) {
+                          try {
+                            const blob = await downloadDocument(selectedDocForAction.doc.path);
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = selectedDocForAction.doc.name;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(url);
+                          } catch (err) {
+                            setError('Failed to download document');
+                          }
+                        }
+                      }}
+                    >
+                      <DownloadSimple size={20} />
+                      <span>Download</span>
+                    </button>
+                    <button
+                      className="mobile-action-item"
+                      onClick={() => {
+                        setShowDocActionSheet(false);
+                        handleUploadClick(selectedDocForAction.docId);
+                      }}
+                    >
+                      <UploadSimple size={20} />
+                      <span>Replace Document</span>
+                    </button>
+                    <button
+                      className="mobile-action-item danger"
+                      onClick={() => {
+                        setShowDocActionSheet(false);
+                        if (selectedDocForAction.doc) {
+                          setDocToDelete({
+                            docId: selectedDocForAction.docId,
+                            doc: selectedDocForAction.doc,
+                          });
+                          setShowDeleteConfirm(true);
+                        }
+                      }}
+                    >
+                      <Trash size={20} />
+                      <span>Delete</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="mobile-action-item primary"
+                    onClick={() => {
+                      setShowDocActionSheet(false);
+                      handleUploadClick(selectedDocForAction.docId);
+                    }}
+                  >
+                    <UploadSimple size={20} />
+                    <span>Upload Document</span>
+                  </button>
+                )}
+              </div>
+            </>,
+            document.body
+          )}
+        </>
+      ) : (
+        /* Desktop Layout */
+        <>
+          {/* Category Sidebar */}
+          <div className="documents-sidebar">
+            {/* Generate Document Button */}
+            <Button
+              className="generate-doc-btn"
+              onClick={handleGenerateDocument}
+              leftIcon={<Export size={16} />}
+            >
+              Generate Document
+            </Button>
+
+            {/* Import from Folder Button */}
+            <Button
+              className="generate-doc-btn"
+              variant="outline"
+              onClick={() => migrationInputRef.current?.click()}
+              leftIcon={<FolderOpen size={16} />}
+            >
+              Import from Folder
+            </Button>
+
+            <div className="sidebar-divider" />
         {DOCUMENT_CATEGORIES.map((category) => {
           const progress = getCategoryProgress(category.id);
           const isComplete = progress.completed === progress.total;
@@ -1106,6 +1415,8 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* Preview Modal */}
       <Modal
