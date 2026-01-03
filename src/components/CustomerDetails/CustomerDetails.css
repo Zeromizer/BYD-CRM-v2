@@ -2054,20 +2054,21 @@
 
 .customer-details.mobile {
   height: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* Mobile Tabs */
 .customer-details.mobile .customer-details-tabs {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 10;
   padding: 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   gap: 0;
   background: var(--bg-primary);
+  flex-shrink: 0;
 }
 
 .customer-details.mobile .tab-button {
@@ -2094,7 +2095,16 @@
 /* Mobile Content */
 .customer-details.mobile .customer-details-content {
   padding: var(--mobile-padding);
-  padding-bottom: calc(var(--panel-indicator-height) + var(--mobile-padding));
+  padding-bottom: var(--mobile-padding);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Documents tab on mobile needs no padding (it manages its own) */
+.customer-details.mobile .customer-details-content:has(.documents-tab) {
+  padding: 0;
 }
 
 /* Mobile Form Grid */
@@ -2113,7 +2123,10 @@
 }
 
 .customer-details.mobile .documents-tab {
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 .customer-details.mobile .documents-sidebar {
@@ -2222,10 +2235,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--mobile-padding, 16px);
+  padding: 8px;
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-primary);
-  gap: 12px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .documents-tab .mobile-category-select {
@@ -2281,7 +2295,7 @@
   flex-direction: column;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 12px var(--mobile-padding, 16px);
+  padding: 8px;
 }
 
 /* Mobile Documents List - Grid Layout */

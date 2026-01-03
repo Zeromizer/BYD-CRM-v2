@@ -8,7 +8,7 @@
 
 .mobile-panels-container {
   display: flex;
-  height: calc(100% - var(--panel-indicator-height));
+  height: 100%;
   touch-action: pan-y pinch-zoom;
 }
 

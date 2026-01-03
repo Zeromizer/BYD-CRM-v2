@@ -9,11 +9,12 @@ interface PanelIndicatorProps {
   panels: Panel[];
   activePanel: number;
   onPanelChange: (index: number) => void;
+  visible?: boolean;
 }
 
-export function PanelIndicator({ panels, activePanel, onPanelChange }: PanelIndicatorProps) {
+export function PanelIndicator({ panels, activePanel, onPanelChange, visible = true }: PanelIndicatorProps) {
   return (
-    <div className="panel-indicator safe-area-bottom">
+    <div className={`panel-indicator safe-area-bottom ${visible ? 'visible' : 'hidden'}`}>
       <div className="panel-indicator-dots">
         {panels.map((panel, index) => (
           <button

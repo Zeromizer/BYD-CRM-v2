@@ -27,6 +27,7 @@ export function MobileDashboard() {
     setActivePanel,
     containerRef,
     getTransformStyle,
+    showIndicator,
   } = useSwipeNavigation({
     panelCount: selectedCustomer ? 3 : 1, // Only allow swiping to other panels when customer selected
   });
@@ -101,11 +102,12 @@ export function MobileDashboard() {
         </div>
       </div>
 
-      {/* Panel Navigation Indicator */}
+      {/* Panel Navigation Indicator - shows on swipe, fades away */}
       <PanelIndicator
         panels={panelsToShow}
         activePanel={activePanel}
         onPanelChange={setActivePanel}
+        visible={showIndicator}
       />
 
       {/* Add Customer Modal */}

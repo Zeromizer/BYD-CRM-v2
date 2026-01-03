@@ -5,6 +5,7 @@ interface SwipeState {
   isSwiping: boolean;
   translateX: number;
   direction: 'left' | 'right' | null;
+  showIndicator: boolean;
 }
 
 interface SwipeConfig {
@@ -25,6 +26,7 @@ interface UseSwipeNavigationReturn {
   activePanel: number;
   isSwiping: boolean;
   translateX: number;
+  showIndicator: boolean;
   setActivePanel: (panel: number) => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
   getTransformStyle: () => React.CSSProperties;
@@ -44,7 +46,10 @@ export function useSwipeNavigation(config: SwipeConfig): UseSwipeNavigationRetur
     isSwiping: false,
     translateX: 0,
     direction: null,
+    showIndicator: false,
   });
+
+  const indicatorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStart = useRef<TouchPoint | null>(null);
@@ -70,13 +75,26 @@ export function useSwipeNavigation(config: SwipeConfig): UseSwipeNavigationRetur
 
   const setActivePanel = useCallback((panel: number) => {
     const clampedPanel = Math.max(0, Math.min(panel, panelCount - 1));
+
+    // Clear any existing timeout
+    if (indicatorTimeoutRef.current) {
+      clearTimeout(indicatorTimeoutRef.current);
+    }
+
+    // Show indicator briefly when panel changes programmatically
     setState((prev) => ({
       ...prev,
       activePanel: clampedPanel,
       translateX: 0,
       isSwiping: false,
       direction: null,
+      showIndicator: true,
     }));
+
+    // Hide indicator after delay
+    indicatorTimeoutRef.current = setTimeout(() => {
+      setState((prev) => ({ ...prev, showIndicator: false }));
+    }, 1500);
   }, [panelCount]);
 
   // Setup native touch event listeners with passive: false
@@ -94,10 +112,16 @@ export function useSwipeNavigation(config: SwipeConfig): UseSwipeNavigationRetur
       touchCurrent.current = touchStart.current;
       isHorizontalSwipe.current = null;
 
+      // Clear any existing indicator timeout
+      if (indicatorTimeoutRef.current) {
+        clearTimeout(indicatorTimeoutRef.current);
+      }
+
       setState((prev) => ({
         ...prev,
         isSwiping: true,
         direction: null,
+        showIndicator: true,
       }));
     };
 
@@ -191,7 +215,13 @@ export function useSwipeNavigation(config: SwipeConfig): UseSwipeNavigationRetur
         isSwiping: false,
         translateX: 0,
         direction: null,
+        showIndicator: true,
       });
+
+      // Hide indicator after delay
+      indicatorTimeoutRef.current = setTimeout(() => {
+        setState((prev) => ({ ...prev, showIndicator: false }));
+      }, 1500);
     };
 
     // Add event listeners with passive: false to allow preventDefault
@@ -220,10 +250,20 @@ export function useSwipeNavigation(config: SwipeConfig): UseSwipeNavigationRetur
     };
   }, [state.activePanel, state.isSwiping, state.translateX]);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (indicatorTimeoutRef.current) {
+        clearTimeout(indicatorTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return {
     activePanel: state.activePanel,
     isSwiping: state.isSwiping,
     translateX: state.translateX,
+    showIndicator: state.showIndicator,
     setActivePanel,
     containerRef,
     getTransformStyle,

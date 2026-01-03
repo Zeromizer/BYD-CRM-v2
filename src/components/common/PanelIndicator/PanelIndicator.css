@@ -9,9 +9,25 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  background: var(--bg-primary);
-  border-top: 1px solid var(--border-color);
+  background: linear-gradient(to top, rgba(var(--bg-primary-rgb, 0, 0, 0), 0.95), rgba(var(--bg-primary-rgb, 0, 0, 0), 0.7) 70%, transparent);
+  border-top: none;
   z-index: 100;
+  opacity: 0;
+  transform: translateY(100%);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.panel-indicator.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.panel-indicator.hidden {
+  opacity: 0;
+  transform: translateY(100%);
+  pointer-events: none;
 }
 
 .panel-indicator-dots {
