@@ -44,12 +44,12 @@ async function uploadScannedImages(customerName: string, images: ScannedImages):
 
   if (images.licenseFrontImage) {
     const file = dataUrlToFile(images.licenseFrontImage, 'driving_license_front.jpg');
-    uploads.push(uploadCustomerDocument('driving_license', file, customerName));
+    uploads.push(uploadCustomerDocument('driving_license_front', file, customerName));
   }
 
   if (images.licenseBackImage) {
     const file = dataUrlToFile(images.licenseBackImage, 'driving_license_back.jpg');
-    uploads.push(uploadCustomerDocument('driving_license', file, customerName));
+    uploads.push(uploadCustomerDocument('driving_license_back', file, customerName));
   }
 
   await Promise.all(uploads);

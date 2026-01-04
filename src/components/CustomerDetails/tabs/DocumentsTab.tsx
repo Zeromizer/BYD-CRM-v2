@@ -46,8 +46,8 @@ const DOCUMENT_CATEGORIES = [
     documents: [
       { id: 'nric_front', label: 'NRIC Front', alternateIds: ['nric', 'id_documents'] },
       { id: 'nric_back', label: 'NRIC Back', alternateIds: ['nric', 'id_documents'] },
-      { id: 'license_front', label: 'Driving License Front', alternateIds: ['driving_license'] },
-      { id: 'license_back', label: 'Driving License Back', alternateIds: ['driving_license'] },
+      { id: 'license_front', label: 'Driving License Front', alternateIds: ['driving_license', 'driving_license_front'] },
+      { id: 'license_back', label: 'Driving License Back', alternateIds: ['driving_license', 'driving_license_back'] },
     ],
   },
   {
