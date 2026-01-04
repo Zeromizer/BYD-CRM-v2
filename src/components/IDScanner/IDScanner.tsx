@@ -4,9 +4,10 @@
  * No fallback - if AI fails, user can retry or enter manually
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Warning, Camera, ArrowCounterClockwise, ArrowRight, Check, Car, IdentificationCard, Sparkle, DeviceMobileCamera, Image } from '@phosphor-icons/react';
 import { Button } from '@/components/common';
+import { getSupabase } from '@/lib/supabase';
 import {
   extractIDWithGemini,
   extractLicenseWithGemini,
@@ -15,6 +16,16 @@ import {
   type ProcessingProgress,
 } from '@/services/geminiService';
 import './IDScanner.css';
+
+// Guide frame dimensions (must match CSS)
+const GUIDE_FRAME_WIDTH_PERCENT = 0.85; // 85% of container
+const GUIDE_FRAME_ASPECT_RATIO = 1.586; // Credit card ratio (landscape)
+const GUIDE_FRAME_WIDTH_PERCENT_PORTRAIT = 0.75; // 75% for portrait
+const GUIDE_FRAME_ASPECT_RATIO_PORTRAIT = 0.65; // Portrait ratio
+
+// AI image settings (reduced for faster processing)
+const AI_IMAGE_MAX_WIDTH = 1280;
+const AI_IMAGE_QUALITY = 0.85;
 
 export interface ScannedData {
   name: string;
@@ -48,10 +59,15 @@ type Step =
 
 export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) {
   const [step, setStep] = useState<Step>('front');
+  // Full resolution images for saving
   const [frontImage, setFrontImage] = useState<string | null>(null);
   const [backImage, setBackImage] = useState<string | null>(null);
   const [licenseFrontImage, setLicenseFrontImage] = useState<string | null>(null);
   const [licenseBackImage, setLicenseBackImage] = useState<string | null>(null);
+  // Optimized images for AI processing (smaller, lower quality)
+  const [frontImageAI, setFrontImageAI] = useState<string | null>(null);
+  const [backImageAI, setBackImageAI] = useState<string | null>(null);
+  const [licenseFrontImageAI, setLicenseFrontImageAI] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraLoading, setCameraLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,17 +82,30 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
     licenseStartDate: '',
   });
   const [isPortraitMode, setIsPortraitMode] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const aiCanvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Reset state when modal opens
+  // Pre-warm auth check when modal opens
+  const preWarmAuth = useCallback(async () => {
+    try {
+      const { data: { user } } = await getSupabase().auth.getUser();
+      setIsAuthReady(!!user);
+    } catch {
+      setIsAuthReady(false);
+    }
+  }, []);
+
+  // Reset state and pre-warm auth when modal opens
   useEffect(() => {
     if (isOpen) {
       resetScanner();
+      preWarmAuth(); // Pre-warm auth while user positions camera
     }
-  }, [isOpen]);
+  }, [isOpen, preWarmAuth]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -85,12 +114,18 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
     };
   }, []);
 
+  // Ref to store pending front image processing result (declared early for use in resetScanner)
+  const pendingFrontProcessingRef = useRef<Promise<import('@/services/geminiService').ExtractedIDData> | null>(null);
+
   const resetScanner = () => {
     setStep('front');
     setFrontImage(null);
     setBackImage(null);
     setLicenseFrontImage(null);
     setLicenseBackImage(null);
+    setFrontImageAI(null);
+    setBackImageAI(null);
+    setLicenseFrontImageAI(null);
     setError(null);
     setProcessingStatus({ stage: '', progress: 0 });
     setConfidence(0);
@@ -103,6 +138,8 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
       licenseStartDate: '',
     });
     setIsPortraitMode(false);
+    setIsAuthReady(false);
+    pendingFrontProcessingRef.current = null;
     stopCamera();
   };
 
@@ -175,51 +212,79 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
   };
 
   const capturePhoto = () => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current || !canvasRef.current || !aiCanvasRef.current) return;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
+    const aiCanvas = aiCanvasRef.current;
 
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
 
+    // Calculate the visible container area (what's shown on screen)
     const containerAspect = isPortraitMode ? 3 / 4 : 4 / 3;
     const videoAspect = videoWidth / videoHeight;
 
-    let cropX = 0;
-    let cropY = 0;
-    let cropWidth = videoWidth;
-    let cropHeight = videoHeight;
+    let containerCropX = 0;
+    let containerCropY = 0;
+    let containerCropWidth = videoWidth;
+    let containerCropHeight = videoHeight;
 
+    // First, crop to the container's visible area (object-fit: cover)
     if (videoAspect > containerAspect) {
-      cropWidth = videoHeight * containerAspect;
-      cropX = (videoWidth - cropWidth) / 2;
+      containerCropWidth = videoHeight * containerAspect;
+      containerCropX = (videoWidth - containerCropWidth) / 2;
     } else if (videoAspect < containerAspect) {
-      cropHeight = videoWidth / containerAspect;
-      cropY = (videoHeight - cropHeight) / 2;
+      containerCropHeight = videoWidth / containerAspect;
+      containerCropY = (videoHeight - containerCropHeight) / 2;
     }
 
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
+    // Now calculate the guide frame area within the container
+    const guideWidthPercent = isPortraitMode ? GUIDE_FRAME_WIDTH_PERCENT_PORTRAIT : GUIDE_FRAME_WIDTH_PERCENT;
+    const guideAspectRatio = isPortraitMode ? GUIDE_FRAME_ASPECT_RATIO_PORTRAIT : GUIDE_FRAME_ASPECT_RATIO;
 
+    // Guide frame dimensions relative to container
+    const guideWidth = containerCropWidth * guideWidthPercent;
+    const guideHeight = guideWidth / guideAspectRatio;
+
+    // Center the guide frame within the container
+    const guideX = containerCropX + (containerCropWidth - guideWidth) / 2;
+    const guideY = containerCropY + (containerCropHeight - guideHeight) / 2;
+
+    // Full resolution image (cropped to guide frame)
+    canvas.width = guideWidth;
+    canvas.height = guideHeight;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    ctx.drawImage(video, guideX, guideY, guideWidth, guideHeight, 0, 0, guideWidth, guideHeight);
+    const fullResImage = canvas.toDataURL('image/jpeg', 0.95);
 
-    ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-
-    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+    // AI-optimized image (smaller, lower quality for faster processing)
+    const scale = Math.min(1, AI_IMAGE_MAX_WIDTH / guideWidth);
+    const aiWidth = Math.round(guideWidth * scale);
+    const aiHeight = Math.round(guideHeight * scale);
+    aiCanvas.width = aiWidth;
+    aiCanvas.height = aiHeight;
+    const aiCtx = aiCanvas.getContext('2d');
+    if (!aiCtx) return;
+    aiCtx.drawImage(video, guideX, guideY, guideWidth, guideHeight, 0, 0, aiWidth, aiHeight);
+    const aiImage = aiCanvas.toDataURL('image/jpeg', AI_IMAGE_QUALITY);
 
     if (step === 'front') {
-      setFrontImage(imageDataUrl);
+      setFrontImage(fullResImage);
+      setFrontImageAI(aiImage);
       stopCamera();
     } else if (step === 'back') {
-      setBackImage(imageDataUrl);
+      setBackImage(fullResImage);
+      setBackImageAI(aiImage);
       stopCamera();
     } else if (step === 'license-front') {
-      setLicenseFrontImage(imageDataUrl);
+      setLicenseFrontImage(fullResImage);
+      setLicenseFrontImageAI(aiImage);
       stopCamera();
     } else if (step === 'license-back') {
-      setLicenseBackImage(imageDataUrl);
+      setLicenseBackImage(fullResImage);
+      // No AI image needed for license back (not used for extraction)
       stopCamera();
     }
   };
@@ -227,10 +292,13 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
   const handleRetake = () => {
     if (step === 'front') {
       setFrontImage(null);
+      setFrontImageAI(null);
     } else if (step === 'back') {
       setBackImage(null);
+      setBackImageAI(null);
     } else if (step === 'license-front') {
       setLicenseFrontImage(null);
+      setLicenseFrontImageAI(null);
     } else if (step === 'license-back') {
       setLicenseBackImage(null);
     }
@@ -251,6 +319,7 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
 
   const handleSkipBack = () => {
     setBackImage(null);
+    setBackImageAI(null);
     processIDImages();
   };
 
@@ -267,14 +336,23 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
     setStep('final-review');
   };
 
+  // Start processing front image immediately after capture (parallel with back scan)
+  useEffect(() => {
+    if (frontImageAI && step === 'back' && !pendingFrontProcessingRef.current) {
+      // Start processing front image in background while user scans back
+      console.log('Starting parallel front image processing...');
+      pendingFrontProcessingRef.current = extractIDWithGemini(frontImageAI, null, () => {});
+    }
+  }, [frontImageAI, step]);
+
   const processIDImages = async () => {
-    if (!frontImage) return;
+    if (!frontImageAI) return;
 
     setStep('processing');
     setError(null);
 
     try {
-      // Load API key from Supabase first
+      // Load API key from Supabase first (should be quick if pre-warmed)
       await loadGeminiApiKey();
 
       // Check if Gemini is available
@@ -284,7 +362,29 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
         return;
       }
 
-      const result = await extractIDWithGemini(frontImage, backImage, setProcessingStatus);
+      let result;
+
+      if (backImageAI) {
+        // If we have back image, process both together for best accuracy
+        setProcessingStatus({ stage: 'Analyzing ID with AI...', progress: 10 });
+        result = await extractIDWithGemini(frontImageAI, backImageAI, setProcessingStatus);
+      } else if (pendingFrontProcessingRef.current) {
+        // Use the parallel-processed front result if available
+        setProcessingStatus({ stage: 'Finalizing analysis...', progress: 50 });
+        try {
+          result = await pendingFrontProcessingRef.current;
+          setProcessingStatus({ stage: 'Complete', progress: 100 });
+        } catch {
+          // If parallel processing failed, try again
+          result = await extractIDWithGemini(frontImageAI, null, setProcessingStatus);
+        }
+      } else {
+        // Process front only
+        result = await extractIDWithGemini(frontImageAI, null, setProcessingStatus);
+      }
+
+      // Clear pending processing ref
+      pendingFrontProcessingRef.current = null;
 
       setConfidence(result.confidence);
       setEditableData({
@@ -298,13 +398,14 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
       setStep('review');
     } catch (err) {
       console.error('Processing error:', err);
+      pendingFrontProcessingRef.current = null;
       setError(err instanceof Error ? err.message : 'Failed to process ID. Please try again.');
       setStep('front');
     }
   };
 
   const processLicenseImages = async () => {
-    if (!licenseFrontImage) {
+    if (!licenseFrontImageAI) {
       setStep('final-review');
       return;
     }
@@ -313,7 +414,7 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
     setError(null);
 
     try {
-      const licenseData = await extractLicenseWithGemini(licenseFrontImage, setProcessingStatus);
+      const licenseData = await extractLicenseWithGemini(licenseFrontImageAI, setProcessingStatus);
       if (licenseData.licenseStartDate) {
         setEditableData((prev) => ({
           ...prev,
@@ -466,6 +567,7 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
                 <div className={`camera-view ${isPortraitMode ? 'portrait' : ''}`}>
                   <video ref={videoRef} autoPlay playsInline muted className="camera-video" />
                   <canvas ref={canvasRef} style={{ display: 'none' }} />
+                  <canvas ref={aiCanvasRef} style={{ display: 'none' }} />
 
                   {/* Guide Overlay */}
                   <div className="id-guide-overlay">
