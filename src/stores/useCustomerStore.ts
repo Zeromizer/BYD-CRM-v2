@@ -8,6 +8,7 @@ import { getSupabase } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Customer, CustomerInsert, CustomerUpdate, Guarantor, MilestoneId } from '@/types';
 import { getDefaultChecklistState, getDefaultMilestoneDates, getDefaultDocumentChecklistState } from '@/constants';
+import { deleteEntireCustomerFolder } from '@/services/customerDocumentService';
 
 // Pagination settings
 const PAGE_SIZE = 50;
@@ -302,6 +303,11 @@ export const useCustomerStore = create<CustomerState & CustomerActions>((set, ge
   deleteCustomer: async (id) => {
     set({ isSaving: true, error: null });
     try {
+      // Get customer name BEFORE deleting from DB (needed to delete documents)
+      const customer = get().customers.find((c) => c.id === id);
+      const customerName = customer?.name;
+
+      // Delete from database first
       const { error } = await getSupabase()
         .from('customers')
         .delete()
@@ -309,11 +315,19 @@ export const useCustomerStore = create<CustomerState & CustomerActions>((set, ge
 
       if (error) throw error;
 
+      // Update local state immediately
       set((state) => ({
         customers: state.customers.filter((c) => c.id !== id),
         selectedCustomerId: state.selectedCustomerId === id ? null : state.selectedCustomerId,
         isSaving: false,
       }));
+
+      // Delete documents from storage in background (don't block UI)
+      if (customerName) {
+        deleteEntireCustomerFolder(customerName)
+          .then(() => console.log(`[CustomerStore] Deleted documents for ${customerName}`))
+          .catch((err) => console.error(`[CustomerStore] Failed to delete documents:`, err));
+      }
     } catch (error) {
       set({ error: (error as Error).message, isSaving: false });
       throw error;

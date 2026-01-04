@@ -629,3 +629,70 @@ export async function getAllCustomerDocuments(
 
   return fetchPromise;
 }
+
+/**
+ * Delete ALL documents for a customer (entire customer folder)
+ * Called when a customer is deleted to clean up storage
+ */
+export async function deleteEntireCustomerFolder(customerName: string): Promise<void> {
+  const userId = await getAuthenticatedUserId();
+  const safeName = sanitizeCustomerName(customerName);
+  const basePath = `${userId}/${safeName}`;
+
+  const supabase = getSupabase();
+
+  // First, get all folders for this customer
+  const { data: folders, error: listError } = await supabase.storage
+    .from(BUCKET_NAME)
+    .list(basePath, { limit: 100 });
+
+  if (listError) {
+    console.error(`[Delete] Failed to list customer folders:`, listError);
+    return;
+  }
+
+  if (!folders || folders.length === 0) {
+    console.log(`[Delete] No documents found for customer ${customerName}`);
+    return;
+  }
+
+  // Collect all file paths to delete
+  const allFilePaths: string[] = [];
+
+  for (const item of folders) {
+    if (item.id === null) {
+      // It's a folder, list its contents
+      const folderPath = `${basePath}/${item.name}`;
+      const { data: files } = await supabase.storage
+        .from(BUCKET_NAME)
+        .list(folderPath, { limit: 1000 });
+
+      if (files) {
+        for (const file of files) {
+          if (file.id !== null) {
+            allFilePaths.push(`${folderPath}/${file.name}`);
+          }
+        }
+      }
+    } else {
+      // It's a file at root level (shouldn't happen, but handle it)
+      allFilePaths.push(`${basePath}/${item.name}`);
+    }
+  }
+
+  if (allFilePaths.length > 0) {
+    console.log(`[Delete] Deleting ${allFilePaths.length} files for customer ${customerName}`);
+    const { error: deleteError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .remove(allFilePaths);
+
+    if (deleteError) {
+      console.error(`[Delete] Failed to delete customer files:`, deleteError);
+    } else {
+      console.log(`[Delete] Successfully deleted all files for customer ${customerName}`);
+    }
+  }
+
+  // Clear caches for this customer
+  clearDocumentListCache(customerName);
+}
