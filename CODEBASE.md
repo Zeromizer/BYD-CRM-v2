@@ -524,7 +524,8 @@ const results = await classifyDocumentsWithVisionClaudeParallel(
 
 | Commit | Description |
 |--------|-------------|
-| Latest | ID Scanner performance optimization with parallel processing |
+| Latest | Auto-upload scanned IDs and delete documents on customer delete |
+| Previous | ID Scanner performance optimization with parallel processing |
 | Previous | ProgressSidebar right border for proper panel boundary |
 | Previous | PrintManager back page photo attachment for double-sided printing |
 | Previous | Mobile action sheet portal fix for swipe containers |
@@ -538,6 +539,58 @@ const results = await classifyDocumentsWithVisionClaudeParallel(
 | 4fffb70 | Excel file classification, batch processing |
 | 0faf764 | Excel integration, document management |
 | 5dd6bd2 | OneDrive sync for scanned documents |
+
+### Auto-Upload Scanned IDs & Document Cleanup
+**Modified Files:**
+- `src/components/CustomerForm/CustomerForm.tsx` - Stores scanned images and passes to onSubmit
+- `src/components/Dashboard/Dashboard.tsx` - Uploads scanned images after customer creation
+- `src/components/Dashboard/MobileDashboard.tsx` - Same as Dashboard for mobile
+- `src/stores/useCustomerStore.ts` - Deletes customer documents on customer delete
+- `src/services/customerDocumentService.ts` - New `deleteEntireCustomerFolder` function
+
+**Key Features:**
+- **Scanned ID auto-upload** - After customer is created, scanned NRIC/license images are automatically uploaded to their documents folder
+- **Document cleanup on delete** - When a customer is deleted, all their documents are removed from Supabase Storage
+- **Background processing** - Both upload and delete run in background to not block UI
+
+**Flow - Scanned ID Upload:**
+1. User scans ID in CustomerForm (stores base64 images in `ScannedImages` state)
+2. CustomerForm passes `scannedImages` to `onSubmit` callback
+3. Dashboard/MobileDashboard receives customer + images after creation
+4. `uploadScannedImages()` converts base64 to File and uploads to appropriate folders:
+   - `nric_front/` - NRIC front image
+   - `nric_back/` - NRIC back image
+   - `driving_license/` - License front and back images
+
+**Flow - Customer Document Deletion:**
+1. User clicks delete on a customer
+2. `deleteCustomer` in store gets customer name before DB delete
+3. DB record is deleted, local state updated immediately
+4. `deleteEntireCustomerFolder(customerName)` called in background
+5. Function lists all folders, collects file paths, batch deletes, clears cache
+
+**ScannedImages Interface:**
+```typescript
+interface ScannedImages {
+  frontImage: string | null;      // NRIC front base64
+  backImage: string | null;       // NRIC back base64
+  licenseFrontImage: string | null;
+  licenseBackImage: string | null;
+}
+```
+
+**Helper Function - Base64 to File:**
+```typescript
+function dataUrlToFile(dataUrl: string, filename: string): File {
+  const arr = dataUrl.split(',');
+  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) u8arr[n] = bstr.charCodeAt(n);
+  return new File([u8arr], filename, { type: mime });
+}
+```
 
 ### ID Scanner Performance Optimization
 **Modified Files:**
