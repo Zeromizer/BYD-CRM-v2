@@ -271,6 +271,8 @@ Right-side panel with four sections:
 - **All Milestones**: Expandable list with progress bars and checklists
 - **Tasks**: Customer-specific tasks with inline add form
 
+**Styling**: Has left and right borders (`border-left`, `border-right`) to define panel boundaries.
+
 **Components**:
 - `ProgressSidebar.tsx` - Main container
 - `TaskItem.tsx` - Individual task with toggle/delete
@@ -522,7 +524,8 @@ const results = await classifyDocumentsWithVisionClaudeParallel(
 
 | Commit | Description |
 |--------|-------------|
-| Latest | PrintManager back page photo attachment for double-sided printing |
+| Latest | ProgressSidebar right border for proper panel boundary |
+| Previous | PrintManager back page photo attachment for double-sided printing |
 | Previous | Mobile action sheet portal fix for swipe containers |
 | Previous | Enterprise optimization: code splitting, pagination, error boundaries |
 | Previous | Add Generate Document button to CustomerDetails header |
