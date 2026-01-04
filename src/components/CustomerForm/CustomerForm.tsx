@@ -7,9 +7,17 @@ import './CustomerForm.css';
 // Lazy load IDScanner to avoid loading tesseract.js until needed
 const IDScanner = lazy(() => import('@/components/IDScanner').then(m => ({ default: m.IDScanner })));
 
+// Scanned images to upload after customer creation
+export interface ScannedImages {
+  frontImage: string | null;
+  backImage: string | null;
+  licenseFrontImage: string | null;
+  licenseBackImage: string | null;
+}
+
 interface CustomerFormProps {
   initialData?: Record<string, unknown>;
-  onSubmit: (data: Record<string, unknown>) => void;
+  onSubmit: (data: Record<string, unknown>, scannedImages?: ScannedImages) => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
@@ -28,6 +36,7 @@ export function CustomerForm({ initialData, onSubmit, onCancel, isLoading }: Cus
     notes: (initialData?.notes as string) || '',
   });
   const [showScanner, setShowScanner] = useState(false);
+  const [scannedImages, setScannedImages] = useState<ScannedImages | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -36,10 +45,11 @@ export function CustomerForm({ initialData, onSubmit, onCancel, isLoading }: Cus
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    onSubmit(formData, scannedImages || undefined);
   };
 
   const handleScanData = (data: ScannedData) => {
+    // Update form data with extracted text
     setFormData((prev) => ({
       ...prev,
       name: data.name || prev.name,
@@ -48,6 +58,13 @@ export function CustomerForm({ initialData, onSubmit, onCancel, isLoading }: Cus
       address: data.address || prev.address,
       address_continue: data.addressContinue || prev.address_continue,
     }));
+    // Store scanned images for upload after customer creation
+    setScannedImages({
+      frontImage: data.frontImage,
+      backImage: data.backImage,
+      licenseFrontImage: data.licenseFrontImage,
+      licenseBackImage: data.licenseBackImage,
+    });
     setShowScanner(false);
   };
 
