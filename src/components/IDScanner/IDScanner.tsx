@@ -82,20 +82,18 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
     licenseStartDate: '',
   });
   const [isPortraitMode, setIsPortraitMode] = useState(false);
-  const [isAuthReady, setIsAuthReady] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const aiCanvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Pre-warm auth check when modal opens
+  // Pre-warm auth check when modal opens (warms Supabase auth cache)
   const preWarmAuth = useCallback(async () => {
     try {
-      const { data: { user } } = await getSupabase().auth.getUser();
-      setIsAuthReady(!!user);
+      await getSupabase().auth.getUser();
     } catch {
-      setIsAuthReady(false);
+      // Ignore errors - this is just pre-warming
     }
   }, []);
 
@@ -138,7 +136,6 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
       licenseStartDate: '',
     });
     setIsPortraitMode(false);
-    setIsAuthReady(false);
     pendingFrontProcessingRef.current = null;
     stopCamera();
   };
