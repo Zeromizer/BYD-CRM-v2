@@ -68,11 +68,26 @@ export function Dashboard() {
 
 function DesktopDashboard() {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const selectedCustomer = useSelectedCustomer();
-  const { createCustomer, selectCustomer } = useCustomerStore();
-  const { success, error } = useToast();
+  const { createCustomer, selectCustomer, customers } = useCustomerStore();
+  const { success, error, warning } = useToast();
 
   const handleAddCustomer = async (data: Record<string, unknown>, scannedImages?: ScannedImages) => {
+    // Prevent double submission
+    if (isSubmitting) return;
+
+    // Check for duplicate NRIC
+    const nric = data.nric as string | undefined;
+    if (nric) {
+      const existingCustomer = customers.find(c => c.nric?.toLowerCase() === nric.toLowerCase());
+      if (existingCustomer) {
+        warning(`A customer with NRIC "${nric}" already exists: ${existingCustomer.name}`);
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
     try {
       const customer = await createCustomer(data);
       selectCustomer(customer.id);
@@ -87,6 +102,8 @@ function DesktopDashboard() {
       }
     } catch (err) {
       error('Failed to create customer');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -124,6 +141,7 @@ function DesktopDashboard() {
         <CustomerForm
           onSubmit={handleAddCustomer}
           onCancel={() => setShowAddModal(false)}
+          isLoading={isSubmitting}
         />
       </Modal>
     </div>

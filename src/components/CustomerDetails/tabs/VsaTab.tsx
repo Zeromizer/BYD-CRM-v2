@@ -124,17 +124,21 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
   }, [customer]);
 
   // Auto-calculate monthly repayment when loan details change
-  // Formula: Monthly = (Loan Amount * (1 + Interest Rate / 100)) / Tenure
+  // Flat Rate Formula: Monthly = (Principal + (Principal × Rate × Years)) / Months
+  // This is the standard car loan calculation in Singapore
   useEffect(() => {
     if (monthlyRepaymentManuallyEdited.current) return;
 
     const loanAmount = parseFloat(formData.vsa_loan_amount) || 0;
-    const interestRate = parseFloat(formData.vsa_interest) || 0;
+    const annualInterestRate = parseFloat(formData.vsa_interest) || 0;
     const tenure = parseFloat(formData.vsa_tenure) || 0;
 
     if (loanAmount > 0 && tenure > 0) {
-      const totalWithInterest = loanAmount * (1 + interestRate / 100);
-      const monthlyPayment = totalWithInterest / tenure;
+      const years = tenure / 12;
+      const totalInterest = loanAmount * (annualInterestRate / 100) * years;
+      const totalAmount = loanAmount + totalInterest;
+      const monthlyPayment = totalAmount / tenure;
+
       setFormData((prev) => ({
         ...prev,
         vsa_monthly_repayment: monthlyPayment.toFixed(2),

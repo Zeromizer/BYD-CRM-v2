@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, useRef, lazy, Suspense } from 'react';
 import { Camera, User, Phone, Envelope, CreditCard, Briefcase, MapPin } from '@phosphor-icons/react';
 import { Button } from '@/components/common';
 import type { ScannedData } from '@/components/IDScanner';
@@ -37,6 +37,8 @@ export function CustomerForm({ initialData, onSubmit, onCancel, isLoading }: Cus
   });
   const [showScanner, setShowScanner] = useState(false);
   const [scannedImages, setScannedImages] = useState<ScannedImages | null>(null);
+  // Use ref for synchronous submission guard (state updates are async)
+  const isSubmittingRef = useRef(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -45,6 +47,9 @@ export function CustomerForm({ initialData, onSubmit, onCancel, isLoading }: Cus
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Synchronous guard using ref (state updates are async and can miss rapid clicks)
+    if (isSubmittingRef.current || isLoading) return;
+    isSubmittingRef.current = true;
     onSubmit(formData, scannedImages || undefined);
   };
 
