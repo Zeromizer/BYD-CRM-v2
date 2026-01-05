@@ -524,7 +524,8 @@ const results = await classifyDocumentsWithVisionClaudeParallel(
 
 | Commit | Description |
 |--------|-------------|
-| Latest | Auto-upload scanned IDs and delete documents on customer delete |
+| Latest | CRM improvements: dropdown accessibility, grouped options, auto-calculations, data entry efficiency |
+| Previous | Auto-upload scanned IDs and delete documents on customer delete |
 | Previous | ID Scanner performance optimization with parallel processing |
 | Previous | ProgressSidebar right border for proper panel boundary |
 | Previous | PrintManager back page photo attachment for double-sided printing |

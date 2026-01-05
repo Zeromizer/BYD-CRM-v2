@@ -1,9 +1,9 @@
-import { useState, useEffect, type ReactElement } from 'react';
+import { useState, useEffect, useRef, type ReactElement } from 'react';
 import { Car, Package, ArrowsClockwise, Truck, Shield, Money, FloppyDisk } from '@phosphor-icons/react';
 import { Button } from '@/components/common';
 import type { Customer, CustomerUpdate } from '@/types';
 import {
-  VEHICLE_MODELS,
+  VEHICLE_MODELS_GROUPED,
   BODY_COLOURS,
   INSURANCE_COMPANIES,
   PRZ_TYPES,
@@ -25,6 +25,8 @@ type VsaSection =
 export function VsaTab({ customer, onUpdate }: VsaTabProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [activeSection, setActiveSection] = useState<VsaSection>('vehicle');
+  // Track if monthly repayment was manually edited
+  const monthlyRepaymentManuallyEdited = useRef(false);
   const [formData, setFormData] = useState({
     // Vehicle
     vsa_make_model: customer.vsa_make_model || '',
@@ -121,10 +123,39 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
     });
   }, [customer]);
 
+  // Auto-calculate monthly repayment when loan details change
+  // Formula: Monthly = (Loan Amount * (1 + Interest Rate / 100)) / Tenure
+  useEffect(() => {
+    if (monthlyRepaymentManuallyEdited.current) return;
+
+    const loanAmount = parseFloat(formData.vsa_loan_amount) || 0;
+    const interestRate = parseFloat(formData.vsa_interest) || 0;
+    const tenure = parseFloat(formData.vsa_tenure) || 0;
+
+    if (loanAmount > 0 && tenure > 0) {
+      const totalWithInterest = loanAmount * (1 + interestRate / 100);
+      const monthlyPayment = totalWithInterest / tenure;
+      setFormData((prev) => ({
+        ...prev,
+        vsa_monthly_repayment: monthlyPayment.toFixed(2),
+      }));
+    }
+  }, [formData.vsa_loan_amount, formData.vsa_interest, formData.vsa_tenure]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
+
+    // Track if user manually edits monthly repayment
+    if (name === 'vsa_monthly_repayment') {
+      monthlyRepaymentManuallyEdited.current = true;
+    }
+    // Reset manual edit flag if user changes loan-related fields
+    if (name === 'vsa_loan_amount' || name === 'vsa_interest' || name === 'vsa_tenure') {
+      monthlyRepaymentManuallyEdited.current = false;
+    }
+
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData((prev) => ({ ...prev, [name]: checked }));
@@ -203,13 +234,18 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               <label className="form-label">Make & Model</label>
               <select
                 name="vsa_make_model"
+                aria-label="Vehicle Make and Model"
                 value={formData.vsa_make_model}
                 onChange={handleChange}
                 className="form-input"
               >
                 <option value="">Select Model</option>
-                {VEHICLE_MODELS.map((model) => (
-                  <option key={model} value={model}>{model}</option>
+                {VEHICLE_MODELS_GROUPED.map((group) => (
+                  <optgroup key={group.group} label={group.group}>
+                    {group.models.map((model) => (
+                      <option key={model} value={model}>{model}</option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
@@ -239,6 +275,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               <label className="form-label">Body Colour</label>
               <select
                 name="vsa_body_colour"
+                aria-label="Body Colour"
                 value={formData.vsa_body_colour}
                 onChange={handleChange}
                 className="form-input"
@@ -264,6 +301,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               <label className="form-label">P/R/Z Type</label>
               <select
                 name="vsa_prz_type"
+                aria-label="Vehicle Registration Type"
                 value={formData.vsa_prz_type}
                 onChange={handleChange}
                 className="form-input"
@@ -362,6 +400,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               <div className="estimated-delivery-container">
                 <select
                   name="vsa_delivery_month_start"
+                  aria-label="Delivery Start Month"
                   value={formData.vsa_delivery_date?.split('/')[0]?.trim() || ''}
                   onChange={(e) => {
                     const startMonth = e.target.value;
@@ -388,6 +427,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
                 <span className="delivery-separator">/</span>
                 <select
                   name="vsa_delivery_month_end"
+                  aria-label="Delivery End Month"
                   value={formData.vsa_delivery_date?.split('/')[1]?.trim() || ''}
                   onChange={(e) => {
                     const startMonth = formData.vsa_delivery_date?.split('/')[0]?.trim() || '';
@@ -547,6 +587,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               <label className="form-label">Insurance Company</label>
               <select
                 name="vsa_trade_in_insurance_company"
+                aria-label="Trade-In Insurance Company"
                 value={formData.vsa_trade_in_insurance_company}
                 onChange={handleChange}
                 className="form-input"
@@ -638,6 +679,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               <label className="form-label">Insurance Company</label>
               <select
                 name="vsa_insurance_company"
+                aria-label="Insurance Company"
                 value={formData.vsa_insurance_company}
                 onChange={handleChange}
                 className="form-input"

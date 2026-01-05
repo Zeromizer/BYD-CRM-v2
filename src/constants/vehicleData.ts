@@ -114,6 +114,29 @@ export const BANKS = [
   'Motorway Credit',
 ] as const;
 
+// Grouped structure for vehicle models (for optgroup rendering)
+export const VEHICLE_MODELS_GROUPED = [
+  { group: 'Atto 3', models: ['BYD Atto3 Extended Range 100kw', 'BYD Atto3 Carbon Edge 100kw'] },
+  { group: 'Seal', models: ['BYD Seal Dynamic 100kw', 'BYD Seal Premium', 'BYD Seal Performance'] },
+  { group: 'Seal 6', models: ['BYD Seal 6 Premium'] },
+  { group: 'Dolphin', models: ['BYD Dolphin Premium'] },
+  { group: 'E6 / M6', models: ['BYD E6 7-Seater', 'BYD M6 7-Seater', 'BYD M6 Carbon Edge'] },
+  { group: 'Sealion 7', models: ['BYD Sealion 7 Dynamic', 'BYD Sealion 7 Premium', 'BYD Sealion 7 Performance'] },
+] as const;
+
+// Grouped structure for benefits (for optgroup rendering)
+export const BENEFITS_GROUPED = [
+  { group: 'Vouchers & Credits', benefits: ['$200 Shopping Vouchers', '$500 Service Credits', '$1,000 Insurance Subsidy', '$1000 Service Credits', "X'mas $500 Service Credits"] },
+  { group: 'Coatings & Protection', benefits: ['1x Ceramic Coating', '2x Ceramic Coating', '2x Paint Sealer Protection PKG', 'Full Car PPF', 'Full Car Wrap'] },
+  { group: 'Solar Film', benefits: ['3M Solar Film (Premium Plus)', 'Upgrade Crystalline Solar Film'] },
+  { group: 'Accessories', benefits: ['Atto 3 Bonnet Damper', 'Atto 3 Frunk', 'Atto 3 Rear Recording Camera', 'M6 Frunk', 'Sealion 7 Boot Cover', 'F&R Recording Cam', 'Sunshade', 'BYD Mic Set', 'External Battery Pack'] },
+  { group: 'Interior', benefits: ['Dark Interior Combination', 'Full Black Interior'] },
+  { group: 'Services', benefits: ['Free Charger Capped $3000', 'Number Retention', 'Additional 6 months Road Tax', '1x Grooming Package'] },
+  { group: 'Surcharges', benefits: ['Low Loan Surcharge', 'No Trade in Surcharge', 'MWC Processing Fee'] },
+  { group: 'Merchandise', benefits: ['BYD Thermo Flask', 'Toscano Card wallet', 'Toscano Cardholder/Lanyard', 'Toscano Luggage Tag', 'Toscano Notebook', 'Toscano Passport Sleeve'] },
+  { group: 'Mats', benefits: ['Trapo Eco Mat', 'Trapo Hex Mat'] },
+] as const;
+
 // Type exports for type safety
 export type VehicleModel = typeof VEHICLE_MODELS[number];
 export type BodyColour = typeof BODY_COLOURS[number];

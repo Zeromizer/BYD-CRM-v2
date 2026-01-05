@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Car, Money, ArrowsClockwise, Gift, FloppyDisk } from '@phosphor-icons/react';
 import { Button } from '@/components/common';
 import type { Customer, CustomerUpdate } from '@/types';
 import {
-  VEHICLE_MODELS,
+  VEHICLE_MODELS_GROUPED,
   BANKS,
-  BENEFITS_OPTIONS,
+  BENEFITS_GROUPED,
 } from '@/constants/vehicleData';
 
 interface ProposalTabProps {
@@ -15,6 +15,8 @@ interface ProposalTabProps {
 
 export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
   const [isSaving, setIsSaving] = useState(false);
+  // Track if loan amount was manually edited (to avoid overwriting user input)
+  const loanAmountManuallyEdited = useRef(false);
   const [formData, setFormData] = useState({
     proposal_model: customer.proposal_model || '',
     proposal_variant: customer.proposal_variant || '',
@@ -77,10 +79,38 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
     });
   }, [customer]);
 
+  // Auto-calculate loan amount when selling price or downpayment changes
+  useEffect(() => {
+    if (loanAmountManuallyEdited.current) return;
+
+    const sellingPrice = parseFloat(formData.proposal_selling_price) || 0;
+    const downpayment = parseFloat(formData.proposal_downpayment) || 0;
+
+    if (sellingPrice > 0 && downpayment >= 0) {
+      const calculatedLoanAmount = sellingPrice - downpayment;
+      if (calculatedLoanAmount >= 0) {
+        setFormData((prev) => ({
+          ...prev,
+          proposal_loan_amount: calculatedLoanAmount.toString(),
+        }));
+      }
+    }
+  }, [formData.proposal_selling_price, formData.proposal_downpayment]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+
+    // Track if user manually edits loan amount
+    if (name === 'proposal_loan_amount') {
+      loanAmountManuallyEdited.current = true;
+    }
+    // Reset manual edit flag if user changes selling price or downpayment
+    if (name === 'proposal_selling_price' || name === 'proposal_downpayment') {
+      loanAmountManuallyEdited.current = false;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -135,13 +165,18 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
             <label className="form-label">Model</label>
             <select
               name="proposal_model"
+              aria-label="Vehicle Model"
               value={formData.proposal_model}
               onChange={handleChange}
               className="form-input"
             >
               <option value="">Select Model</option>
-              {VEHICLE_MODELS.map((model) => (
-                <option key={model} value={model}>{model}</option>
+              {VEHICLE_MODELS_GROUPED.map((group) => (
+                <optgroup key={group.group} label={group.group}>
+                  {group.models.map((model) => (
+                    <option key={model} value={model}>{model}</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
@@ -150,6 +185,7 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
             <label className="form-label">Bank</label>
             <select
               name="proposal_bank"
+              aria-label="Bank"
               value={formData.proposal_bank}
               onChange={handleChange}
               className="form-input"
@@ -338,13 +374,18 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
               <label className="form-label">Benefit {num}</label>
               <select
                 name={`proposal_benefit${num}`}
+                aria-label={`Benefit ${num}`}
                 value={formData[`proposal_benefit${num}` as keyof typeof formData] || ''}
                 onChange={handleChange}
                 className="form-input"
               >
                 <option value="">Select Benefit</option>
-                {BENEFITS_OPTIONS.map((benefit) => (
-                  <option key={benefit} value={benefit}>{benefit}</option>
+                {BENEFITS_GROUPED.map((group) => (
+                  <optgroup key={group.group} label={group.group}>
+                    {group.benefits.map((benefit) => (
+                      <option key={benefit} value={benefit}>{benefit}</option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>

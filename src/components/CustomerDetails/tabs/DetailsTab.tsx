@@ -47,6 +47,24 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
     });
   }, [customer]);
 
+  // Pre-fill DOB with 30 years ago if empty (for easier date selection)
+  useEffect(() => {
+    if (!formData.dob && !customer.dob) {
+      const defaultYear = new Date().getFullYear() - 30;
+      setFormData((prev) => ({ ...prev, dob: `${defaultYear}-01-01` }));
+    }
+  }, [customer.id]); // Only run when customer changes
+
+  // Load last used Sales Consultant from localStorage if field is empty
+  useEffect(() => {
+    if (!formData.sales_consultant && !customer.sales_consultant) {
+      const lastConsultant = localStorage.getItem('lastSalesConsultant');
+      if (lastConsultant) {
+        setFormData((prev) => ({ ...prev, sales_consultant: lastConsultant }));
+      }
+    }
+  }, [customer.id]); // Only run when customer changes
+
   const loadGuarantors = async () => {
     const data = await fetchGuarantors(customer.id);
     setGuarantors(data.length > 0 ? data : []);
@@ -67,6 +85,10 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
       license_start_date: formData.license_start_date || null,
     };
     try {
+      // Persist Sales Consultant to localStorage for future use
+      if (formData.sales_consultant) {
+        localStorage.setItem('lastSalesConsultant', formData.sales_consultant);
+      }
       await onUpdate(customer.id, updates);
       success('Customer details saved');
     } catch (err) {
