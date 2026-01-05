@@ -46,8 +46,8 @@ const DOCUMENT_CATEGORIES = [
     documents: [
       { id: 'nric_front', label: 'NRIC Front', alternateIds: ['nric', 'id_documents'] },
       { id: 'nric_back', label: 'NRIC Back', alternateIds: ['nric', 'id_documents'] },
-      { id: 'license_front', label: 'Driving License Front', alternateIds: ['driving_license', 'driving_license_front'] },
-      { id: 'license_back', label: 'Driving License Back', alternateIds: ['driving_license', 'driving_license_back'] },
+      { id: 'license_front', label: 'Driving License Front', alternateIds: ['driving_license_front', 'driving_license'] },
+      { id: 'license_back', label: 'Driving License Back', alternateIds: ['driving_license_back', 'driving_license'] },
     ],
   },
   {
@@ -75,7 +75,7 @@ const DOCUMENT_CATEGORIES = [
     label: 'Insurance',
     documents: [
       { id: 'insurance_quote', label: 'Insurance Quote' },
-      { id: 'insurance_policy', label: 'Insurance Policy' },
+      { id: 'insurance_policy', label: 'Cover Note' },
     ],
   },
   {
@@ -901,7 +901,15 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                   if (docs.length === 0 && doc.alternateIds) {
                     for (const altId of doc.alternateIds) {
                       if (uploadedDocs[altId] && uploadedDocs[altId].length > 0) {
-                        docs = uploadedDocs[altId];
+                        const altDocs = uploadedDocs[altId];
+                        // If multiple docs in shared folder, try to match by filename pattern
+                        if (altDocs.length > 1 && (doc.id.includes('front') || doc.id.includes('back'))) {
+                          const keyword = doc.id.includes('front') ? 'front' : 'back';
+                          const matched = altDocs.filter(d => d.name.toLowerCase().includes(keyword));
+                          docs = matched.length > 0 ? matched : altDocs;
+                        } else {
+                          docs = altDocs;
+                        }
                         break;
                       }
                     }
@@ -1340,7 +1348,16 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
               if (docs.length === 0 && doc.alternateIds) {
                 for (const altId of doc.alternateIds) {
                   if (uploadedDocs[altId] && uploadedDocs[altId].length > 0) {
-                    docs = uploadedDocs[altId];
+                    const altDocs = uploadedDocs[altId];
+                    // If multiple docs in shared folder, try to match by filename pattern
+                    // e.g., license_front should prefer files with "front" in the name
+                    if (altDocs.length > 1 && (doc.id.includes('front') || doc.id.includes('back'))) {
+                      const keyword = doc.id.includes('front') ? 'front' : 'back';
+                      const matched = altDocs.filter(d => d.name.toLowerCase().includes(keyword));
+                      docs = matched.length > 0 ? matched : altDocs;
+                    } else {
+                      docs = altDocs;
+                    }
                     break;
                   }
                 }

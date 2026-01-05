@@ -520,11 +520,107 @@ const results = await classifyDocumentsWithVisionClaudeParallel(
 
 ---
 
+## Email-to-CRM Document Automation
+
+### Overview
+Automatically uploads insurance cover notes and vehicle registration PDFs from Outlook emails to the correct customer's folder in the CRM. Uses Make.com to watch emails and Supabase Edge Function to match customers and upload files.
+
+### Architecture
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Outlook   │────▶│   Make.com   │────▶│    Supabase     │────▶│   CRM Storage   │
+│  (1 email   │     │  (Iterator   │     │  Edge Function  │     │  (Customer's    │
+│  many PDFs) │     │  per PDF)    │     │  name matching) │     │   folder)       │
+└─────────────┘     └──────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+### Edge Function: `email-document-upload`
+
+**Location:** `supabase/functions/email-document-upload/index.ts`
+
+**Purpose:** Receives PDF documents from Make.com and uploads them to the correct customer's storage folder by matching customer names across all users.
+
+**Request Parameters:**
+```typescript
+interface EmailDocumentRequest {
+  customerName: string;      // Parsed from filename, e.g., "TEE HOCK SENG"
+  documentType: string;      // "registration_card" or "insurance_policy"
+  fileBase64: string;        // Base64-encoded PDF content
+  fileName: string;          // Original filename
+}
+```
+
+**Response:**
+```typescript
+interface EmailDocumentResponse {
+  success: boolean;
+  customerId?: number;
+  customerName?: string;
+  userId?: string;
+  uploadPath?: string;
+  error?: string;
+}
+```
+
+**Key Features:**
+- **Cross-user matching** - Searches all customers across all salespeople using service role key
+- **Name prefix stripping** - Removes common titles from filenames: `ME`, `MR`, `MS`, `MRS`, `MDM`, `MISS`, `DR`, `MADAM`
+- **Fuzzy matching** - Case-insensitive search with partial matching
+- **Sanitized paths** - Customer names converted to uppercase with underscores
+
+**Name Matching Flow:**
+1. Input filename: `EQ COVER NOTE - ME TEE HOCK SENG.pdf`
+2. Extract name: `ME TEE HOCK SENG`
+3. Normalize: Replace underscores with spaces, uppercase
+4. Strip prefix: `ME ` removed → `TEE HOCK SENG`
+5. Search database: `SELECT * FROM customers WHERE name ILIKE '%TEE HOCK SENG%'`
+6. Upload to: `{user_id}/TEE_HOCK_SENG/insurance_policy/{filename}`
+
+### Make.com Workflow Configuration
+
+**Modules:**
+1. **Email (Watch Emails)** - Trigger on subject containing "Registration" or "Credit Note"
+2. **Iterator** - Loop through all PDF attachments
+3. **Filter (Get PDF)** - Only process `.pdf` files
+4. **Text Parser (Match pattern)** - Extract customer name from filename
+   - Pattern: `^.*? - (.+?)\.pdf$`
+   - Extracts: `ME TEE HOCK SENG` from `LGXCH4CB252188047 - ME TEE HOCK SENG.pdf`
+5. **Tools (Set variable)** - Determine document type from filename
+   ```
+   {{if(contains(lower(3.fileName); "cover note"); "insurance_policy";
+     if(contains(lower(3.fileName); "credit note"); "insurance_policy";
+       if(contains(lower(3.fileName); "registration"); "registration_card"; "other")))}}
+   ```
+6. **HTTP (Make a request)** - POST to Supabase Edge Function
+7. **Ignore** - Error handler to continue processing on failures
+
+**HTTP Module Configuration:**
+- URL: `https://[project-ref].supabase.co/functions/v1/email-document-upload`
+- Method: POST
+- Headers: `Authorization: Bearer [SERVICE_ROLE_KEY]`
+- Body Type: Data Structure (not raw JSON - avoids escape issues)
+- Fields:
+  - `customerName`: `{{replace(4.$1; "_"; " ")}}` (from text parser)
+  - `documentType`: `{{7.docType}}` (from set variable)
+  - `fileBase64`: `{{base64(3.data)}}` (from iterator)
+  - `fileName`: `{{3.fileName}}` (from iterator)
+
+### Document Categories in CRM
+
+The Insurance category displays:
+- **Insurance Quote** (`insurance_quote`)
+- **Cover Note** (`insurance_policy`) - Label changed from "Insurance Policy"
+
+Files are stored in `insurance_policy` folder but displayed as "Cover Note" in the UI.
+
+---
+
 ## Recent Changes (Reference)
 
 | Commit | Description |
 |--------|-------------|
-| Latest | CRM improvements: dropdown accessibility, grouped options, auto-calculations, data entry efficiency |
+| Latest | Email-to-CRM automation: Make.com + Supabase Edge Function for auto-uploading insurance/registration PDFs |
+| Previous | CRM improvements: dropdown accessibility, grouped options, auto-calculations, data entry efficiency |
 | Previous | Auto-upload scanned IDs and delete documents on customer delete |
 | Previous | ID Scanner performance optimization with parallel processing |
 | Previous | ProgressSidebar right border for proper panel boundary |
