@@ -15,11 +15,11 @@
 | Build | Vite 7.2.4 |
 | State | Zustand 5.0.9 |
 | Backend | Supabase (Auth, Database, Storage, Realtime, Edge Functions) |
-| AI | Google Gemini 2.5 Flash (document classification), Claude Haiku 4.5 (OCR classification) |
+| AI | Google Gemini 2.5 Flash (document classification), Claude Haiku 4.5 (OCR classification), Claude Sonnet 4 (PDF analysis) |
 | Vision API | Google Cloud Vision (text extraction from images/PDFs) |
 | Icons | @phosphor-icons/react |
 | Excel | xlsx-populate (generation), xlsx (preview extraction) |
-| PDF | jsPDF (generation), pdf.js (rendering, thumbnails) |
+| PDF | jsPDF (generation), pdf.js (rendering, thumbnails), pdf-lib (splitting) |
 | OCR | Vision+Claude hybrid pipeline (primary), Tesseract.js (fallback) |
 
 ---
@@ -164,6 +164,7 @@ Touch gesture handling for swipe-based panel navigation on mobile.
 | `bulkDocumentImportService.ts` | Batch document import and AI classification |
 | `customerImportService.ts` | Import/export customers (JSON/CSV) |
 | `customerDocumentService.ts` | Upload documents to Supabase storage |
+| `salesPackService.ts` | Sales pack PDF analysis, splitting, and upload |
 | `geminiService.ts` | Google Gemini API configuration |
 
 ---
@@ -615,11 +616,126 @@ Files are stored in `insurance_policy` folder but displayed as "Cover Note" in t
 
 ---
 
+## Sales Pack Upload Feature
+
+### Overview
+Upload a multi-page "Sales Pack" PDF containing multiple document types (VSA, NRIC, PDPA, insurance, etc.) and have AI automatically classify, split, and upload each document to the correct customer folder.
+
+### Architecture
+```
+┌─────────────┐     ┌───────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   PDF File  │────▶│  Claude Sonnet 4  │────▶│    pdf-lib      │────▶│   Upload to     │
+│  (multi-pg) │     │  (analyze-pdf)    │     │  (split pages)  │     │   Storage       │
+└─────────────┘     └───────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+### Components
+
+**SalesPackUploadModal** (`src/components/CustomerDetails/tabs/SalesPackUploadModal.tsx`)
+Multi-step modal with stages:
+1. **Select** - File picker (PDF only)
+2. **Analyzing** - Progress bar showing Claude Vision analysis
+3. **Review** - Document cards with type dropdowns, merge/remove options
+4. **Uploading** - Progress bar for each document upload
+5. **Complete** - Success message
+
+**salesPackService** (`src/services/salesPackService.ts`)
+Core service functions:
+- `analyzeSalesPack(file, onProgress)` - Send PDF to Claude Vision for analysis
+- `splitPdf(file, splits, pageTexts)` - Split PDF using pdf-lib, removes blank pages
+- `generateSplitFilename(customerName, documentType)` - Format: `CUSTOMER_NAME_type.pdf`
+- `getAvailableDocumentTypes()` - Returns document type options for dropdown
+- `isPageTextBlank(pageText)` - Detects blank pages by text content
+
+### Edge Function: `vision-claude-ocr` (analyze-pdf mode)
+
+**Request:**
+```typescript
+{
+  mode: 'analyze-pdf',
+  pdfData: string  // Base64 data URL of PDF
+}
+```
+
+**Response:**
+```typescript
+{
+  totalPages: number,
+  customerName: string,
+  pageTexts: string[],  // Text from each page, "[BLANK]" for blank pages
+  documentGroups: [{
+    documentType: string,
+    documentTypeName: string,
+    pages: number[],    // 1-indexed page numbers
+    confidence: number
+  }]
+}
+```
+
+### Key Features
+- **Direct PDF Analysis** - Sends entire PDF to Claude Sonnet 4 using `anthropic-beta: pdfs-2024-09-25` header
+- **Smart Document Grouping** - Claude groups consecutive pages of same document type
+- **Blank Page Removal** - Pages marked `[BLANK]` or with <20 chars are automatically removed during splitting
+- **Customer Name Extraction** - Extracts customer name from documents for verification
+- **Confidence Scores** - Each document group has a confidence percentage
+- **Manual Adjustment** - Users can change document types, merge documents, or remove items before upload
+
+### UI Flow
+```
+[Upload Sales Pack] button in DocumentsTab
+         │
+         ▼
+┌─────────────────────────────┐
+│  Select PDF File            │
+│  [Drop or Browse]           │
+└─────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────┐
+│  Analyzing... 1/1 pages     │
+│  Sending to Claude Vision   │
+└─────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────┐
+│  Review Classifications     │
+│  ┌─────┐ ┌─────┐ ┌─────┐   │
+│  │ VSA │ │PDPA │ │NRIC │   │
+│  │ p1-3│ │ p4  │ │ p5  │   │
+│  └─────┘ └─────┘ └─────┘   │
+│   [Start Over] [Upload 3]   │
+└─────────────────────────────┘
+         │
+         ▼
+   Documents uploaded to
+   customer's storage folders
+```
+
+### Document Types Supported (25 types)
+- **ID**: `nric_front`, `nric_back`, `nric`, `driving_license`, `driving_license_front`, `driving_license_back`
+- **Forms**: `test_drive_form`, `vsa`, `pdpa`
+- **Finance**: `loan_approval`, `loan_application`
+- **Insurance**: `insurance_quote`, `insurance_policy`, `insurance_acceptance`
+- **Other**: `payment_proof`, `delivery_checklist`, `registration_card`, `trade_in_docs`, `coe_bidding`, `purchase_agreement`, `parf_rebate`, `authorized_letter`, `proposal_form`, `price_list`, `id_documents`, `other`
+
+### CSS Styling
+**Location:** `src/components/CustomerDetails/tabs/SalesPackUploadModal.css`
+
+Key classes:
+- `.sales-pack-modal` - Modal container with min-height
+- `.sales-pack-dropzone` - Dashed border file picker
+- `.sales-pack-analyzing` - Spinner and progress bar
+- `.split-card` - Document card with thumbnail, dropdown, actions
+- `.review-splits` - Scrollable document list
+
+---
+
 ## Recent Changes (Reference)
 
 | Commit | Description |
 |--------|-------------|
-| Latest | Email-to-CRM automation: Make.com + Supabase Edge Function for auto-uploading insurance/registration PDFs |
+| Latest | Sales Pack Upload: AI-powered multi-page PDF splitting with Claude Vision analysis |
+| Previous | Email-to-CRM automation: Make.com + Supabase Edge Function for auto-uploading insurance/registration PDFs |
 | Previous | CRM improvements: dropdown accessibility, grouped options, auto-calculations, data entry efficiency |
 | Previous | Auto-upload scanned IDs and delete documents on customer delete |
 | Previous | ID Scanner performance optimization with parallel processing |

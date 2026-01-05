@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
-import { Export, FolderOpen, File, CircleNotch, Warning, X, Eye, DownloadSimple, Trash, UploadSimple, Sparkle, Plus } from '@phosphor-icons/react';
+import { Export, FolderOpen, File, CircleNotch, Warning, X, Eye, DownloadSimple, Trash, UploadSimple, Sparkle, Plus, FilePdf } from '@phosphor-icons/react';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { Button, Modal, useToast, PdfViewer, ImageViewer, ExcelViewer, DocumentThumbnail } from '@/components/common';
 import { useCustomerStore } from '@/stores/useCustomerStore';
@@ -29,6 +29,7 @@ import {
   type VisionClaudeResult,
 } from '@/services/intelligentOcrService';
 import type { Customer, DocumentChecklistItem, MilestoneId, DocumentTemplate, DocumentChecklistState } from '@/types';
+import { SalesPackUploadModal } from './SalesPackUploadModal';
 
 // Lazy load PrintManager to avoid loading jsPDF until needed
 const PrintManager = lazy(() => import('@/components/Documents/PrintManager').then(m => ({ default: m.PrintManager })));
@@ -124,6 +125,9 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
   const [scanMethod, setScanMethod] = useState<'claude' | 'vision-claude'>('claude');
   const [classifiedFiles, setClassifiedFiles] = useState<{ file: File; name: string; classification: ClassificationResult | VisionClaudeResult }[]>([]);
   const [showClassificationResults, setShowClassificationResults] = useState(false);
+
+  // Sales Pack Upload state
+  const [showSalesPackModal, setShowSalesPackModal] = useState(false);
 
   // All uploads state (for viewing all migrated documents)
   const [allUploads, setAllUploads] = useState<{ documentType: string; documents: CustomerDocument[] }[]>([]);
@@ -991,6 +995,16 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                   <FolderOpen size={20} />
                   <span>Import from Folder</span>
                 </button>
+                <button
+                  className="mobile-action-item"
+                  onClick={() => {
+                    setShowAddDocSheet(false);
+                    setShowSalesPackModal(true);
+                  }}
+                >
+                  <FilePdf size={20} />
+                  <span>Upload Sales Pack</span>
+                </button>
               </div>
             </>,
             document.body
@@ -1123,6 +1137,16 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
               leftIcon={<FolderOpen size={16} />}
             >
               Import from Folder
+            </Button>
+
+            {/* Upload Sales Pack Button */}
+            <Button
+              className="generate-doc-btn"
+              variant="outline"
+              onClick={() => setShowSalesPackModal(true)}
+              leftIcon={<FilePdf size={16} />}
+            >
+              Upload Sales Pack
             </Button>
 
             <div className="sidebar-divider" />
@@ -1866,6 +1890,14 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
           )}
         </div>
       </Modal>
+
+      {/* Sales Pack Upload Modal */}
+      <SalesPackUploadModal
+        isOpen={showSalesPackModal}
+        onClose={() => setShowSalesPackModal(false)}
+        customer={customer}
+        onUploadComplete={loadDocuments}
+      />
     </div>
   );
 }

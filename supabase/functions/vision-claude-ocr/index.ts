@@ -24,21 +24,59 @@ const DOCUMENT_TYPES = `
 - nric_back: Back of Singapore NRIC card showing address
 - nric: Combined NRIC (front and back together on same page)
 - driving_license: Singapore Driving License (card with "REPUBLIC OF SINGAPORE DRIVING LICENCE", photo, license classes)
+- driving_license_front: Front of Singapore Driving License
+- driving_license_back: Back of Singapore Driving License
 - test_drive_form: Test Drive Agreement/Form
-- vsa: Vehicle Sales Agreement, Proforma Invoice, Sales Contract, Purchase Agreement
-- pdpa: PDPA Consent Form (data protection)
+- vsa: Vehicle Sales Agreement, Proforma Invoice, Sales Contract
+- pdpa: PDPA Consent Form (data protection), Privacy Policy acknowledgment
 - loan_approval: Bank/Finance Loan Approval Letter
 - loan_application: Loan Application Form
 - insurance_quote: Insurance Quote/Proposal/Quotation
-- insurance_policy: Insurance Policy Document, Certificate of Insurance
+- insurance_policy: Insurance Policy Document, Certificate of Insurance, Cover Note
 - insurance_acceptance: Insurance Acceptance Form, Declaration of Loss of Insurance
 - payment_proof: Payment receipt, bank transfer, invoice for payment
 - delivery_checklist: Vehicle Delivery Checklist
 - registration_card: Vehicle Registration Card
 - trade_in_docs: Trade-in related documents, vehicle valuation
+- coe_bidding: COE Bidding Form, COE Authorization Letter
+- purchase_agreement: Vehicle Purchase Agreement (trade-in)
+- parf_rebate: PARF/COE Rebate inquiry, rebate documents
+- authorized_letter: Authorized Letter for finance/HP settlement
+- proposal_form: New Car Proposal Form (internal sales document)
+- price_list: Vehicle Price List, promotional pricing
 - id_documents: Multiple ID documents scanned together on same page
 - other: Document does not match any of the above categories
 `;
+
+// Document type to friendly name mapping (for batch classification)
+const DOCUMENT_TYPE_NAMES: Record<string, string> = {
+  nric_front: 'NRIC Front',
+  nric_back: 'NRIC Back',
+  nric: 'NRIC (Combined)',
+  driving_license: 'Driving License',
+  driving_license_front: 'Driving License Front',
+  driving_license_back: 'Driving License Back',
+  test_drive_form: 'Test Drive Form',
+  vsa: 'Vehicle Sales Agreement',
+  pdpa: 'PDPA Consent Form',
+  loan_approval: 'Loan Approval Letter',
+  loan_application: 'Loan Application',
+  insurance_quote: 'Insurance Quote',
+  insurance_policy: 'Cover Note',
+  insurance_acceptance: 'Insurance Acceptance',
+  payment_proof: 'Payment Proof',
+  delivery_checklist: 'Delivery Checklist',
+  registration_card: 'Registration Card',
+  trade_in_docs: 'Trade-in Documents',
+  coe_bidding: 'COE Bidding Form',
+  purchase_agreement: 'Purchase Agreement',
+  parf_rebate: 'PARF/COE Rebate',
+  authorized_letter: 'Authorized Letter',
+  proposal_form: 'Proposal Form',
+  price_list: 'Price List',
+  id_documents: 'ID Documents',
+  other: 'Other Document',
+};
 
 interface VisionClaudeRequest {
   imageData?: string; // base64 data URL (for images/PDFs)
@@ -46,6 +84,25 @@ interface VisionClaudeRequest {
   documentType?: 'auto' | 'nric' | 'vsa' | 'trade_in';
   sourceType?: 'image' | 'excel'; // Helps Claude understand the context
   visionOnly?: boolean; // If true, only run Vision OCR and return raw text (skip Claude)
+  mode?: 'batch-classify' | 'analyze-pdf'; // For batch classification or direct PDF analysis
+  pageTexts?: string[]; // Array of OCR text from each page (for batch-classify mode)
+  pdfData?: string; // Base64 PDF data URL (for analyze-pdf mode)
+}
+
+// Batch classification response for sales pack analysis
+interface BatchClassifyResponse {
+  customerName: string;
+  pages: {
+    documentType: string;
+    documentTypeName: string;
+    confidence: number;
+  }[];
+  documentGroups: {
+    documentType: string;
+    documentTypeName: string;
+    pages: number[]; // 1-indexed page numbers
+    confidence: number;
+  }[];
 }
 
 interface VisionClaudeResponse {
@@ -289,6 +346,307 @@ ${rawText}`;
   }
 }
 
+/**
+ * Batch classify multiple pages from a sales pack PDF
+ * Classifies each page and groups consecutive pages of the same document type
+ */
+async function batchClassifyPages(
+  pageTexts: string[],
+  apiKey: string
+): Promise<BatchClassifyResponse> {
+  const systemPrompt = `You are analyzing pages from a scanned "Sales Pack" PDF for a Singapore car dealership CRM.
+This PDF contains multiple document types that need to be identified and grouped.
+
+YOUR TASKS:
+1. Classify each page into one of the document types
+2. Group CONSECUTIVE pages that belong to the same document
+3. Extract the customer name (appears on multiple documents)
+
+DOCUMENT TYPES (choose the BEST match for each page):
+${DOCUMENT_TYPES}
+
+GROUPING RULES - These help you decide how to group pages:
+- VSA (Vehicle Sales Agreement) is typically 2-4 pages with terms and conditions
+- PDPA consent is typically 1-2 pages
+- NRIC front and back should be SEPARATE documents (nric_front, nric_back)
+- Driving license front and back should be SEPARATE documents
+- Insurance documents may be 1-3 pages
+- COE bidding forms are typically 2 pages
+- Purchase agreements (for trade-in vehicles) are typically 2 pages
+- Price lists are usually 1 page with multiple vehicle models
+- Proposal forms are internal sales documents with pricing and benefits
+- Blank pages should be grouped with the preceding document
+- Pages with "CONDITIONS OF SALE" or similar legal text belong to VSA
+- Group consecutive pages of the SAME document type together
+
+OUTPUT FORMAT - Return ONLY valid JSON with this exact structure:
+{
+  "customerName": "EXTRACTED CUSTOMER NAME IN CAPS",
+  "pages": [
+    { "documentType": "vsa", "confidence": 95 },
+    { "documentType": "vsa", "confidence": 90 },
+    { "documentType": "nric_front", "confidence": 88 }
+  ],
+  "documentGroups": [
+    { "documentType": "vsa", "pages": [1, 2], "confidence": 92 },
+    { "documentType": "nric_front", "pages": [3], "confidence": 88 }
+  ]
+}
+
+IMPORTANT:
+- pages array must have exactly one entry per page in order
+- documentGroups must cover ALL pages with no gaps
+- pages in documentGroups are 1-indexed (first page is 1)
+- confidence is 0-100 based on text clarity and match certainty
+- Blank or mostly empty pages should have confidence < 50 and type "other"`;
+
+  // Build the user message with page contents (truncate each page to avoid token limits)
+  const MAX_CHARS_PER_PAGE = 3000;
+  const pageContents = pageTexts.map((text, i) => {
+    const truncated = text.length > MAX_CHARS_PER_PAGE
+      ? text.substring(0, MAX_CHARS_PER_PAGE) + '... [truncated]'
+      : text;
+    return `=== PAGE ${i + 1} ===\n${truncated || '[BLANK PAGE]'}`;
+  }).join('\n\n');
+
+  const userMessage = `Analyze this ${pageTexts.length}-page sales pack PDF and classify each page:
+
+${pageContents}`;
+
+  console.log(`Batch classifying ${pageTexts.length} pages with Claude...`);
+
+  const response = await fetch(ANTHROPIC_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 4096, // More tokens for batch response
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: systemPrompt },
+            { type: 'text', text: userMessage },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error('Claude API error:', errorData);
+    throw new Error(`Claude API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+  }
+
+  const data = await response.json();
+  const textResponse = data.content?.[0]?.text;
+
+  if (!textResponse) {
+    throw new Error('No response from Claude');
+  }
+
+  // Parse JSON from response
+  let jsonStr = textResponse.trim();
+
+  // Remove markdown code blocks if present
+  if (jsonStr.startsWith('```json')) {
+    jsonStr = jsonStr.slice(7);
+  } else if (jsonStr.startsWith('```')) {
+    jsonStr = jsonStr.slice(3);
+  }
+  if (jsonStr.endsWith('```')) {
+    jsonStr = jsonStr.slice(0, -3);
+  }
+  jsonStr = jsonStr.trim();
+
+  // Try to extract JSON if response has extra text
+  if (!jsonStr.startsWith('{')) {
+    const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[0];
+    }
+  }
+
+  try {
+    const result = JSON.parse(jsonStr);
+
+    // Validate and enhance response
+    const pages = (result.pages || []).map((p: { documentType?: string; confidence?: number }) => ({
+      documentType: p.documentType || 'other',
+      documentTypeName: DOCUMENT_TYPE_NAMES[p.documentType || 'other'] || 'Other Document',
+      confidence: p.confidence || 50,
+    }));
+
+    const documentGroups = (result.documentGroups || []).map((g: { documentType?: string; pages?: number[]; confidence?: number }) => ({
+      documentType: g.documentType || 'other',
+      documentTypeName: DOCUMENT_TYPE_NAMES[g.documentType || 'other'] || 'Other Document',
+      pages: g.pages || [],
+      confidence: g.confidence || 50,
+    }));
+
+    console.log(`Batch classification complete: ${documentGroups.length} document groups identified`);
+
+    return {
+      customerName: result.customerName || '',
+      pages,
+      documentGroups,
+    };
+  } catch (err) {
+    console.error('Failed to parse batch classification response:', err);
+    throw new Error('Failed to parse Claude response as JSON');
+  }
+}
+
+/**
+ * Analyze PDF directly with Claude Vision
+ * Sends the PDF as a document and asks Claude to analyze all pages
+ */
+async function analyzePdfWithClaude(
+  pdfBase64: string,
+  apiKey: string
+): Promise<{
+  totalPages: number;
+  pageTexts: string[];
+  customerName: string;
+  documentGroups: BatchClassifyResponse['documentGroups'];
+}> {
+  const systemPrompt = `You are analyzing a multi-page "Sales Pack" PDF for a Singapore car dealership CRM.
+This PDF contains multiple document types that need to be identified and grouped.
+
+YOUR TASKS:
+1. Count the total number of pages in the PDF
+2. For each page, extract key text content
+3. Classify each page into one of the document types
+4. Group consecutive pages that belong to the same document
+5. Extract the customer name (appears on multiple documents)
+6. Identify and EXCLUDE blank pages from document groups
+
+DOCUMENT TYPES (choose the BEST match for each page):
+${DOCUMENT_TYPES}
+
+GROUPING RULES:
+- VSA (Vehicle Sales Agreement) is typically 2-4 pages with terms and conditions
+- PDPA consent is typically 1-2 pages
+- NRIC front and back should be SEPARATE documents
+- Insurance documents may be 1-3 pages
+- Group consecutive pages of the SAME document type together
+- BLANK PAGES: Pages with no content or only page numbers/headers should be marked with "[BLANK]" in pageTexts and NOT included in any documentGroup
+
+OUTPUT FORMAT - Return ONLY valid JSON:
+{
+  "totalPages": 5,
+  "customerName": "CUSTOMER NAME IN CAPS",
+  "pageTexts": ["text from page 1...", "[BLANK]", "text from page 3..."],
+  "documentGroups": [
+    { "documentType": "vsa", "pages": [1], "confidence": 95 },
+    { "documentType": "nric_front", "pages": [3], "confidence": 90 }
+  ]
+}
+
+IMPORTANT:
+- pageTexts array must have one entry per page with key text from that page (first 500 chars), or "[BLANK]" for blank pages
+- documentGroups should NOT include blank pages - skip them
+- pages in documentGroups are 1-indexed (first page is 1)`;
+
+  console.log('Analyzing PDF with Claude Vision...');
+
+  const response = await fetch(ANTHROPIC_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'pdfs-2024-09-25',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 8192,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'document',
+              source: {
+                type: 'base64',
+                media_type: 'application/pdf',
+                data: pdfBase64,
+              },
+            },
+            {
+              type: 'text',
+              text: systemPrompt,
+            },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error('Claude API error:', errorData);
+    throw new Error(`Claude API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+  }
+
+  const data = await response.json();
+  const textResponse = data.content?.[0]?.text;
+
+  if (!textResponse) {
+    throw new Error('No response from Claude');
+  }
+
+  // Parse JSON from response
+  let jsonStr = textResponse.trim();
+
+  // Remove markdown code blocks if present
+  if (jsonStr.startsWith('```json')) {
+    jsonStr = jsonStr.slice(7);
+  } else if (jsonStr.startsWith('```')) {
+    jsonStr = jsonStr.slice(3);
+  }
+  if (jsonStr.endsWith('```')) {
+    jsonStr = jsonStr.slice(0, -3);
+  }
+  jsonStr = jsonStr.trim();
+
+  // Try to extract JSON if response has extra text
+  if (!jsonStr.startsWith('{')) {
+    const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[0];
+    }
+  }
+
+  try {
+    const result = JSON.parse(jsonStr);
+
+    const documentGroups = (result.documentGroups || []).map((g: { documentType?: string; pages?: number[]; confidence?: number }) => ({
+      documentType: g.documentType || 'other',
+      documentTypeName: DOCUMENT_TYPE_NAMES[g.documentType || 'other'] || 'Other Document',
+      pages: g.pages || [],
+      confidence: g.confidence || 50,
+    }));
+
+    console.log(`PDF analysis complete: ${result.totalPages} pages, ${documentGroups.length} document groups`);
+
+    return {
+      totalPages: result.totalPages || 1,
+      pageTexts: result.pageTexts || [],
+      customerName: result.customerName || '',
+      documentGroups,
+    };
+  } catch (err) {
+    console.error('Failed to parse PDF analysis response:', err);
+    throw new Error('Failed to parse Claude response as JSON');
+  }
+}
+
 serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -316,9 +674,49 @@ serve(async (req: Request) => {
 
     // Parse request
     const body = await req.json() as VisionClaudeRequest;
-    const { imageData, rawText: preExtractedText, documentType = 'auto', sourceType, visionOnly = false } = body;
+    const { imageData, rawText: preExtractedText, documentType = 'auto', sourceType, visionOnly = false, mode, pageTexts } = body;
 
-    // Either imageData or rawText must be provided
+    // Handle batch-classify mode for sales pack PDFs
+    if (mode === 'batch-classify') {
+      if (!pageTexts || !Array.isArray(pageTexts) || pageTexts.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'pageTexts array is required for batch-classify mode' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`Batch classify mode: processing ${pageTexts.length} pages`);
+      const batchResult = await batchClassifyPages(pageTexts, anthropicApiKey);
+
+      return new Response(
+        JSON.stringify(batchResult),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Handle analyze-pdf mode for direct Claude Vision PDF analysis
+    if (mode === 'analyze-pdf') {
+      const { pdfData } = body;
+      if (!pdfData) {
+        return new Response(
+          JSON.stringify({ error: 'pdfData is required for analyze-pdf mode' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Extract base64 data from data URL if present
+      const base64Data = pdfData.includes('base64,') ? pdfData.split('base64,')[1] : pdfData;
+
+      console.log(`Analyze-pdf mode: sending PDF directly to Claude Vision (${base64Data.length} bytes base64)`);
+      const pdfResult = await analyzePdfWithClaude(base64Data, anthropicApiKey);
+
+      return new Response(
+        JSON.stringify(pdfResult),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Either imageData or rawText must be provided for standard mode
     if (!imageData && !preExtractedText) {
       return new Response(
         JSON.stringify({ error: 'Either imageData or rawText is required' }),
