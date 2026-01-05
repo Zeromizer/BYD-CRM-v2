@@ -133,10 +133,12 @@ async function pdfPageToImage(
   context.fillRect(0, 0, canvas.width, canvas.height);
 
   try {
+    // pdf.js requires both canvas and canvasContext
     await page.render({
       canvasContext: context,
       viewport: viewport,
-    }).promise;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any).promise;
 
     // Check if canvas has any non-white content
     const imageData = context.getImageData(0, 0, Math.min(100, canvas.width), Math.min(100, canvas.height));
@@ -168,41 +170,7 @@ async function generateThumbnail(
   return pdfPageToImage(pdf, pageNum, 0.5); // Lower scale for thumbnails
 }
 
-/**
- * Extract text from image using Vision API only (no Claude classification)
- * Used for multi-page PDFs where we extract text from each page first
- */
-async function extractTextWithVisionOnly(imageData: string): Promise<string> {
-  const supabase = getSupabase();
-
-  // Verify user is authenticated
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('Please sign in to use the document scanner.');
-  }
-
-  console.log(`[SalesPack] Sending image to Vision OCR (${imageData.length} chars)`);
-
-  // Call the Edge Function with visionOnly=true
-  const { data, error } = await supabase.functions.invoke('vision-claude-ocr', {
-    body: { imageData, visionOnly: true },
-  });
-
-  if (error) {
-    console.error('[SalesPack] Vision OCR error:', error);
-    throw new Error(error.message || 'Failed to extract text with Vision API');
-  }
-
-  if (data?.error) {
-    console.error('[SalesPack] Vision OCR returned error:', data.error);
-    throw new Error(data.error);
-  }
-
-  const extractedText = data.rawText || '';
-  console.log(`[SalesPack] Vision OCR extracted ${extractedText.length} chars: "${extractedText.substring(0, 200)}..."`);
-
-  return extractedText;
-}
+// Note: extractTextWithVisionOnly was removed as we now use direct PDF analysis with Claude Vision
 
 /**
  * Send all page texts to Claude for batch classification and grouping
@@ -573,7 +541,8 @@ export async function splitPdf(
     copiedPages.forEach(page => newPdf.addPage(page));
 
     const pdfBytes = await newPdf.save();
-    const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+    // Create Blob directly from Uint8Array
+    const pdfBlob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
 
     result.push({
       ...split,
