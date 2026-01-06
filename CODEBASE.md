@@ -13,7 +13,7 @@
 |----------|------------|
 | Frontend | React 19.2.0, TypeScript 5.9.3 |
 | Build | Vite 7.2.4 |
-| State | Zustand 5.0.9 |
+| State | Zustand 5.0.9 (with immer middleware) |
 | Backend | Supabase (Auth, Database, Storage, Realtime, Edge Functions) |
 | AI | Google Gemini 2.5 Flash (document classification), Claude Haiku 4.5 (OCR classification), Claude Sonnet 4 (PDF analysis) |
 | Vision API | Google Cloud Vision (text extraction from images/PDFs) |
@@ -48,7 +48,8 @@ byd-crm-v2/
 │   ├── types/               # TypeScript type definitions
 │   ├── constants/           # Configuration & constants
 │   ├── context/             # React context (Theme)
-│   ├── lib/                 # Supabase client setup
+│   ├── config/              # Shared configuration (serviceConfig.ts)
+│   ├── lib/                 # Shared utilities (supabase, pdfProcessor, errorHandler)
 │   ├── styles/              # Global CSS
 │   ├── App.tsx              # Root component with routing
 │   └── main.tsx             # React entry point
@@ -78,31 +79,81 @@ byd-crm-v2/
 
 ## State Management (Zustand Stores)
 
+All stores use the **Zustand middleware stack** pattern with devtools, persist (where appropriate), and immer for immutable state updates.
+
+### Middleware Stack Pattern
+
+```typescript
+import { create } from 'zustand';
+import { devtools, persist } from 'zustand/middleware';
+import { immer } from 'zustand/middleware/immer';
+
+export const useExampleStore = create<State & Actions>()(
+  devtools(
+    persist(
+      immer((set, get) => ({
+        // State with immer mutations
+        items: [],
+        addItem: (item) => set((state) => { state.items.push(item); }),
+      })),
+      {
+        name: 'example-store',
+        partialize: (state) => ({ /* only persist essential data */ }),
+      }
+    ),
+    { name: 'ExampleStore' }
+  )
+);
+```
+
+**Middleware Benefits:**
+- **devtools** - Redux DevTools integration for debugging state changes
+- **persist** - localStorage persistence for session recovery
+- **immer** - Write mutable code that produces immutable updates (no spread operators needed)
+
+### Store Persistence Strategy
+
+| Store | Persist? | Persisted Keys |
+|-------|----------|----------------|
+| useAuthStore | Yes | `user`, `profile` |
+| useCustomerStore | Yes | `selectedCustomerId` |
+| useTodoStore | Yes | `sidebarOpen`, `activeFilter` |
+| useDocumentStore | No | Data from Supabase |
+| useExcelStore | No | Data from Supabase |
+
 ### useAuthStore (`src/stores/useAuthStore.ts`)
+- **Middleware**: devtools + persist + immer
 - **State**: `user`, `session`, `profile`, `isLoading`, `isInitialized`
 - **Key Actions**: `signIn()`, `signUp()`, `signOut()`, `updateProfile()`
 - **Selectors**: `useUser()`, `useProfile()`, `useIsAuthenticated()`
+- **Persisted**: `user`, `profile` (for faster hydration)
 
 ### useCustomerStore (`src/stores/useCustomerStore.ts`)
+- **Middleware**: devtools + persist + immer
 - **State**: `customers`, `selectedCustomerId`, `isLoading`, `isSaving`
 - **Key Actions**: `fetchCustomers()`, `createCustomer()`, `updateCustomer()`, `deleteCustomer()`, `archiveCustomer()`, `updateChecklistItem()`, `setCurrentMilestone()`
 - **Selectors**: `useCustomers()`, `useSelectedCustomer()`
 - **Realtime**: Subscribes to customer table changes
+- **Persisted**: `selectedCustomerId` (preserves customer selection across sessions)
 
 ### useDocumentStore (`src/stores/useDocumentStore.ts`)
+- **Middleware**: devtools + immer
 - **State**: `templates`, `selectedTemplateId`
 - **Key Actions**: CRUD for document templates, field mappings, storage operations
 
 ### useExcelStore (`src/stores/useExcelStore.ts`)
+- **Middleware**: devtools + immer
 - **State**: `templates`, `selectedTemplateId`
 - **Key Actions**: CRUD for Excel templates, field mappings, file upload/download
 
 ### useTodoStore (`src/stores/useTodoStore.ts`)
+- **Middleware**: devtools + persist + immer
 - **State**: `todos`, `sidebarOpen`, `activeFilter`, `isSaving`
 - **Key Actions**: `fetchTodos()`, `createTodo()`, `updateTodo()`, `deleteTodo()`, `toggleTodo()`, `subscribeToChanges()`
 - **Selectors**: `useTodos()`, `useTodoSidebarOpen()`, `useTodoActiveFilter()`
 - **Realtime**: Subscribes to todo table changes
 - **Filters**: `all`, `today`, `overdue`, `high_priority`, `completed`
+- **Persisted**: `sidebarOpen`, `activeFilter` (UI preferences)
 
 ---
 
@@ -137,6 +188,183 @@ Touch gesture handling for swipe-based panel navigation on mobile.
 - `setActivePanel(index)` - Programmatically change panel
 - `handlers` - Touch event handlers to spread on container
 - `getTransformStyle()` - CSS transform for panel positioning
+
+---
+
+## React 19 Features
+
+### useTransition for Form Submissions
+
+Form components use React 19's `useTransition` hook to manage async state transitions with built-in pending states:
+
+**Files using useTransition:**
+- `src/components/common/InlineTaskForm.tsx` - Task creation
+- `src/components/CustomerDetails/tabs/DetailsTab.tsx` - Customer details save
+- `src/components/CustomerDetails/tabs/VsaTab.tsx` - VSA details save
+- `src/components/CustomerDetails/tabs/ProposalTab.tsx` - Proposal save
+- `src/components/ProgressSidebar/TaskItem.tsx` - Task toggle
+
+**Pattern:**
+```typescript
+import { useTransition } from 'react';
+
+function MyForm() {
+  const [isPending, startTransition] = useTransition();
+
+  const handleSave = () => {
+    startTransition(async () => {
+      await saveData();
+    });
+  };
+
+  return (
+    <Button onClick={handleSave} isLoading={isPending}>
+      Save
+    </Button>
+  );
+}
+```
+
+**Benefits:**
+- Built-in pending state without manual `useState`
+- Non-blocking UI updates (other interactions remain responsive)
+- Automatic error boundary integration
+- Concurrent rendering support
+
+### useOptimistic for Instant UI Feedback
+
+Task toggling uses `useOptimistic` for instant checkbox feedback before API completion:
+
+**File:** `src/components/ProgressSidebar/TaskItem.tsx`
+
+```typescript
+import { useOptimistic, useTransition } from 'react';
+
+function TaskItem({ todo, onToggle }) {
+  const [isPending, startTransition] = useTransition();
+  const [optimisticTodo, setOptimisticTodo] = useOptimistic(
+    todo,
+    (current, newCompleted: boolean) => ({
+      ...current,
+      completed: newCompleted,
+    })
+  );
+
+  const handleToggle = () => {
+    startTransition(async () => {
+      setOptimisticTodo(!optimisticTodo.completed);
+      await onToggle(todo.id);
+    });
+  };
+
+  return (
+    <div className={optimisticTodo.completed ? 'completed' : ''}>
+      <input type="checkbox" checked={optimisticTodo.completed} onChange={handleToggle} />
+    </div>
+  );
+}
+```
+
+**Benefits:**
+- Checkbox toggles instantly without waiting for API
+- Automatically reverts on error (when `todo` prop updates)
+- Combined with `useTransition` for non-blocking updates
+
+---
+
+## Shared Utilities (`src/lib/`)
+
+### Service Configuration (`src/config/serviceConfig.ts`)
+
+Centralized configuration for all services:
+
+```typescript
+export const SERVICE_CONFIG = {
+  timeouts: {
+    ocr: 30000,              // Vision+Claude OCR timeout
+    classification: 20000,    // Document classification
+    upload: 60000,           // File upload timeout
+    edgeFunction: 30000,     // Supabase Edge Function calls
+    signedUrl: 10000,        // Signed URL generation
+  },
+  batching: {
+    concurrency: 4,          // Max concurrent operations
+    delayMs: 300,            // Delay between batches
+    apiDelayMs: 200,         // Delay between API calls
+  },
+  retries: {
+    maxAttempts: 3,          // Retry count for transient failures
+    backoffMs: 1000,         // Exponential backoff base
+  },
+  cache: {
+    signedUrlTtl: 6 * 60 * 60 * 1000,   // 6 hours
+    documentListTtl: 2 * 60 * 1000,      // 2 minutes
+  },
+} as const;
+```
+
+### PDF Processor (`src/lib/pdfProcessor.ts`)
+
+Shared PDF.js utilities used by multiple services:
+
+```typescript
+// Initialization (idempotent)
+initPdfWorker();
+
+// Loading PDFs
+const pdf = await loadPdfFromFile(file);
+const pdf = await loadPdfFromBase64(dataUrl);
+const pdf = await loadPdfFromUrl(url);
+
+// Rendering
+const canvas = await renderPdfPageToCanvas(pdf, pageNum, scale);
+const dataUrl = await pdfPageToImage(pdf, pageNum, { format: 'image/jpeg', quality: 0.92 });
+
+// Text extraction
+const text = await extractTextFromPage(page);
+const allTexts = await extractAllPdfText(pdf);
+
+// Utilities
+const isBlank = isPageBlank(pageText, threshold);
+const thumbnail = await generatePdfThumbnail(pdf, maxWidth);
+const metadata = await getPdfMetadata(pdf);
+```
+
+**Used by:**
+- `src/services/intelligentOcrService.ts` - OCR processing
+- `src/services/salesPackService.ts` - PDF splitting
+- `src/components/common/DocumentThumbnail/` - Thumbnail generation
+- `src/components/common/PdfViewer/` - PDF rendering
+
+### Error Handler (`src/lib/errorHandler.ts`)
+
+Centralized error handling utilities:
+
+```typescript
+// Supabase error handling
+handleSupabaseError(error, 'uploadDocument'); // throws with user-friendly message
+
+// Timeout wrapper
+const result = await withTimeout(promise, 30000, 'OCR processing');
+
+// Retry with exponential backoff
+const result = await withRetry(fetchData, {
+  maxAttempts: 3,
+  backoffMs: 1000,
+  operationName: 'fetchCustomers',
+  shouldRetry: (error) => isNetworkError(error),
+});
+
+// Network availability check
+checkNetworkAvailability(); // throws if offline
+
+// Batch processing with rate limiting
+const results = await processBatch(items, processor, {
+  concurrency: 4,
+  delayMs: 300,
+  onProgress: (completed, total) => setProgress(completed / total),
+});
+```
 
 ---
 
@@ -734,7 +962,8 @@ Key classes:
 
 | Commit | Description |
 |--------|-------------|
-| Latest | Sales Pack Upload: AI-powered multi-page PDF splitting with Claude Vision analysis |
+| Latest | Codebase modernization: Zustand middleware stack, React 19 features (useTransition, useOptimistic), shared utilities |
+| Previous | Sales Pack Upload: AI-powered multi-page PDF splitting with Claude Vision analysis |
 | Previous | Email-to-CRM automation: Make.com + Supabase Edge Function for auto-uploading insurance/registration PDFs |
 | Previous | CRM improvements: dropdown accessibility, grouped options, auto-calculations, data entry efficiency |
 | Previous | Auto-upload scanned IDs and delete documents on customer delete |
@@ -1017,8 +1246,8 @@ PrintManager.js     ~14KB   - Print feature (lazy loaded)
 ```
 
 **Performance Notes:**
-- React Compiler (`babel-plugin-react-compiler`) is installed but disabled - causes significant dev mode slowdown
-- Can be re-enabled for production-only builds once stable
+- React Compiler (`babel-plugin-react-compiler`) enabled for **production builds only** (causes dev mode slowdown)
+- Configured in `vite.config.ts` with `isProduction` check
 - DocumentThumbnail caches generated PDF thumbnails in memory to avoid re-rendering
 
 ### PrintManager Back Page Photo Attachment

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { Phone, Envelope, CreditCard, Briefcase, Calendar, MapPin, User, FloppyDisk, UserPlus, Trash } from '@phosphor-icons/react';
 import { Button, useToast } from '@/components/common';
 import { useCustomerStore } from '@/stores/useCustomerStore';
@@ -10,8 +10,9 @@ interface DetailsTabProps {
 }
 
 export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
-  const { fetchGuarantors, saveGuarantors, isSaving } = useCustomerStore();
+  const { fetchGuarantors, saveGuarantors } = useCustomerStore();
   const { success, error: toastError } = useToast();
+  const [isPending, startTransition] = useTransition();
   const [guarantors, setGuarantors] = useState<Partial<Guarantor>[]>([]);
   const [formData, setFormData] = useState({
     phone: customer.phone || '',
@@ -77,23 +78,25 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     // Convert empty strings to null for date fields
     const updates: CustomerUpdate = {
       ...formData,
       dob: formData.dob || null,
       license_start_date: formData.license_start_date || null,
     };
-    try {
-      // Persist Sales Consultant to localStorage for future use
-      if (formData.sales_consultant) {
-        localStorage.setItem('lastSalesConsultant', formData.sales_consultant);
+    startTransition(async () => {
+      try {
+        // Persist Sales Consultant to localStorage for future use
+        if (formData.sales_consultant) {
+          localStorage.setItem('lastSalesConsultant', formData.sales_consultant);
+        }
+        await onUpdate(customer.id, updates);
+        success('Customer details saved');
+      } catch (err) {
+        toastError('Failed to save customer details');
       }
-      await onUpdate(customer.id, updates);
-      success('Customer details saved');
-    } catch (err) {
-      toastError('Failed to save customer details');
-    }
+    });
   };
 
   const handleGuarantorChange = (
@@ -119,13 +122,15 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
     setGuarantors((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSaveGuarantors = async () => {
-    try {
-      await saveGuarantors(customer.id, guarantors);
-      success('Guarantors saved');
-    } catch (err) {
-      toastError('Failed to save guarantors');
-    }
+  const handleSaveGuarantors = () => {
+    startTransition(async () => {
+      try {
+        await saveGuarantors(customer.id, guarantors);
+        success('Guarantors saved');
+      } catch (err) {
+        toastError('Failed to save guarantors');
+      }
+    });
   };
 
   return (
@@ -290,7 +295,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
         </div>
 
         <div className="section-actions">
-          <Button onClick={handleSave} isLoading={isSaving}>
+          <Button onClick={handleSave} isLoading={isPending}>
             <FloppyDisk size={16} className="btn-icon" />
             Save Changes
           </Button>
@@ -448,7 +453,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
 
         {guarantors.length > 0 && (
           <div className="section-actions">
-            <Button onClick={handleSaveGuarantors} isLoading={isSaving}>
+            <Button onClick={handleSaveGuarantors} isLoading={isPending}>
               <FloppyDisk size={16} className="btn-icon" />
               Save Guarantors
             </Button>

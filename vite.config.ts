@@ -3,19 +3,23 @@ import react from '@vitejs/plugin-react'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import path from 'path'
 
+// Enable React Compiler only in production (causes dev mode slowdown)
+const isProduction = process.env.NODE_ENV === 'production'
+
 // https://vite.dev/config/
 export default defineConfig({
   // Base path for GitHub Pages project site
   base: '/BYD-CRM-v2/',
   plugins: [
-    react(),
-    // React Compiler disabled - causes significant dev mode slowdown
-    // Re-enable for production builds once stable:
-    // react({
-    //   babel: {
-    //     plugins: [['babel-plugin-react-compiler', {}]],
-    //   },
-    // }),
+    react(
+      isProduction
+        ? {
+            babel: {
+              plugins: [['babel-plugin-react-compiler', {}]],
+            },
+          }
+        : undefined
+    ),
     nodePolyfills({
       include: ['buffer', 'process'],
       globals: {

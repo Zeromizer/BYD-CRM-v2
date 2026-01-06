@@ -3,7 +3,7 @@
  * Compact inline form for adding tasks with priority, due date, customer, and milestone selection
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useTransition } from 'react';
 import { CaretDown, Check, X, Flag, Calendar, User, Crosshair } from '@phosphor-icons/react';
 import { useTodoStore } from '@/stores/useTodoStore';
 import { useCustomerStore } from '@/stores';
@@ -34,10 +34,11 @@ export function InlineTaskForm({
   defaultMilestone,
   compact = false
 }: InlineTaskFormProps) {
-  const { createTodo, isSaving } = useTodoStore();
+  const { createTodo } = useTodoStore();
   const { customers } = useCustomerStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const [isPending, startTransition] = useTransition();
 
   const [text, setText] = useState('');
   const [priority, setPriority] = useState<Priority>('medium');
@@ -78,7 +79,7 @@ export function InlineTaskForm({
     return () => document.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -90,27 +91,29 @@ export function InlineTaskForm({
 
     const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
 
-    try {
-      await createTodo({
-        text: text.trim(),
-        priority,
-        due_date: dueDate || null,
-        customer_id: selectedCustomerId,
-        customer_name: selectedCustomer?.name || null,
-        milestone_id: milestoneId || null,
-      });
+    startTransition(async () => {
+      try {
+        await createTodo({
+          text: text.trim(),
+          priority,
+          due_date: dueDate || null,
+          customer_id: selectedCustomerId,
+          customer_name: selectedCustomer?.name || null,
+          milestone_id: milestoneId || null,
+        });
 
-      // Reset and close
-      setText('');
-      setPriority('medium');
-      setDueDate('');
-      if (!customer) setSelectedCustomerId(null);
-      setMilestoneId(defaultMilestone || '');
-      onClose();
-    } catch (err) {
-      setError('Failed to create task');
-      console.error('Failed to create task:', err);
-    }
+        // Reset and close
+        setText('');
+        setPriority('medium');
+        setDueDate('');
+        if (!customer) setSelectedCustomerId(null);
+        setMilestoneId(defaultMilestone || '');
+        onClose();
+      } catch (err) {
+        setError('Failed to create task');
+        console.error('Failed to create task:', err);
+      }
+    });
   };
 
   // Get today's date for min date
@@ -134,7 +137,7 @@ export function InlineTaskForm({
           onChange={(e) => setText(e.target.value)}
           placeholder="Add a task..."
           className="task-input"
-          disabled={isSaving}
+          disabled={isPending}
         />
         <div className="task-input-actions">
           {!showOptions && (
@@ -150,7 +153,7 @@ export function InlineTaskForm({
           <button
             type="submit"
             className="submit-task-btn"
-            disabled={isSaving || !text.trim()}
+            disabled={isPending || !text.trim()}
             title="Add task (Enter)"
           >
             <Check size={14} weight="bold" />

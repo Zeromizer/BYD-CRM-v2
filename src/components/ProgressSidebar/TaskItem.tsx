@@ -3,7 +3,7 @@
  * Individual task item with complete, edit, and delete actions
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useOptimistic, useTransition } from 'react';
 import { Check, Circle, Flag, Calendar, DotsThree, Trash } from '@phosphor-icons/react';
 import { useTodoStore } from '@/stores/useTodoStore';
 import type { Todo, Priority } from '@/types';
@@ -25,6 +25,16 @@ export function TaskItem({ task, compact = false }: TaskItemProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [isPending, startTransition] = useTransition();
+
+  // Optimistic update for instant checkbox feedback
+  const [optimisticTask, setOptimisticTask] = useOptimistic(
+    task,
+    (currentTask, newCompleted: boolean) => ({
+      ...currentTask,
+      completed: newCompleted,
+    })
+  );
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -43,12 +53,17 @@ export function TaskItem({ task, compact = false }: TaskItemProps) {
     };
   }, [showMenu]);
 
-  const handleToggle = async () => {
-    try {
-      await toggleTodo(task.id);
-    } catch (error) {
-      console.error('Failed to toggle task:', error);
-    }
+  const handleToggle = () => {
+    startTransition(async () => {
+      // Optimistically update UI immediately
+      setOptimisticTask(!optimisticTask.completed);
+      try {
+        await toggleTodo(task.id);
+      } catch (error) {
+        console.error('Failed to toggle task:', error);
+        // On error, the optimistic state will revert when task prop updates
+      }
+    });
   };
 
   const handleDelete = async () => {
@@ -80,13 +95,14 @@ export function TaskItem({ task, compact = false }: TaskItemProps) {
   const dueInfo = formatDueDate(task.due_date);
 
   return (
-    <div className={`task-item ${task.completed ? 'completed' : ''} ${isDeleting ? 'deleting' : ''}`}>
+    <div className={`task-item ${optimisticTask.completed ? 'completed' : ''} ${isDeleting ? 'deleting' : ''} ${isPending ? 'pending' : ''}`}>
       <button
         className="task-check-btn"
         onClick={handleToggle}
-        title={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
+        title={optimisticTask.completed ? 'Mark as incomplete' : 'Mark as complete'}
+        disabled={isPending}
       >
-        {task.completed ? (
+        {optimisticTask.completed ? (
           <Check size={14} weight="bold" className="check-icon completed" />
         ) : (
           <Circle size={14} className="check-icon" />
@@ -94,7 +110,7 @@ export function TaskItem({ task, compact = false }: TaskItemProps) {
       </button>
 
       <div className="task-content">
-        <span className={`task-text ${task.completed ? 'completed' : ''}`}>
+        <span className={`task-text ${optimisticTask.completed ? 'completed' : ''}`}>
           {task.text}
         </span>
         {!compact && (
@@ -133,8 +149,9 @@ export function TaskItem({ task, compact = false }: TaskItemProps) {
             <button
               className="task-menu-item"
               onClick={handleToggle}
+              disabled={isPending}
             >
-              {task.completed ? (
+              {optimisticTask.completed ? (
                 <>
                   <Circle size={14} className="menu-item-icon" />
                   <span>Mark incomplete</span>

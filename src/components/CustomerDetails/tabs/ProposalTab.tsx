@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useTransition } from 'react';
 import { Car, Money, ArrowsClockwise, Gift, FloppyDisk } from '@phosphor-icons/react';
 import { Button } from '@/components/common';
 import type { Customer, CustomerUpdate } from '@/types';
@@ -14,7 +14,7 @@ interface ProposalTabProps {
 }
 
 export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
-  const [isSaving, setIsSaving] = useState(false);
+  const [isPending, startTransition] = useTransition();
   // Track if loan amount was manually edited (to avoid overwriting user input)
   const loanAmountManuallyEdited = useRef(false);
   const [formData, setFormData] = useState({
@@ -114,42 +114,39 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      const updates: CustomerUpdate = {
-        proposal_model: formData.proposal_model || null,
-        proposal_variant: formData.proposal_variant || null,
-        proposal_color: formData.proposal_color || null,
-        proposal_bank: formData.proposal_bank || null,
-        proposal_selling_price: formData.proposal_selling_price ? Number(formData.proposal_selling_price) : null,
-        proposal_loan_amount: formData.proposal_loan_amount ? Number(formData.proposal_loan_amount) : null,
-        proposal_interest_rate: formData.proposal_interest_rate ? Number(formData.proposal_interest_rate) : null,
-        proposal_loan_tenure: formData.proposal_loan_tenure ? Number(formData.proposal_loan_tenure) : null,
-        proposal_downpayment: formData.proposal_downpayment ? Number(formData.proposal_downpayment) : null,
-        proposal_admin_fee: formData.proposal_admin_fee ? Number(formData.proposal_admin_fee) : null,
-        proposal_referral_fee: formData.proposal_referral_fee ? Number(formData.proposal_referral_fee) : null,
-        proposal_trade_in_model: formData.proposal_trade_in_model || null,
-        proposal_trade_in_car_plate: formData.proposal_trade_in_car_plate || null,
-        proposal_quoted_trade_in_price: formData.proposal_quoted_trade_in_price ? Number(formData.proposal_quoted_trade_in_price) : null,
-        proposal_low_loan_surcharge: formData.proposal_low_loan_surcharge ? Number(formData.proposal_low_loan_surcharge) : null,
-        proposal_no_loan_surcharge: formData.proposal_no_loan_surcharge ? Number(formData.proposal_no_loan_surcharge) : null,
-        proposal_benefit1: formData.proposal_benefit1 || null,
-        proposal_benefit2: formData.proposal_benefit2 || null,
-        proposal_benefit3: formData.proposal_benefit3 || null,
-        proposal_benefit4: formData.proposal_benefit4 || null,
-        proposal_benefit5: formData.proposal_benefit5 || null,
-        proposal_benefit6: formData.proposal_benefit6 || null,
-        proposal_benefit7: formData.proposal_benefit7 || null,
-        proposal_benefit8: formData.proposal_benefit8 || null,
-        proposal_benefit9: formData.proposal_benefit9 || null,
-        proposal_benefits_given: formData.proposal_benefits_given || null,
-        proposal_remarks: formData.proposal_remarks || null,
-      };
+  const handleSave = () => {
+    const updates: CustomerUpdate = {
+      proposal_model: formData.proposal_model || null,
+      proposal_variant: formData.proposal_variant || null,
+      proposal_color: formData.proposal_color || null,
+      proposal_bank: formData.proposal_bank || null,
+      proposal_selling_price: formData.proposal_selling_price ? Number(formData.proposal_selling_price) : null,
+      proposal_loan_amount: formData.proposal_loan_amount ? Number(formData.proposal_loan_amount) : null,
+      proposal_interest_rate: formData.proposal_interest_rate ? Number(formData.proposal_interest_rate) : null,
+      proposal_loan_tenure: formData.proposal_loan_tenure ? Number(formData.proposal_loan_tenure) : null,
+      proposal_downpayment: formData.proposal_downpayment ? Number(formData.proposal_downpayment) : null,
+      proposal_admin_fee: formData.proposal_admin_fee ? Number(formData.proposal_admin_fee) : null,
+      proposal_referral_fee: formData.proposal_referral_fee ? Number(formData.proposal_referral_fee) : null,
+      proposal_trade_in_model: formData.proposal_trade_in_model || null,
+      proposal_trade_in_car_plate: formData.proposal_trade_in_car_plate || null,
+      proposal_quoted_trade_in_price: formData.proposal_quoted_trade_in_price ? Number(formData.proposal_quoted_trade_in_price) : null,
+      proposal_low_loan_surcharge: formData.proposal_low_loan_surcharge ? Number(formData.proposal_low_loan_surcharge) : null,
+      proposal_no_loan_surcharge: formData.proposal_no_loan_surcharge ? Number(formData.proposal_no_loan_surcharge) : null,
+      proposal_benefit1: formData.proposal_benefit1 || null,
+      proposal_benefit2: formData.proposal_benefit2 || null,
+      proposal_benefit3: formData.proposal_benefit3 || null,
+      proposal_benefit4: formData.proposal_benefit4 || null,
+      proposal_benefit5: formData.proposal_benefit5 || null,
+      proposal_benefit6: formData.proposal_benefit6 || null,
+      proposal_benefit7: formData.proposal_benefit7 || null,
+      proposal_benefit8: formData.proposal_benefit8 || null,
+      proposal_benefit9: formData.proposal_benefit9 || null,
+      proposal_benefits_given: formData.proposal_benefits_given || null,
+      proposal_remarks: formData.proposal_remarks || null,
+    };
+    startTransition(async () => {
       await onUpdate(customer.id, updates);
-    } finally {
-      setIsSaving(false);
-    }
+    });
   };
 
   return (
@@ -424,7 +421,7 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
       </section>
 
       <div className="section-actions">
-        <Button onClick={handleSave} isLoading={isSaving}>
+        <Button onClick={handleSave} isLoading={isPending}>
           <FloppyDisk size={16} className="btn-icon" />
           Save Proposal
         </Button>

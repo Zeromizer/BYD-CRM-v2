@@ -1,9 +1,16 @@
 /**
  * Todo Store
  * Manages todos with Supabase integration
+ *
+ * Uses Zustand middleware stack:
+ * - devtools: Redux DevTools integration for debugging
+ * - persist: localStorage persistence for UI preferences (sidebar, filter)
+ * - immer: Simplified immutable state updates
  */
 
 import { create } from 'zustand';
+import { devtools, persist } from 'zustand/middleware';
+import { immer } from 'zustand/middleware/immer';
 import { useShallow } from 'zustand/react/shallow';
 import { getSupabase } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -39,183 +46,238 @@ interface TodoActions {
   clearError: () => void;
 }
 
-export const useTodoStore = create<TodoState & TodoActions>((set, get) => ({
-  todos: [],
-  sidebarOpen: false,
-  activeFilter: 'all',
-  isLoading: false,
-  isSaving: false,
-  error: null,
-  _channel: null,
-
-  fetchTodos: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      const { data, error } = await getSupabase()
-        .from('todos')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      set({ todos: data as Todo[], isLoading: false });
-    } catch (error) {
-      set({ error: (error as Error).message, isLoading: false });
-    }
-  },
-
-  createTodo: async (data) => {
-    set({ isSaving: true, error: null });
-    try {
-      const supabase = getSupabase();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const todoData: TodoInsert = {
-        user_id: user.id,
-        text: data.text || '',
-        completed: false,
-        priority: data.priority || 'medium',
-        due_date: data.due_date || null,
-        customer_id: data.customer_id || null,
-        customer_name: data.customer_name || null,
-        milestone_id: data.milestone_id || null,
-        checklist_item_id: data.checklist_item_id || null,
-      };
-
-      const { data: newTodo, error } = await supabase
-        .from('todos')
-        .insert(todoData)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      set((state) => ({
-        todos: [newTodo as Todo, ...state.todos],
+export const useTodoStore = create<TodoState & TodoActions>()(
+  devtools(
+    persist(
+      immer((set, get) => ({
+        todos: [],
+        sidebarOpen: false,
+        activeFilter: 'all',
+        isLoading: false,
         isSaving: false,
-      }));
+        error: null,
+        _channel: null,
 
-      return newTodo as Todo;
-    } catch (error) {
-      set({ error: (error as Error).message, isSaving: false });
-      throw error;
-    }
-  },
+        fetchTodos: async () => {
+          set((state) => {
+            state.isLoading = true;
+            state.error = null;
+          });
+          try {
+            const { data, error } = await getSupabase()
+              .from('todos')
+              .select('*')
+              .order('created_at', { ascending: false });
 
-  updateTodo: async (id, updates) => {
-    set({ isSaving: true, error: null });
-    try {
-      const { error } = await getSupabase()
-        .from('todos')
-        .update(updates)
-        .eq('id', id);
+            if (error) throw error;
 
-      if (error) throw error;
-
-      set((state) => ({
-        todos: state.todos.map((t) =>
-          t.id === id ? { ...t, ...updates } : t
-        ),
-        isSaving: false,
-      }));
-    } catch (error) {
-      set({ error: (error as Error).message, isSaving: false });
-      throw error;
-    }
-  },
-
-  deleteTodo: async (id) => {
-    set({ isSaving: true, error: null });
-    try {
-      const { error } = await getSupabase()
-        .from('todos')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      set((state) => ({
-        todos: state.todos.filter((t) => t.id !== id),
-        isSaving: false,
-      }));
-    } catch (error) {
-      set({ error: (error as Error).message, isSaving: false });
-      throw error;
-    }
-  },
-
-  toggleTodo: async (id) => {
-    const todo = get().todos.find((t) => t.id === id);
-    if (todo) {
-      await get().updateTodo(id, { completed: !todo.completed });
-    }
-  },
-
-  setSidebarOpen: (open) => {
-    set({ sidebarOpen: open });
-  },
-
-  toggleSidebar: () => {
-    set((state) => ({ sidebarOpen: !state.sidebarOpen }));
-  },
-
-  setActiveFilter: (filter) => {
-    set({ activeFilter: filter });
-  },
-
-  subscribeToChanges: () => {
-    // Clean up existing channel before creating new one
-    const existing = get()._channel;
-    if (existing) {
-      existing.unsubscribe();
-    }
-
-    // Use getSupabase() to get current client instance
-    const supabase = getSupabase();
-    const channel = supabase
-      .channel('todos_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'todos' },
-        (payload) => {
-          const { eventType } = payload;
-
-          if (eventType === 'INSERT') {
-            set((state) => ({
-              todos: [payload.new as Todo, ...state.todos],
-            }));
-          } else if (eventType === 'UPDATE') {
-            set((state) => ({
-              todos: state.todos.map((t) =>
-                t.id === (payload.new as Todo).id ? (payload.new as Todo) : t
-              ),
-            }));
-          } else if (eventType === 'DELETE') {
-            set((state) => ({
-              todos: state.todos.filter((t) => t.id !== (payload.old as Todo).id),
-            }));
+            set((state) => {
+              state.todos = data as Todo[];
+              state.isLoading = false;
+            });
+          } catch (error) {
+            set((state) => {
+              state.error = (error as Error).message;
+              state.isLoading = false;
+            });
           }
-        }
-      )
-      .subscribe((status) => {
-        console.log('[TodoStore] Channel status:', status);
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.log('[TodoStore] Will reconnect in 3s...');
-          setTimeout(() => get().subscribeToChanges(), 3000);
-        }
-      });
+        },
 
-    set({ _channel: channel });
+        createTodo: async (data) => {
+          set((state) => {
+            state.isSaving = true;
+            state.error = null;
+          });
+          try {
+            const supabase = getSupabase();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            if (!user) throw new Error('Not authenticated');
 
-    return () => {
-      channel.unsubscribe();
-      set({ _channel: null });
-    };
-  },
+            const todoData: TodoInsert = {
+              user_id: user.id,
+              text: data.text || '',
+              completed: false,
+              priority: data.priority || 'medium',
+              due_date: data.due_date || null,
+              customer_id: data.customer_id || null,
+              customer_name: data.customer_name || null,
+              milestone_id: data.milestone_id || null,
+              checklist_item_id: data.checklist_item_id || null,
+            };
 
-  clearError: () => set({ error: null }),
-}));
+            const { data: newTodo, error } = await supabase
+              .from('todos')
+              .insert(todoData)
+              .select()
+              .single();
+
+            if (error) throw error;
+
+            set((state) => {
+              state.todos.unshift(newTodo as Todo);
+              state.isSaving = false;
+            });
+
+            return newTodo as Todo;
+          } catch (error) {
+            set((state) => {
+              state.error = (error as Error).message;
+              state.isSaving = false;
+            });
+            throw error;
+          }
+        },
+
+        updateTodo: async (id, updates) => {
+          set((state) => {
+            state.isSaving = true;
+            state.error = null;
+          });
+          try {
+            const { error } = await getSupabase().from('todos').update(updates).eq('id', id);
+
+            if (error) throw error;
+
+            set((state) => {
+              const index = state.todos.findIndex((t) => t.id === id);
+              if (index !== -1) {
+                Object.assign(state.todos[index], updates);
+              }
+              state.isSaving = false;
+            });
+          } catch (error) {
+            set((state) => {
+              state.error = (error as Error).message;
+              state.isSaving = false;
+            });
+            throw error;
+          }
+        },
+
+        deleteTodo: async (id) => {
+          set((state) => {
+            state.isSaving = true;
+            state.error = null;
+          });
+          try {
+            const { error } = await getSupabase().from('todos').delete().eq('id', id);
+
+            if (error) throw error;
+
+            set((state) => {
+              const index = state.todos.findIndex((t) => t.id === id);
+              if (index !== -1) {
+                state.todos.splice(index, 1);
+              }
+              state.isSaving = false;
+            });
+          } catch (error) {
+            set((state) => {
+              state.error = (error as Error).message;
+              state.isSaving = false;
+            });
+            throw error;
+          }
+        },
+
+        toggleTodo: async (id) => {
+          const todo = get().todos.find((t) => t.id === id);
+          if (todo) {
+            await get().updateTodo(id, { completed: !todo.completed });
+          }
+        },
+
+        setSidebarOpen: (open) => {
+          set((state) => {
+            state.sidebarOpen = open;
+          });
+        },
+
+        toggleSidebar: () => {
+          set((state) => {
+            state.sidebarOpen = !state.sidebarOpen;
+          });
+        },
+
+        setActiveFilter: (filter) => {
+          set((state) => {
+            state.activeFilter = filter;
+          });
+        },
+
+        subscribeToChanges: () => {
+          // Clean up existing channel before creating new one
+          const existing = get()._channel;
+          if (existing) {
+            existing.unsubscribe();
+          }
+
+          // Use getSupabase() to get current client instance
+          const supabase = getSupabase();
+          const channel = supabase
+            .channel('todos_changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'todos' }, (payload) => {
+              const { eventType } = payload;
+
+              if (eventType === 'INSERT') {
+                set((state) => {
+                  state.todos.unshift(payload.new as Todo);
+                });
+              } else if (eventType === 'UPDATE') {
+                set((state) => {
+                  const index = state.todos.findIndex((t) => t.id === (payload.new as Todo).id);
+                  if (index !== -1) {
+                    state.todos[index] = payload.new as Todo;
+                  }
+                });
+              } else if (eventType === 'DELETE') {
+                set((state) => {
+                  const index = state.todos.findIndex((t) => t.id === (payload.old as Todo).id);
+                  if (index !== -1) {
+                    state.todos.splice(index, 1);
+                  }
+                });
+              }
+            })
+            .subscribe((status) => {
+              console.log('[TodoStore] Channel status:', status);
+              if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                console.log('[TodoStore] Will reconnect in 3s...');
+                setTimeout(() => get().subscribeToChanges(), 3000);
+              }
+            });
+
+          set((state) => {
+            state._channel = channel;
+          });
+
+          return () => {
+            channel.unsubscribe();
+            set((state) => {
+              state._channel = null;
+            });
+          };
+        },
+
+        clearError: () =>
+          set((state) => {
+            state.error = null;
+          }),
+      })),
+      {
+        name: 'todo-store',
+        partialize: (state) => ({
+          // Only persist UI preferences, not data (fetched from Supabase)
+          sidebarOpen: state.sidebarOpen,
+          activeFilter: state.activeFilter,
+        }),
+      }
+    ),
+    { name: 'TodoStore' }
+  )
+);
 
 // Selector hooks
 export const useTodos = () => useTodoStore((state) => state.todos);
@@ -235,8 +297,7 @@ const filterTodayTodos = (todos: Todo[], today: string) =>
 const filterOverdueTodos = (todos: Todo[], today: string) =>
   todos.filter((t) => t.due_date && t.due_date < today && !t.completed);
 
-const filterCompletedTodos = (todos: Todo[]) =>
-  todos.filter((t) => t.completed);
+const filterCompletedTodos = (todos: Todo[]) => todos.filter((t) => t.completed);
 
 const filterHighPriorityTodos = (todos: Todo[]) =>
   todos.filter((t) => (t.priority === 'high' || t.priority === 'urgent') && !t.completed);

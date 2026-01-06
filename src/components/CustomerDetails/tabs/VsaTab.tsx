@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ReactElement } from 'react';
+import { useState, useEffect, useRef, useTransition, type ReactElement } from 'react';
 import { Car, Package, ArrowsClockwise, Truck, Shield, Money, FloppyDisk } from '@phosphor-icons/react';
 import { Button } from '@/components/common';
 import type { Customer, CustomerUpdate } from '@/types';
@@ -23,7 +23,7 @@ type VsaSection =
   | 'loan';
 
 export function VsaTab({ customer, onUpdate }: VsaTabProps) {
-  const [isSaving, setIsSaving] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [activeSection, setActiveSection] = useState<VsaSection>('vehicle');
   // Track if monthly repayment was manually edited
   const monthlyRepaymentManuallyEdited = useRef(false);
@@ -168,56 +168,53 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
     }
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      const updates: CustomerUpdate = {
-        vsa_make_model: formData.vsa_make_model || null,
-        vsa_variant: formData.vsa_variant || null,
-        vsa_yom: formData.vsa_yom || null,
-        vsa_body_colour: formData.vsa_body_colour || null,
-        vsa_upholstery: formData.vsa_upholstery || null,
-        vsa_prz_type: (formData.vsa_prz_type as 'P' | 'R' | 'Z') || null,
-        vsa_package: formData.vsa_package || null,
-        vsa_selling_price_list: formData.vsa_selling_price_list ? Number(formData.vsa_selling_price_list) : null,
-        vsa_purchase_price_with_coe: formData.vsa_purchase_price_with_coe ? Number(formData.vsa_purchase_price_with_coe) : null,
-        vsa_coe_rebate_level: formData.vsa_coe_rebate_level || null,
-        vsa_deposit: formData.vsa_deposit ? Number(formData.vsa_deposit) : null,
-        vsa_less_others: formData.vsa_less_others ? Number(formData.vsa_less_others) : null,
-        vsa_add_others: formData.vsa_add_others ? Number(formData.vsa_add_others) : null,
-        vsa_delivery_date: formData.vsa_delivery_date || null,
-        vsa_trade_in_car_no: formData.vsa_trade_in_car_no || null,
-        vsa_trade_in_car_model: formData.vsa_trade_in_car_model || null,
-        vsa_trade_in_amount: formData.vsa_trade_in_amount ? Number(formData.vsa_trade_in_amount) : null,
-        vsa_trade_in_settlement_cost: formData.vsa_trade_in_settlement_cost ? Number(formData.vsa_trade_in_settlement_cost) : null,
-        vsa_number_retention: formData.vsa_number_retention,
-        vsa_number_retention_fee: formData.vsa_number_retention_fee ? Number(formData.vsa_number_retention_fee) : null,
-        vsa_trade_in_owner_not_customer: formData.vsa_trade_in_owner_not_customer,
-        vsa_trade_in_owner_name: formData.vsa_trade_in_owner_name || null,
-        vsa_trade_in_owner_nric: formData.vsa_trade_in_owner_nric || null,
-        vsa_trade_in_owner_mobile: formData.vsa_trade_in_owner_mobile || null,
-        vsa_trade_in_insurance_company: formData.vsa_trade_in_insurance_company || null,
-        vsa_trade_in_policy_number: formData.vsa_trade_in_policy_number || null,
-        vsa_date_of_registration: formData.vsa_date_of_registration || null,
-        vsa_registration_no: formData.vsa_registration_no || null,
-        vsa_chassis_no: formData.vsa_chassis_no || null,
-        vsa_engine_no: formData.vsa_engine_no || null,
-        vsa_motor_no: formData.vsa_motor_no || null,
-        vsa_insurance_company: formData.vsa_insurance_company || null,
-        vsa_insurance_fee: formData.vsa_insurance_fee ? Number(formData.vsa_insurance_fee) : null,
-        vsa_insurance_subsidy: formData.vsa_insurance_subsidy ? Number(formData.vsa_insurance_subsidy) : null,
-        vsa_remarks1: formData.vsa_remarks1 || null,
-        vsa_remarks2: formData.vsa_remarks2 || null,
-        vsa_loan_amount: formData.vsa_loan_amount ? Number(formData.vsa_loan_amount) : null,
-        vsa_interest: formData.vsa_interest ? Number(formData.vsa_interest) : null,
-        vsa_tenure: formData.vsa_tenure ? Number(formData.vsa_tenure) : null,
-        vsa_admin_fee: formData.vsa_admin_fee ? Number(formData.vsa_admin_fee) : null,
-        vsa_monthly_repayment: formData.vsa_monthly_repayment ? Number(formData.vsa_monthly_repayment) : null,
-      };
+  const handleSave = () => {
+    const updates: CustomerUpdate = {
+      vsa_make_model: formData.vsa_make_model || null,
+      vsa_variant: formData.vsa_variant || null,
+      vsa_yom: formData.vsa_yom || null,
+      vsa_body_colour: formData.vsa_body_colour || null,
+      vsa_upholstery: formData.vsa_upholstery || null,
+      vsa_prz_type: (formData.vsa_prz_type as 'P' | 'R' | 'Z') || null,
+      vsa_package: formData.vsa_package || null,
+      vsa_selling_price_list: formData.vsa_selling_price_list ? Number(formData.vsa_selling_price_list) : null,
+      vsa_purchase_price_with_coe: formData.vsa_purchase_price_with_coe ? Number(formData.vsa_purchase_price_with_coe) : null,
+      vsa_coe_rebate_level: formData.vsa_coe_rebate_level || null,
+      vsa_deposit: formData.vsa_deposit ? Number(formData.vsa_deposit) : null,
+      vsa_less_others: formData.vsa_less_others ? Number(formData.vsa_less_others) : null,
+      vsa_add_others: formData.vsa_add_others ? Number(formData.vsa_add_others) : null,
+      vsa_delivery_date: formData.vsa_delivery_date || null,
+      vsa_trade_in_car_no: formData.vsa_trade_in_car_no || null,
+      vsa_trade_in_car_model: formData.vsa_trade_in_car_model || null,
+      vsa_trade_in_amount: formData.vsa_trade_in_amount ? Number(formData.vsa_trade_in_amount) : null,
+      vsa_trade_in_settlement_cost: formData.vsa_trade_in_settlement_cost ? Number(formData.vsa_trade_in_settlement_cost) : null,
+      vsa_number_retention: formData.vsa_number_retention,
+      vsa_number_retention_fee: formData.vsa_number_retention_fee ? Number(formData.vsa_number_retention_fee) : null,
+      vsa_trade_in_owner_not_customer: formData.vsa_trade_in_owner_not_customer,
+      vsa_trade_in_owner_name: formData.vsa_trade_in_owner_name || null,
+      vsa_trade_in_owner_nric: formData.vsa_trade_in_owner_nric || null,
+      vsa_trade_in_owner_mobile: formData.vsa_trade_in_owner_mobile || null,
+      vsa_trade_in_insurance_company: formData.vsa_trade_in_insurance_company || null,
+      vsa_trade_in_policy_number: formData.vsa_trade_in_policy_number || null,
+      vsa_date_of_registration: formData.vsa_date_of_registration || null,
+      vsa_registration_no: formData.vsa_registration_no || null,
+      vsa_chassis_no: formData.vsa_chassis_no || null,
+      vsa_engine_no: formData.vsa_engine_no || null,
+      vsa_motor_no: formData.vsa_motor_no || null,
+      vsa_insurance_company: formData.vsa_insurance_company || null,
+      vsa_insurance_fee: formData.vsa_insurance_fee ? Number(formData.vsa_insurance_fee) : null,
+      vsa_insurance_subsidy: formData.vsa_insurance_subsidy ? Number(formData.vsa_insurance_subsidy) : null,
+      vsa_remarks1: formData.vsa_remarks1 || null,
+      vsa_remarks2: formData.vsa_remarks2 || null,
+      vsa_loan_amount: formData.vsa_loan_amount ? Number(formData.vsa_loan_amount) : null,
+      vsa_interest: formData.vsa_interest ? Number(formData.vsa_interest) : null,
+      vsa_tenure: formData.vsa_tenure ? Number(formData.vsa_tenure) : null,
+      vsa_admin_fee: formData.vsa_admin_fee ? Number(formData.vsa_admin_fee) : null,
+      vsa_monthly_repayment: formData.vsa_monthly_repayment ? Number(formData.vsa_monthly_repayment) : null,
+    };
+    startTransition(async () => {
       await onUpdate(customer.id, updates);
-    } finally {
-      setIsSaving(false);
-    }
+    });
   };
 
   const sections: { id: VsaSection; label: string; icon: ReactElement }[] = [
@@ -831,7 +828,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
       <section className="details-section">{renderSectionContent()}</section>
 
       <div className="section-actions">
-        <Button onClick={handleSave} isLoading={isSaving}>
+        <Button onClick={handleSave} isLoading={isPending}>
           <FloppyDisk size={16} className="btn-icon" />
           Save VSA Details
         </Button>
