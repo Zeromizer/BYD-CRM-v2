@@ -13,7 +13,7 @@
 |----------|------------|
 | Frontend | React 19.2.0, TypeScript 5.9.3 |
 | Build | Vite 7.2.4 |
-| State | Zustand 5.0.9 (with immer middleware) |
+| State | Zustand 5.0.9 (devtools + persist + subscribeWithSelector + immer) |
 | Backend | Supabase (Auth, Database, Storage, Realtime, Edge Functions) |
 | AI | Google Gemini 2.5 Flash (document classification), Claude Haiku 4.5 (OCR classification), Claude Sonnet 4 (PDF analysis) |
 | Vision API | Google Cloud Vision (text extraction from images/PDFs) |
@@ -79,36 +79,39 @@ byd-crm-v2/
 
 ## State Management (Zustand Stores)
 
-All stores use the **Zustand middleware stack** pattern with devtools, persist (where appropriate), and immer for immutable state updates.
+All stores use the **Zustand middleware stack** pattern with devtools, persist (where appropriate), subscribeWithSelector, and immer for immutable state updates.
 
 ### Middleware Stack Pattern
 
 ```typescript
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
+import { devtools, persist, subscribeWithSelector } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 
 export const useExampleStore = create<State & Actions>()(
   devtools(
     persist(
-      immer((set, get) => ({
-        // State with immer mutations
-        items: [],
-        addItem: (item) => set((state) => { state.items.push(item); }),
-      })),
+      subscribeWithSelector(
+        immer((set, get) => ({
+          // State with immer mutations
+          items: [],
+          addItem: (item) => set((state) => { state.items.push(item); }),
+        }))
+      ), // close subscribeWithSelector
       {
         name: 'example-store',
         partialize: (state) => ({ /* only persist essential data */ }),
       }
-    ),
+    ), // close persist
     { name: 'ExampleStore' }
-  )
-);
+  ) // close devtools
+); // close create
 ```
 
-**Middleware Benefits:**
+**Middleware Order (outer to inner):**
 - **devtools** - Redux DevTools integration for debugging state changes
-- **persist** - localStorage persistence for session recovery
+- **persist** - localStorage persistence for session recovery (optional)
+- **subscribeWithSelector** - Fine-grained subscriptions to specific state slices for performance
 - **immer** - Write mutable code that produces immutable updates (no spread operators needed)
 
 ### Store Persistence Strategy
@@ -122,14 +125,14 @@ export const useExampleStore = create<State & Actions>()(
 | useExcelStore | No | Data from Supabase |
 
 ### useAuthStore (`src/stores/useAuthStore.ts`)
-- **Middleware**: devtools + persist + immer
+- **Middleware**: devtools + persist + subscribeWithSelector + immer
 - **State**: `user`, `session`, `profile`, `isLoading`, `isInitialized`
 - **Key Actions**: `signIn()`, `signUp()`, `signOut()`, `updateProfile()`
 - **Selectors**: `useUser()`, `useProfile()`, `useIsAuthenticated()`
 - **Persisted**: `user`, `profile` (for faster hydration)
 
 ### useCustomerStore (`src/stores/useCustomerStore.ts`)
-- **Middleware**: devtools + persist + immer
+- **Middleware**: devtools + persist + subscribeWithSelector + immer
 - **State**: `customers`, `selectedCustomerId`, `isLoading`, `isSaving`
 - **Key Actions**: `fetchCustomers()`, `createCustomer()`, `updateCustomer()`, `deleteCustomer()`, `archiveCustomer()`, `updateChecklistItem()`, `setCurrentMilestone()`
 - **Selectors**: `useCustomers()`, `useSelectedCustomer()`
@@ -137,17 +140,17 @@ export const useExampleStore = create<State & Actions>()(
 - **Persisted**: `selectedCustomerId` (preserves customer selection across sessions)
 
 ### useDocumentStore (`src/stores/useDocumentStore.ts`)
-- **Middleware**: devtools + immer
+- **Middleware**: devtools + subscribeWithSelector + immer
 - **State**: `templates`, `selectedTemplateId`
 - **Key Actions**: CRUD for document templates, field mappings, storage operations
 
 ### useExcelStore (`src/stores/useExcelStore.ts`)
-- **Middleware**: devtools + immer
+- **Middleware**: devtools + subscribeWithSelector + immer
 - **State**: `templates`, `selectedTemplateId`
 - **Key Actions**: CRUD for Excel templates, field mappings, file upload/download
 
 ### useTodoStore (`src/stores/useTodoStore.ts`)
-- **Middleware**: devtools + persist + immer
+- **Middleware**: devtools + persist + subscribeWithSelector + immer
 - **State**: `todos`, `sidebarOpen`, `activeFilter`, `isSaving`
 - **Key Actions**: `fetchTodos()`, `createTodo()`, `updateTodo()`, `deleteTodo()`, `toggleTodo()`, `subscribeToChanges()`
 - **Selectors**: `useTodos()`, `useTodoSidebarOpen()`, `useTodoActiveFilter()`
@@ -198,6 +201,8 @@ Touch gesture handling for swipe-based panel navigation on mobile.
 Form components use React 19's `useTransition` hook to manage async state transitions with built-in pending states:
 
 **Files using useTransition:**
+- `src/components/Dashboard/Dashboard.tsx` - Customer creation
+- `src/components/Dashboard/MobileDashboard.tsx` - Customer creation (mobile)
 - `src/components/common/InlineTaskForm.tsx` - Task creation
 - `src/components/CustomerDetails/tabs/DetailsTab.tsx` - Customer details save
 - `src/components/CustomerDetails/tabs/VsaTab.tsx` - VSA details save

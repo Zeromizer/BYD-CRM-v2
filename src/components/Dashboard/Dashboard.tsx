@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { CustomerList } from '@/components/CustomerList';
 import { CustomerDetails } from '@/components/CustomerDetails';
 import { CustomerForm, type ScannedImages } from '@/components/CustomerForm';
@@ -68,14 +68,14 @@ export function Dashboard() {
 
 function DesktopDashboard() {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const selectedCustomer = useSelectedCustomer();
   const { createCustomer, selectCustomer, customers } = useCustomerStore();
   const { success, error, warning } = useToast();
 
   const handleAddCustomer = async (data: Record<string, unknown>, scannedImages?: ScannedImages) => {
     // Prevent double submission
-    if (isSubmitting) return;
+    if (isPending) return;
 
     // Check for duplicate NRIC
     const nric = data.nric as string | undefined;
@@ -87,24 +87,24 @@ function DesktopDashboard() {
       }
     }
 
-    setIsSubmitting(true);
-    try {
-      const customer = await createCustomer(data);
-      selectCustomer(customer.id);
-      setShowAddModal(false);
-      success('Customer created successfully');
+    // Use startTransition for non-blocking async operation
+    startTransition(async () => {
+      try {
+        const customer = await createCustomer(data);
+        selectCustomer(customer.id);
+        setShowAddModal(false);
+        success('Customer created successfully');
 
-      // Upload scanned images in background after customer is created
-      if (scannedImages && customer.name) {
-        uploadScannedImages(customer.name, scannedImages)
-          .then(() => console.log('Scanned ID images uploaded successfully'))
-          .catch((err) => console.error('Failed to upload scanned images:', err));
+        // Upload scanned images in background after customer is created
+        if (scannedImages && customer.name) {
+          uploadScannedImages(customer.name, scannedImages)
+            .then(() => console.log('Scanned ID images uploaded successfully'))
+            .catch((err) => console.error('Failed to upload scanned images:', err));
+        }
+      } catch (err) {
+        error('Failed to create customer');
       }
-    } catch (err) {
-      error('Failed to create customer');
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   };
 
   return (
@@ -141,7 +141,7 @@ function DesktopDashboard() {
         <CustomerForm
           onSubmit={handleAddCustomer}
           onCancel={() => setShowAddModal(false)}
-          isLoading={isSubmitting}
+          isLoading={isPending}
         />
       </Modal>
     </div>

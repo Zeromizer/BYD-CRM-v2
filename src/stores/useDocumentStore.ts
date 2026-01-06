@@ -2,13 +2,14 @@
  * Document Template Store
  * Manages document templates with Supabase integration
  *
- * Uses Zustand middleware stack:
+ * Uses Zustand middleware stack (outer to inner):
  * - devtools: Redux DevTools integration for debugging
+ * - subscribeWithSelector: Fine-grained subscriptions for performance
  * - immer: Simplified immutable state updates
  */
 
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
+import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { getSupabase } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -57,7 +58,8 @@ interface DocumentActions {
 
 export const useDocumentStore = create<DocumentState & DocumentActions>()(
   devtools(
-    immer((set, get) => ({
+    subscribeWithSelector(
+      immer((set, get) => ({
       templates: [],
       selectedTemplateId: null,
       isLoading: false,
@@ -377,10 +379,11 @@ export const useDocumentStore = create<DocumentState & DocumentActions>()(
         set((state) => {
           state.error = null;
         }),
-    })),
+    }))
+    ), // close subscribeWithSelector
     { name: 'DocumentStore' }
-  )
-);
+  ) // close devtools
+); // close create
 
 // Selector hooks
 export const useDocumentTemplates = () => useDocumentStore((state) => state.templates);

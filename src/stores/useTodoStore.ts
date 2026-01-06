@@ -2,14 +2,15 @@
  * Todo Store
  * Manages todos with Supabase integration
  *
- * Uses Zustand middleware stack:
+ * Uses Zustand middleware stack (outer to inner):
  * - devtools: Redux DevTools integration for debugging
  * - persist: localStorage persistence for UI preferences (sidebar, filter)
+ * - subscribeWithSelector: Fine-grained subscriptions for performance
  * - immer: Simplified immutable state updates
  */
 
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
+import { devtools, persist, subscribeWithSelector } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { useShallow } from 'zustand/react/shallow';
 import { getSupabase } from '@/lib/supabase';
@@ -49,7 +50,8 @@ interface TodoActions {
 export const useTodoStore = create<TodoState & TodoActions>()(
   devtools(
     persist(
-      immer((set, get) => ({
+      subscribeWithSelector(
+        immer((set, get) => ({
         todos: [],
         sidebarOpen: false,
         activeFilter: 'all',
@@ -265,7 +267,8 @@ export const useTodoStore = create<TodoState & TodoActions>()(
           set((state) => {
             state.error = null;
           }),
-      })),
+      }))
+      ), // close subscribeWithSelector
       {
         name: 'todo-store',
         partialize: (state) => ({
@@ -274,10 +277,10 @@ export const useTodoStore = create<TodoState & TodoActions>()(
           activeFilter: state.activeFilter,
         }),
       }
-    ),
+    ), // close persist
     { name: 'TodoStore' }
-  )
-);
+  ) // close devtools
+); // close create
 
 // Selector hooks
 export const useTodos = () => useTodoStore((state) => state.todos);

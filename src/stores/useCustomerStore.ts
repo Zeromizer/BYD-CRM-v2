@@ -2,14 +2,15 @@
  * Customer Store
  * Manages customer data with Supabase integration
  *
- * Uses Zustand middleware stack:
+ * Uses Zustand middleware stack (outer to inner):
  * - devtools: Redux DevTools integration for debugging
  * - persist: localStorage persistence for selectedCustomerId
+ * - subscribeWithSelector: Fine-grained subscriptions for performance
  * - immer: Simplified immutable state updates
  */
 
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
+import { devtools, persist, subscribeWithSelector } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { getSupabase } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -74,7 +75,8 @@ interface CustomerActions {
 export const useCustomerStore = create<CustomerState & CustomerActions>()(
   devtools(
     persist(
-      immer((set, get) => ({
+      subscribeWithSelector(
+        immer((set, get) => ({
         customers: [],
         selectedCustomerId: null,
         isLoading: false,
@@ -560,7 +562,8 @@ export const useCustomerStore = create<CustomerState & CustomerActions>()(
           set((state) => {
             state.error = null;
           }),
-      })),
+      }))
+      ), // close subscribeWithSelector
       {
         name: 'customer-store',
         partialize: (state) => ({
@@ -569,10 +572,10 @@ export const useCustomerStore = create<CustomerState & CustomerActions>()(
           selectedCustomerId: state.selectedCustomerId,
         }),
       }
-    ),
+    ), // close persist
     { name: 'CustomerStore' }
-  )
-);
+  ) // close devtools
+); // close create
 
 // Selector hooks
 export const useCustomers = () => useCustomerStore((state) => state.customers);
