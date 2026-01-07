@@ -1,6 +1,20 @@
 import { useState, useEffect, useTransition } from 'react';
-import { Phone, Envelope, CreditCard, Briefcase, Calendar, MapPin, User, FloppyDisk, UserPlus, Trash } from '@phosphor-icons/react';
-import { Button, useToast } from '@/components/common';
+import {
+  Phone,
+  Envelope,
+  CreditCard,
+  Briefcase,
+  Calendar,
+  MapPin,
+  User,
+  FloppyDisk,
+  UserPlus,
+  Trash,
+  Users,
+  Note,
+  IdentificationCard,
+} from '@phosphor-icons/react';
+import { Button, useToast, CollapsibleSection } from '@/components/common';
 import { useCustomerStore } from '@/stores/useCustomerStore';
 import type { Customer, Guarantor, CustomerUpdate } from '@/types';
 
@@ -54,7 +68,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
       const defaultYear = new Date().getFullYear() - 30;
       setFormData((prev) => ({ ...prev, dob: `${defaultYear}-01-01` }));
     }
-  }, [customer.id]); // Only run when customer changes
+  }, [customer.id]);
 
   // Load last used Sales Consultant from localStorage if field is empty
   useEffect(() => {
@@ -64,7 +78,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
         setFormData((prev) => ({ ...prev, sales_consultant: lastConsultant }));
       }
     }
-  }, [customer.id]); // Only run when customer changes
+  }, [customer.id]);
 
   const loadGuarantors = async () => {
     const data = await fetchGuarantors(customer.id);
@@ -79,7 +93,6 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
   };
 
   const handleSave = () => {
-    // Convert empty strings to null for date fields
     const updates: CustomerUpdate = {
       ...formData,
       dob: formData.dob || null,
@@ -87,7 +100,6 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
     };
     startTransition(async () => {
       try {
-        // Persist Sales Consultant to localStorage for future use
         if (formData.sales_consultant) {
           localStorage.setItem('lastSalesConsultant', formData.sales_consultant);
         }
@@ -135,13 +147,17 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
 
   return (
     <div className="details-tab">
-      {/* Customer Info Section */}
-      <section className="details-section">
-        <h3 className="section-title">Customer Information</h3>
+      {/* Contact Information - Primary, always expanded */}
+      <CollapsibleSection
+        title="Contact Information"
+        icon={<Phone size={18} />}
+        defaultExpanded={true}
+        persistKey="details-contact"
+      >
         <div className="form-grid">
           <div className="form-group">
             <label className="form-label">
-              <Phone size={16} className="label-icon" />
+              <Phone size={16} />
               Phone
             </label>
             <input
@@ -156,7 +172,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
 
           <div className="form-group">
             <label className="form-label">
-              <Envelope size={16} className="label-icon" />
+              <Envelope size={16} />
               Email
             </label>
             <input
@@ -168,10 +184,20 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
               className="form-input"
             />
           </div>
+        </div>
+      </CollapsibleSection>
 
+      {/* Identity & Personal - Secondary, collapsed by default */}
+      <CollapsibleSection
+        title="Identity & Personal"
+        icon={<IdentificationCard size={18} />}
+        defaultExpanded={false}
+        persistKey="details-identity"
+      >
+        <div className="form-grid">
           <div className="form-group">
             <label className="form-label">
-              <CreditCard size={16} className="label-icon" />
+              <CreditCard size={16} />
               NRIC/FIN
             </label>
             <input
@@ -180,13 +206,13 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
               value={formData.nric}
               onChange={handleChange}
               placeholder="S1234567A"
-              className="form-input"
+              className="form-input data-input"
             />
           </div>
 
           <div className="form-group">
             <label className="form-label">
-              <Briefcase size={16} className="label-icon" />
+              <Briefcase size={16} />
               Occupation
             </label>
             <input
@@ -201,7 +227,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
 
           <div className="form-group">
             <label className="form-label">
-              <Calendar size={16} className="label-icon" />
+              <Calendar size={16} />
               Date of Birth
             </label>
             <input
@@ -215,7 +241,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
 
           <div className="form-group">
             <label className="form-label">
-              <Calendar size={16} className="label-icon" />
+              <Calendar size={16} />
               License Start Date
             </label>
             <input
@@ -226,10 +252,20 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
               className="form-input"
             />
           </div>
+        </div>
+      </CollapsibleSection>
 
+      {/* Address - Collapsed by default */}
+      <CollapsibleSection
+        title="Address"
+        icon={<MapPin size={18} />}
+        defaultExpanded={false}
+        persistKey="details-address"
+      >
+        <div className="form-grid">
           <div className="form-group full-width">
             <label className="form-label">
-              <MapPin size={16} className="label-icon" />
+              <MapPin size={16} />
               Address
             </label>
             <input
@@ -253,10 +289,20 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
               className="form-input"
             />
           </div>
+        </div>
+      </CollapsibleSection>
 
+      {/* Sales Information - Collapsed by default */}
+      <CollapsibleSection
+        title="Sales Information"
+        icon={<User size={18} />}
+        defaultExpanded={false}
+        persistKey="details-sales"
+      >
+        <div className="form-grid">
           <div className="form-group">
             <label className="form-label">
-              <User size={16} className="label-icon" />
+              <User size={16} />
               Sales Consultant
             </label>
             <input
@@ -276,39 +322,52 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
               name="vsa_no"
               value={formData.vsa_no}
               onChange={handleChange}
-              placeholder="VSA-2024-001"
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group full-width">
-            <label className="form-label">Notes</label>
-            <textarea
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              placeholder="Any additional notes..."
-              className="form-textarea"
-              rows={3}
+              placeholder="BYD80001"
+              className="form-input data-input"
             />
           </div>
         </div>
+      </CollapsibleSection>
 
-        <div className="section-actions">
-          <Button onClick={handleSave} isLoading={isPending}>
-            <FloppyDisk size={16} className="btn-icon" />
-            Save Changes
-          </Button>
+      {/* Notes - Collapsed by default */}
+      <CollapsibleSection
+        title="Notes"
+        icon={<Note size={18} />}
+        defaultExpanded={false}
+        persistKey="details-notes"
+      >
+        <div className="form-group">
+          <textarea
+            name="notes"
+            value={formData.notes}
+            onChange={handleChange}
+            placeholder="Any additional notes..."
+            className="form-textarea"
+            rows={4}
+          />
         </div>
-      </section>
+      </CollapsibleSection>
 
-      {/* Guarantors Section */}
-      <section className="details-section">
-        <div className="section-header">
-          <h3 className="section-title">Guarantors</h3>
+      {/* Save Button - Always visible */}
+      <div className="section-actions sticky-actions">
+        <Button onClick={handleSave} isLoading={isPending}>
+          <FloppyDisk size={16} />
+          Save Changes
+        </Button>
+      </div>
+
+      {/* Guarantors - Collapsed with badge showing count */}
+      <CollapsibleSection
+        title="Guarantors"
+        icon={<Users size={18} />}
+        badge={guarantors.length || undefined}
+        defaultExpanded={false}
+        persistKey="details-guarantors"
+      >
+        <div className="guarantors-header">
           {guarantors.length < 5 && (
             <Button variant="outline" size="sm" onClick={addGuarantor}>
-              <UserPlus size={16} className="btn-icon" />
+              <UserPlus size={16} />
               Add Guarantor
             </Button>
           )}
@@ -330,7 +389,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
                     onClick={() => removeGuarantor(index)}
                     className="danger"
                   >
-                    <Trash size={16} className="btn-icon" />
+                    <Trash size={16} />
                   </Button>
                 </div>
 
@@ -383,7 +442,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
                         handleGuarantorChange(index, 'nric', e.target.value)
                       }
                       placeholder="S1234567A"
-                      className="form-input"
+                      className="form-input data-input"
                     />
                   </div>
 
@@ -393,11 +452,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
                       type="text"
                       value={guarantor.occupation || ''}
                       onChange={(e) =>
-                        handleGuarantorChange(
-                          index,
-                          'occupation',
-                          e.target.value
-                        )
+                        handleGuarantorChange(index, 'occupation', e.target.value)
                       }
                       placeholder="Occupation"
                       className="form-input"
@@ -435,11 +490,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
                       type="text"
                       value={guarantor.address_continue || ''}
                       onChange={(e) =>
-                        handleGuarantorChange(
-                          index,
-                          'address_continue',
-                          e.target.value
-                        )
+                        handleGuarantorChange(index, 'address_continue', e.target.value)
                       }
                       placeholder="Singapore 123456"
                       className="form-input"
@@ -454,12 +505,12 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
         {guarantors.length > 0 && (
           <div className="section-actions">
             <Button onClick={handleSaveGuarantors} isLoading={isPending}>
-              <FloppyDisk size={16} className="btn-icon" />
+              <FloppyDisk size={16} />
               Save Guarantors
             </Button>
           </div>
         )}
-      </section>
+      </CollapsibleSection>
     </div>
   );
 }

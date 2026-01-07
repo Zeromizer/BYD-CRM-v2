@@ -2,12 +2,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   border: none;
-  border-radius: 8px;
-  font-weight: 500;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-weight: var(--font-medium);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
   white-space: nowrap;
 }
 
@@ -18,37 +19,54 @@
 
 /* Sizes */
 .btn-sm {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.8125rem;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+  gap: var(--space-1);
 }
 
 .btn-md {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-base);
 }
 
 .btn-lg {
-  padding: 0.625rem 1.25rem;
-  font-size: 0.9375rem;
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-md);
 }
 
 /* Variants */
 .btn-primary {
   background: var(--primary);
   color: white;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--primary-dark);
+  background: var(--primary-hover);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .btn-secondary {
   background: var(--bg-tertiary);
   color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover:not(:disabled) {
   background: var(--bg-hover);
+  border-color: var(--border-hover);
 }
 
 .btn-outline {
@@ -58,8 +76,8 @@
 }
 
 .btn-outline:hover:not(:disabled) {
-  background: var(--bg-hover);
-  border-color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  border-color: var(--border-hover);
 }
 
 .btn-ghost {
@@ -68,17 +86,29 @@
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: var(--bg-hover);
+  background: var(--bg-secondary);
   color: var(--text-primary);
 }
 
 .btn-danger {
   background: var(--danger);
   color: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: var(--danger-dark);
+  background: #c82333;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Danger variant for ghost/outline */
+.btn.danger {
+  color: var(--danger);
+}
+
+.btn.danger:hover:not(:disabled) {
+  background: var(--danger-alpha);
 }
 
 /* Full width */

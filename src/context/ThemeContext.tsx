@@ -1,21 +1,23 @@
 import { createContext, useContext, useEffect, useState, useMemo, useCallback, type ReactNode } from 'react';
 
-type Theme = 'light' | 'dark';
+type Theme = 'light' | 'dark' | 'cool';
 
 interface ThemeContextValue {
   theme: Theme;
   toggleTheme: () => void;
+  cycleTheme: () => void;
   setTheme: (theme: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 const STORAGE_KEY = 'byd-crm-theme';
+const THEMES: Theme[] = ['light', 'dark', 'cool'];
 
 function getInitialTheme(): Theme {
   // Check localStorage
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === 'light' || stored === 'dark') {
+  if (stored === 'light' || stored === 'dark' || stored === 'cool') {
     return stored;
   }
 
@@ -55,8 +57,18 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
+  // Toggle between light and dark only
   const toggleTheme = useCallback(() => {
-    setThemeState((prev) => (prev === 'light' ? 'dark' : 'light'));
+    setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
+
+  // Cycle through all themes: light -> dark -> cool -> light
+  const cycleTheme = useCallback(() => {
+    setThemeState((prev) => {
+      const currentIndex = THEMES.indexOf(prev);
+      const nextIndex = (currentIndex + 1) % THEMES.length;
+      return THEMES[nextIndex];
+    });
   }, []);
 
   const setTheme = useCallback((newTheme: Theme) => {
@@ -65,8 +77,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo(
-    () => ({ theme, toggleTheme, setTheme }),
-    [theme, toggleTheme, setTheme]
+    () => ({ theme, toggleTheme, cycleTheme, setTheme }),
+    [theme, toggleTheme, cycleTheme, setTheme]
   );
 
   return (

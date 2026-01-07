@@ -963,11 +963,134 @@ Key classes:
 
 ---
 
+## Theme System
+
+### Three-Theme Architecture
+
+The app supports three distinct themes: **Light**, **Dark**, and **Cool**.
+
+**Files:**
+- `src/context/ThemeContext.tsx` - Theme state management with localStorage persistence
+- `src/styles/globals.css` - CSS custom properties for all three themes
+- `src/components/Layout/Header.tsx` - Theme selector dropdown menu
+- `src/components/Layout/Layout.css` - Theme menu styling
+
+### Theme Definitions
+
+| Theme | Description | Use Case |
+|-------|-------------|----------|
+| Light | Warm neutrals (#fafafa backgrounds) | Traditional, approachable |
+| Dark | Dark backgrounds (#1a1a2e) | Low light, reduced eye strain |
+| Cool | Slate blue-gray (Tailwind Slate) | Professional, sophisticated (Stripe/Mercury aesthetic) |
+
+### Theme Context (`src/context/ThemeContext.tsx`)
+
+```typescript
+type Theme = 'light' | 'dark' | 'cool';
+
+interface ThemeContextType {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+  cycleTheme: () => void;  // light → dark → cool → light
+}
+```
+
+**Features:**
+- Persists to localStorage (`byd-crm-theme`)
+- Sets `data-theme` attribute on document root
+- `cycleTheme()` cycles through all three themes
+
+### Theme Selector UI
+
+Located in Header component, accessible via icon button:
+- Sun icon (Light mode active)
+- Moon icon (Dark mode active)
+- Snowflake icon (Cool mode active)
+
+Dropdown menu shows all three options with active state highlighting.
+
+### CSS Custom Properties by Theme
+
+Each theme defines these categories of variables:
+- **Primary colors**: `--primary`, `--primary-hover`, `--primary-alpha`
+- **Background colors**: `--bg-primary`, `--bg-secondary`, `--bg-tertiary`, `--bg-elevated`
+- **Text colors**: `--text-primary`, `--text-secondary`, `--text-tertiary`, `--text-data`
+- **Border colors**: `--border-color`, `--border-subtle`, `--border-hover`
+- **Shadows**: `--shadow-xs`, `--shadow-sm`, `--shadow-md`, `--shadow-lg`
+
+**Cool Theme Color Palette (Tailwind Slate):**
+```css
+[data-theme='cool'] {
+  --bg-primary: #f8fafc;    /* slate-50 */
+  --bg-secondary: #f1f5f9;  /* slate-100 */
+  --bg-tertiary: #e2e8f0;   /* slate-200 */
+  --text-primary: #0f172a;  /* slate-900 */
+  --text-secondary: #475569; /* slate-600 */
+  --border-color: #cbd5e1;  /* slate-300 */
+}
+```
+
+---
+
+## Collapsible Section Component
+
+### CollapsibleSection (`src/components/common/CollapsibleSection/`)
+
+Reusable component for progressive disclosure in forms, reducing visual clutter.
+
+**Props:**
+```typescript
+interface CollapsibleSectionProps {
+  title: string;
+  icon?: React.ReactNode;
+  defaultExpanded?: boolean;
+  persistKey?: string;  // localStorage key for expanded state
+  children: React.ReactNode;
+}
+```
+
+**Features:**
+- Persists expanded/collapsed state to localStorage per section
+- Chevron icon rotates on expand (150ms transition)
+- Used in DetailsTab and ProposalTab for form organization
+
+**Usage:**
+```tsx
+<CollapsibleSection
+  title="Contact Information"
+  icon={<Phone size={18} />}
+  defaultExpanded={true}
+  persistKey="details-contact"
+>
+  {/* Form fields */}
+</CollapsibleSection>
+```
+
+### Section Organization
+
+**DetailsTab Sections:**
+- Contact Information (expanded by default)
+- Identity & Personal
+- Address
+- Sales Information
+- Notes
+- Guarantors (with count badge)
+
+**ProposalTab Sections:**
+- Vehicle (expanded by default)
+- Pricing & Loan (expanded by default)
+- Trade-In
+- Benefits (with count of selected)
+- Remarks
+
+---
+
 ## Recent Changes (Reference)
 
 | Commit | Description |
 |--------|-------------|
-| Latest | Codebase modernization: Zustand middleware stack, React 19 features (useTransition, useOptimistic), shared utilities |
+| Latest | UI/UX Rework: Three-theme system (Light/Dark/Cool), CollapsibleSection component, form reorganization, design token updates |
+| Previous | Codebase modernization: Zustand middleware stack, React 19 features (useTransition, useOptimistic), shared utilities |
 | Previous | Sales Pack Upload: AI-powered multi-page PDF splitting with Claude Vision analysis |
 | Previous | Email-to-CRM automation: Make.com + Supabase Edge Function for auto-uploading insurance/registration PDFs |
 | Previous | CRM improvements: dropdown accessibility, grouped options, auto-calculations, data entry efficiency |

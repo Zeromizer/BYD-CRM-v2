@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { House, File, FileXls, CheckSquare, Moon, Sun, SignOut, X, List } from '@phosphor-icons/react';
+import { House, File, FileXls, CheckSquare, Moon, Sun, Snowflake, SignOut, X, List } from '@phosphor-icons/react';
 import { useAuthStore, useProfile, useTodoStore } from '@/stores';
 import './Layout.css';
 
@@ -10,14 +10,24 @@ const NAV_ICONS = {
   '/excel': FileXls,
 };
 
+type Theme = 'light' | 'dark' | 'cool';
+
 interface HeaderProps {
-  theme: 'light' | 'dark';
-  onToggleTheme: () => void;
+  theme: Theme;
+  onCycleTheme: () => void;
+  onSetTheme: (theme: Theme) => void;
 }
 
-export function Header({ theme, onToggleTheme }: HeaderProps) {
+const THEME_CONFIG = {
+  light: { icon: Sun, label: 'Light', next: 'Dark Mode' },
+  dark: { icon: Moon, label: 'Dark', next: 'Cool Mode' },
+  cool: { icon: Snowflake, label: 'Cool', next: 'Light Mode' },
+} as const;
+
+export function Header({ theme, onCycleTheme, onSetTheme }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const location = useLocation();
   const profile = useProfile();
   const signOut = useAuthStore((state) => state.signOut);
@@ -32,6 +42,8 @@ export function Header({ theme, onToggleTheme }: HeaderProps) {
   const handleSignOut = async () => {
     await signOut();
   };
+
+  const ThemeIcon = THEME_CONFIG[theme].icon;
 
   return (
     <header className="header">
@@ -69,14 +81,42 @@ export function Header({ theme, onToggleTheme }: HeaderProps) {
             <CheckSquare size={20} />
           </button>
 
-          {/* Theme Toggle */}
-          <button
-            onClick={onToggleTheme}
-            className="header-icon-button"
-            title={theme === 'light' ? 'Dark Mode' : 'Light Mode'}
-          >
-            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-          </button>
+          {/* Theme Selector */}
+          <div className="theme-menu-container">
+            <button
+              onClick={() => setThemeMenuOpen(!themeMenuOpen)}
+              className="header-icon-button"
+              title={`Current: ${THEME_CONFIG[theme].label} - Click to change`}
+            >
+              <ThemeIcon size={20} />
+            </button>
+
+            {themeMenuOpen && (
+              <>
+                <div className="menu-overlay" onClick={() => setThemeMenuOpen(false)} />
+                <div className="theme-menu">
+                  <div className="theme-menu-title">Theme</div>
+                  {(Object.keys(THEME_CONFIG) as Theme[]).map((t) => {
+                    const config = THEME_CONFIG[t];
+                    const Icon = config.icon;
+                    return (
+                      <button
+                        key={t}
+                        onClick={() => {
+                          onSetTheme(t);
+                          setThemeMenuOpen(false);
+                        }}
+                        className={`theme-menu-item ${theme === t ? 'active' : ''}`}
+                      >
+                        <Icon size={18} />
+                        <span>{config.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
 
           {/* User Menu */}
           <div className="user-menu-container">

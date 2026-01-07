@@ -219,8 +219,8 @@
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
 }
 
 .spinner {

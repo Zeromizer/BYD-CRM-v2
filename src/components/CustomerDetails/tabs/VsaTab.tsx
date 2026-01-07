@@ -398,61 +398,31 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
             </div>
             <div className="form-group full-width">
               <label className="form-label">Estimated Delivery Date</label>
-              <div className="estimated-delivery-container">
-                <select
-                  name="vsa_delivery_month_start"
-                  aria-label="Delivery Start Month"
-                  value={formData.vsa_delivery_date?.split('/')[0]?.trim() || ''}
-                  onChange={(e) => {
-                    const startMonth = e.target.value;
-                    const endMonth = formData.vsa_delivery_date?.split('/')[1]?.trim() || '';
-                    const newValue = startMonth && endMonth ? `${startMonth}/${endMonth}` : startMonth || endMonth;
-                    setFormData((prev) => ({ ...prev, vsa_delivery_date: newValue }));
-                  }}
-                  className="form-input"
-                >
-                  <option value="">Select start month</option>
-                  {(() => {
-                    const options = [];
-                    const currentDate = new Date();
-                    for (let i = 0; i < 24; i++) {
-                      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
-                      const monthName = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
-                      const year = date.getFullYear();
-                      const value = `${monthName} ${year}`;
-                      options.push(<option key={value} value={value}>{value}</option>);
-                    }
-                    return options;
-                  })()}
-                </select>
-                <span className="delivery-separator">/</span>
-                <select
-                  name="vsa_delivery_month_end"
-                  aria-label="Delivery End Month"
-                  value={formData.vsa_delivery_date?.split('/')[1]?.trim() || ''}
-                  onChange={(e) => {
-                    const startMonth = formData.vsa_delivery_date?.split('/')[0]?.trim() || '';
-                    const endMonth = e.target.value;
-                    const newValue = startMonth && endMonth ? `${startMonth}/${endMonth}` : startMonth || endMonth;
-                    setFormData((prev) => ({ ...prev, vsa_delivery_date: newValue }));
-                  }}
-                  className="form-input"
-                >
-                  <option value="">Select end month</option>
-                  {(() => {
-                    const options = [];
-                    const currentDate = new Date();
-                    for (let i = 0; i < 24; i++) {
-                      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
-                      const monthName = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
-                      const year = date.getFullYear();
-                      const value = `${monthName} ${year}`;
-                      options.push(<option key={value} value={value}>{value}</option>);
-                    }
-                    return options;
-                  })()}
-                </select>
-              </div>
+              <select
+                name="vsa_delivery_date"
+                aria-label="Estimated Delivery Date"
+                value={formData.vsa_delivery_date}
+                onChange={handleChange}
+                className="form-input"
+              >
+                <option value="">Select delivery month</option>
+                {(() => {
+                  const options = [];
+                  const currentDate = new Date();
+                  for (let i = 0; i < 24; i++) {
+                    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+                    const monthName = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+                    // Get next month for the display format "JAN/FEB 2026"
+                    const nextDate = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+                    const nextMonthName = nextDate.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+                    const nextYear = nextDate.getFullYear();
+                    // Value is the full format that gets saved
+                    const value = `${monthName}/${nextMonthName} ${nextYear}`;
+                    options.push(<option key={value} value={value}>{value}</option>);
+                  }
+                  return options;
+                })()}
+              </select>
             </div>
           </div>
         );

@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useTransition } from 'react';
-import { Car, Money, ArrowsClockwise, Gift, FloppyDisk } from '@phosphor-icons/react';
-import { Button } from '@/components/common';
+import { useState, useEffect, useRef, useTransition, useMemo } from 'react';
+import { Car, Money, ArrowsClockwise, Gift, FloppyDisk, Note } from '@phosphor-icons/react';
+import { Button, useToast, CollapsibleSection } from '@/components/common';
 import type { Customer, CustomerUpdate } from '@/types';
 import {
   VEHICLE_MODELS_GROUPED,
@@ -15,7 +15,7 @@ interface ProposalTabProps {
 
 export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
   const [isPending, startTransition] = useTransition();
-  // Track if loan amount was manually edited (to avoid overwriting user input)
+  const { success, error: toastError } = useToast();
   const loanAmountManuallyEdited = useRef(false);
   const [formData, setFormData] = useState({
     proposal_model: customer.proposal_model || '',
@@ -79,6 +79,24 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
     });
   }, [customer]);
 
+  // Count selected benefits
+  const selectedBenefitsCount = useMemo(() => {
+    return [
+      formData.proposal_benefit1,
+      formData.proposal_benefit2,
+      formData.proposal_benefit3,
+      formData.proposal_benefit4,
+      formData.proposal_benefit5,
+      formData.proposal_benefit6,
+      formData.proposal_benefit7,
+      formData.proposal_benefit8,
+      formData.proposal_benefit9,
+    ].filter(Boolean).length;
+  }, [formData]);
+
+  // Check if has trade-in
+  const hasTradeIn = Boolean(formData.proposal_trade_in_model || formData.proposal_trade_in_car_plate);
+
   // Auto-calculate loan amount when selling price or downpayment changes
   useEffect(() => {
     if (loanAmountManuallyEdited.current) return;
@@ -102,11 +120,9 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
   ) => {
     const { name, value } = e.target;
 
-    // Track if user manually edits loan amount
     if (name === 'proposal_loan_amount') {
       loanAmountManuallyEdited.current = true;
     }
-    // Reset manual edit flag if user changes selling price or downpayment
     if (name === 'proposal_selling_price' || name === 'proposal_downpayment') {
       loanAmountManuallyEdited.current = false;
     }
@@ -145,18 +161,24 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
       proposal_remarks: formData.proposal_remarks || null,
     };
     startTransition(async () => {
-      await onUpdate(customer.id, updates);
+      try {
+        await onUpdate(customer.id, updates);
+        success('Proposal saved');
+      } catch (err) {
+        toastError('Failed to save proposal');
+      }
     });
   };
 
   return (
     <div className="proposal-tab">
-      {/* Vehicle Section */}
-      <section className="details-section">
-        <h3 className="section-title">
-          <Car size={18} className="section-icon" />
-          Proposal Information
-        </h3>
+      {/* Vehicle Section - Primary, always expanded */}
+      <CollapsibleSection
+        title="Vehicle"
+        icon={<Car size={18} />}
+        defaultExpanded={true}
+        persistKey="proposal-vehicle"
+      >
         <div className="form-grid">
           <div className="form-group">
             <label className="form-label">Model</label>
@@ -165,7 +187,7 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
               aria-label="Vehicle Model"
               value={formData.proposal_model}
               onChange={handleChange}
-              className="form-input"
+              className="form-select"
             >
               <option value="">Select Model</option>
               {VEHICLE_MODELS_GROUPED.map((group) => (
@@ -174,22 +196,6 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
                     <option key={model} value={model}>{model}</option>
                   ))}
                 </optgroup>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Bank</label>
-            <select
-              name="proposal_bank"
-              aria-label="Bank"
-              value={formData.proposal_bank}
-              onChange={handleChange}
-              className="form-input"
-            >
-              <option value="">Select Bank</option>
-              {BANKS.map((bank) => (
-                <option key={bank} value={bank}>{bank}</option>
               ))}
             </select>
           </div>
@@ -206,15 +212,32 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
             />
           </div>
         </div>
-      </section>
+      </CollapsibleSection>
 
-      {/* Loan Section */}
-      <section className="details-section">
-        <h3 className="section-title">
-          <Money size={18} className="section-icon" />
-          Financing Details
-        </h3>
+      {/* Financing Section - Primary, expanded */}
+      <CollapsibleSection
+        title="Financing"
+        icon={<Money size={18} />}
+        defaultExpanded={true}
+        persistKey="proposal-financing"
+      >
         <div className="form-grid">
+          <div className="form-group">
+            <label className="form-label">Bank</label>
+            <select
+              name="proposal_bank"
+              aria-label="Bank"
+              value={formData.proposal_bank}
+              onChange={handleChange}
+              className="form-select"
+            >
+              <option value="">Select Bank</option>
+              {BANKS.map((bank) => (
+                <option key={bank} value={bank}>{bank}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="form-group">
             <label className="form-label">Interest Rate (%)</label>
             <input
@@ -241,18 +264,6 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Loan Tenure (months)</label>
-            <input
-              type="number"
-              name="proposal_loan_tenure"
-              value={formData.proposal_loan_tenure}
-              onChange={handleChange}
-              placeholder="84"
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group">
             <label className="form-label">Loan Amount</label>
             <input
               type="number"
@@ -260,6 +271,18 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
               value={formData.proposal_loan_amount}
               onChange={handleChange}
               placeholder="150000"
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Loan Tenure (months)</label>
+            <input
+              type="number"
+              name="proposal_loan_tenure"
+              value={formData.proposal_loan_tenure}
+              onChange={handleChange}
+              placeholder="84"
               className="form-input"
             />
           </div>
@@ -288,14 +311,15 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
             />
           </div>
         </div>
-      </section>
+      </CollapsibleSection>
 
-      {/* Trade-In Section */}
-      <section className="details-section">
-        <h3 className="section-title">
-          <ArrowsClockwise size={18} className="section-icon" />
-          Trade-In Details
-        </h3>
+      {/* Trade-In Section - Collapsed, expand if has trade-in */}
+      <CollapsibleSection
+        title="Trade-In"
+        icon={<ArrowsClockwise size={18} />}
+        defaultExpanded={hasTradeIn}
+        persistKey="proposal-tradein"
+      >
         <div className="form-grid">
           <div className="form-group">
             <label className="form-label">Trade-In Model</label>
@@ -317,7 +341,7 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
               value={formData.proposal_trade_in_car_plate}
               onChange={handleChange}
               placeholder="SBA1234A"
-              className="form-input"
+              className="form-input data-input"
             />
           </div>
 
@@ -357,15 +381,17 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
             />
           </div>
         </div>
-      </section>
+      </CollapsibleSection>
 
-      {/* Benefits Section */}
-      <section className="details-section">
-        <h3 className="section-title">
-          <Gift size={18} className="section-icon" />
-          Benefits
-        </h3>
-        <div className="form-grid">
+      {/* Benefits Section - Collapsed with count badge */}
+      <CollapsibleSection
+        title="Benefits"
+        icon={<Gift size={18} />}
+        badge={selectedBenefitsCount || undefined}
+        defaultExpanded={false}
+        persistKey="proposal-benefits"
+      >
+        <div className="form-grid form-grid-3">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
             <div className="form-group" key={num}>
               <label className="form-label">Benefit {num}</label>
@@ -374,9 +400,9 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
                 aria-label={`Benefit ${num}`}
                 value={formData[`proposal_benefit${num}` as keyof typeof formData] || ''}
                 onChange={handleChange}
-                className="form-input"
+                className="form-select"
               >
-                <option value="">Select Benefit</option>
+                <option value="">Select</option>
                 {BENEFITS_GROUPED.map((group) => (
                   <optgroup key={group.group} label={group.group}>
                     {group.benefits.map((benefit) => (
@@ -388,41 +414,43 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
             </div>
           ))}
         </div>
-      </section>
 
-      {/* Summary & Remarks Section */}
-      <section className="details-section">
-        <h3 className="section-title">Summary & Remarks</h3>
-        <div className="form-grid">
-          <div className="form-group full-width">
-            <label className="form-label">Benefits Given (Summary)</label>
-            <textarea
-              name="proposal_benefits_given"
-              value={formData.proposal_benefits_given}
-              onChange={handleChange}
-              placeholder="Summary of all benefits given..."
-              className="form-textarea"
-              rows={2}
-            />
-          </div>
-
-          <div className="form-group full-width">
-            <label className="form-label">Remarks</label>
-            <textarea
-              name="proposal_remarks"
-              value={formData.proposal_remarks}
-              onChange={handleChange}
-              placeholder="Additional remarks or notes..."
-              className="form-textarea"
-              rows={3}
-            />
-          </div>
+        <div className="form-group full-width" style={{ marginTop: 'var(--space-4)' }}>
+          <label className="form-label">Benefits Summary</label>
+          <textarea
+            name="proposal_benefits_given"
+            value={formData.proposal_benefits_given}
+            onChange={handleChange}
+            placeholder="Summary of all benefits given..."
+            className="form-textarea"
+            rows={2}
+          />
         </div>
-      </section>
+      </CollapsibleSection>
 
-      <div className="section-actions">
+      {/* Remarks Section - Collapsed */}
+      <CollapsibleSection
+        title="Remarks"
+        icon={<Note size={18} />}
+        defaultExpanded={false}
+        persistKey="proposal-remarks"
+      >
+        <div className="form-group">
+          <textarea
+            name="proposal_remarks"
+            value={formData.proposal_remarks}
+            onChange={handleChange}
+            placeholder="Additional remarks or notes..."
+            className="form-textarea"
+            rows={4}
+          />
+        </div>
+      </CollapsibleSection>
+
+      {/* Save Button - Always visible */}
+      <div className="section-actions sticky-actions">
         <Button onClick={handleSave} isLoading={isPending}>
-          <FloppyDisk size={16} className="btn-icon" />
+          <FloppyDisk size={16} />
           Save Proposal
         </Button>
       </div>

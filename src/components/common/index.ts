@@ -7,3 +7,4 @@ export { ImageViewer } from './ImageViewer';
 export { ExcelViewer } from './ExcelViewer';
 export { DocumentThumbnail } from './DocumentThumbnail';
 export { ErrorBoundary, ErrorFallback } from './ErrorBoundary';
+export { CollapsibleSection } from './CollapsibleSection';
