@@ -5,11 +5,11 @@ import { useTheme } from '@/context/ThemeContext';
 import './Layout.css';
 
 export function Layout() {
-  const { theme, cycleTheme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
 
   return (
     <div className="layout">
-      <Header theme={theme} onCycleTheme={cycleTheme} onSetTheme={setTheme} />
+      <Header theme={theme} onSetTheme={setTheme} />
       <main className="main-content">
         <Outlet />
       </main>
