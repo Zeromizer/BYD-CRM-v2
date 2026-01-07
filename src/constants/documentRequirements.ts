@@ -382,7 +382,7 @@ export function getDefaultDocumentChecklist(): DocumentChecklistState {
  * Calculate document completion percentage for a milestone
  */
 export function getDocumentProgress(milestoneId: MilestoneId, documentChecklist: DocumentChecklistState | null): number {
-  if (!documentChecklist || !documentChecklist[milestoneId]) {
+  if (!documentChecklist?.[milestoneId]) {
     return 0;
   }
 
@@ -423,13 +423,13 @@ export function getDocumentFolder(documentTypeId: string): string {
 /**
  * Get all document types as an array for AI classification
  */
-export function getDocumentTypesForClassification(): Array<{
+export function getDocumentTypesForClassification(): {
   id: string;
   name: string;
   keywords: string[];
   folder: string;
   milestone: MilestoneId | null;
-}> {
+}[] {
   return Object.values(DOCUMENT_TYPES).map((dt) => ({
     id: dt.id,
     name: dt.name,

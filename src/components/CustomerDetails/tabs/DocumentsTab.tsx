@@ -90,9 +90,7 @@ const DOCUMENT_CATEGORIES = [
   },
 ];
 
-interface UploadedDocuments {
-  [docId: string]: CustomerDocument[];
-}
+type UploadedDocuments = Record<string, CustomerDocument[]>;
 
 export function DocumentsTab({ customer }: DocumentsTabProps) {
   const [activeCategory, setActiveCategory] = useState('identification');
@@ -181,7 +179,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
           allDocs[folder.documentType] = folder.documents;
         }
         setUploadedDocs(allDocs);
-      } catch (err) {
+      } catch (_err) {
         if (isCancelled) return;
         setError('Failed to load documents');
         console.error('Error loading documents:', err);
@@ -215,7 +213,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
         allDocs[folder.documentType] = folder.documents;
       }
       setUploadedDocs(allDocs);
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to load documents');
       console.error('Error loading documents:', err);
     } finally {
@@ -321,7 +319,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
       await updateCustomer(customer.id, {
         document_checklist: updatedChecklist,
       });
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to upload document');
       console.error('Error uploading document:', err);
     } finally {
@@ -355,7 +353,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to download document');
       console.error('Error downloading document:', err);
     }
@@ -426,7 +424,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
 
       setShowDeleteConfirm(false);
       setDocToDelete(null);
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to delete document');
       console.error('Error deleting document:', err);
     }
@@ -471,7 +469,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
 
       // Reload documents
       await loadDocuments();
-    } catch (err) {
+    } catch (_err) {
       console.error('Bulk delete failed:', err);
       toastError('Failed to delete documents');
     } finally {
@@ -587,7 +585,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
       loadDocuments().catch(err => {
         console.error('Failed to reload documents:', err);
       });
-    } catch (err) {
+    } catch (_err) {
       console.error('Migration failed:', err);
       toastError('Failed to migrate documents');
       setIsMigrating(false);
@@ -646,7 +644,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
       setClassifiedFiles(results);
       setShowClassificationResults(true);
       toastSuccess(`Scanned ${results.length} documents with ${methodLabel}`);
-    } catch (err) {
+    } catch (_err) {
       console.error('AI scan failed:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       toastError(`AI scan failed: ${errorMessage}`);
@@ -712,7 +710,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
       setShowClassificationResults(false);
 
       loadDocuments().catch(console.error);
-    } catch (err) {
+    } catch (_err) {
       console.error('Upload failed:', err);
       toastError('Failed to upload documents');
       setIsMigrating(false);
@@ -796,7 +794,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
       <input
         ref={migrationInputRef}
         type="file"
-        // @ts-ignore - webkitdirectory is not in types but works in browsers
+        // @ts-expect-error - webkitdirectory is not in types but works in browsers
         webkitdirectory=""
         directory=""
         multiple
@@ -1062,7 +1060,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                             link.click();
                             document.body.removeChild(link);
                             URL.revokeObjectURL(url);
-                          } catch (err) {
+                          } catch (_err) {
                             setError('Failed to download document');
                           }
                         }
@@ -1334,7 +1332,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                                   link.click();
                                   document.body.removeChild(link);
                                   URL.revokeObjectURL(url);
-                                } catch (err) {
+                                } catch (_err) {
                                   setError('Failed to download document');
                                 }
                               }}
@@ -1495,7 +1493,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                       link.click();
                       document.body.removeChild(link);
                       URL.revokeObjectURL(url);
-                    } catch (err) {
+                    } catch (_err) {
                       setError('Failed to download document');
                     }
                   }}
@@ -1515,7 +1513,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                       link.click();
                       document.body.removeChild(link);
                       URL.revokeObjectURL(url);
-                    } catch (err) {
+                    } catch (_err) {
                       setError('Failed to download document');
                     }
                   }}
@@ -1540,7 +1538,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                       link.click();
                       document.body.removeChild(link);
                       URL.revokeObjectURL(url);
-                    } catch (err) {
+                    } catch (_err) {
                       setError('Failed to download document');
                     }
                   }}
@@ -1561,7 +1559,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                         link.click();
                         document.body.removeChild(link);
                         URL.revokeObjectURL(url);
-                      } catch (err) {
+                      } catch (_err) {
                         setError('Failed to download document');
                       }
                     }}
@@ -1813,7 +1811,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                           </div>
                         )}
                         {/* Show extracted data for Vision+Claude results */}
-                        {visionResult && visionResult.extractedData && (
+                        {visionResult?.extractedData && (
                           <div className="extracted-data">
                             {visionResult.extractedData.nric && (
                               <span className="extracted-field">NRIC: {visionResult.extractedData.nric}</span>
@@ -1842,7 +1840,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                           </div>
                         )}
                         {/* Show raw text preview for Vision+Claude (OCR text) */}
-                        {visionResult && visionResult.rawText && !isExcelParse && (
+                        {visionResult?.rawText && !isExcelParse && (
                           <details className="raw-text-preview">
                             <summary>View OCR Text ({visionResult.rawText.length} chars)</summary>
                             <pre>{visionResult.rawText.substring(0, 500)}{visionResult.rawText.length > 500 ? '...' : ''}</pre>

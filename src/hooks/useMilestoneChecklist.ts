@@ -14,6 +14,7 @@ import {
 } from '@/constants/milestones';
 import { useCustomerStore } from '@/stores/useCustomerStore';
 import { useTodoStore } from '@/stores/useTodoStore';
+import { debug } from '@/utils/debug';
 import type { Customer, MilestoneId, ChecklistState, MilestoneDates } from '@/types';
 
 interface ToastHandlers {
@@ -29,12 +30,12 @@ interface UseMilestoneChecklistOptions {
   toast?: ToastHandlers;
 }
 
-// Default noop toast handlers (falls back to console if toast not provided)
+// Default noop toast handlers (falls back to debug if toast not provided)
 const defaultToast: ToastHandlers = {
-  success: (msg) => console.log('[SUCCESS]', msg),
-  error: (msg) => console.error('[ERROR]', msg),
-  info: (msg) => console.log('[INFO]', msg),
-  warning: (msg) => console.warn('[WARNING]', msg),
+  success: (msg) => debug.log('[SUCCESS]', msg),
+  error: (msg) => debug.error('[ERROR]', msg),
+  info: (msg) => debug.log('[INFO]', msg),
+  warning: (msg) => debug.warn('[WARNING]', msg),
 };
 
 export function useMilestoneChecklist({
@@ -142,7 +143,7 @@ export function useMilestoneChecklist({
 
         toast.success(`Created ${itemsToCreate.length} task(s) for ${milestone?.name}`);
       } catch (error) {
-        console.error('Failed to create todos:', error);
+        debug.error('Failed to create todos:', error);
         toast.error('Failed to create tasks. Please try again.');
       } finally {
         setIsCreatingTodos(false);
@@ -164,7 +165,7 @@ export function useMilestoneChecklist({
       });
       setHasChanges(false);
     } catch (error) {
-      console.error('Failed to save:', error);
+      debug.error('Failed to save:', error);
       toast.error('Failed to save changes. Please try again.');
     } finally {
       setIsSaving(false);

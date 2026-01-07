@@ -5,6 +5,7 @@
 
 import { uploadCustomerDocument } from './customerDocumentService';
 import { getSupabase } from '@/lib/supabase';
+import { debug } from '@/utils/debug';
 import type { Customer, DocumentChecklistState } from '@/types';
 
 // Map of old folder names/file patterns to new document types
@@ -105,7 +106,7 @@ function detectDocumentType(filename: string, folderName?: string): string {
   if (lowerFilename.endsWith('.pdf')) {
     return 'other';
   }
-  if (lowerFilename.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+  if (/\.(jpg|jpeg|png|gif|webp)$/i.exec(lowerFilename)) {
     return 'nric'; // Most images are ID documents
   }
 
@@ -131,11 +132,11 @@ export interface MigrationResult {
   uploaded: number;
   failed: number;
   errors: string[];
-  uploadedFiles: Array<{
+  uploadedFiles: {
     filename: string;
     documentType: string;
     milestone: string;
-  }>;
+  }[];
 }
 
 /**
@@ -144,7 +145,7 @@ export interface MigrationResult {
 async function uploadSingleFile(
   migrationFile: MigrationFile,
   customerName: string,
-  timeoutMs: number = 60000
+  timeoutMs = 60000
 ): Promise<{ success: boolean; doc?: any; error?: string; documentType: string; milestone: string }> {
   const documentType = (migrationFile as any).documentType || detectDocumentType(migrationFile.name, migrationFile.folder);
   const milestone = getMilestoneForDocType(documentType);
@@ -160,10 +161,10 @@ async function uploadSingleFile(
     });
 
     const uploadedDoc = await Promise.race([uploadPromise, timeoutPromise]);
-    console.log(`[Migration] Upload complete: ${migrationFile.name}`);
+    debug.log(`[Migration] Upload complete: ${migrationFile.name}`);
     return { success: true, doc: uploadedDoc, documentType, milestone };
   } catch (err) {
-    console.error(`[Migration] Failed: ${migrationFile.name}:`, err);
+    debug.error(`[Migration] Failed: ${migrationFile.name}:`, err);
     return { success: false, error: (err as Error).message, documentType, milestone };
   }
 }
@@ -179,18 +180,18 @@ export async function migrateCustomerDocuments(
 ): Promise<MigrationResult> {
   // Refresh session before starting uploads to ensure valid token
   // This is important after AI classification which can take time
-  console.log('[Migration] Refreshing session before uploads...');
+  debug.log('[Migration] Refreshing session before uploads...');
   const supabase = getSupabase();
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
     const { error: refreshError } = await supabase.auth.refreshSession();
     if (refreshError) {
-      console.warn('[Migration] Session refresh warning:', refreshError.message);
+      debug.warn('[Migration] Session refresh warning:', refreshError.message);
     } else {
-      console.log('[Migration] Session refreshed successfully');
+      debug.log('[Migration] Session refreshed successfully');
     }
   } else {
-    console.error('[Migration] No session found!');
+    debug.error('[Migration] No session found!');
     throw new Error('Not authenticated. Please sign in again.');
   }
 
@@ -202,7 +203,7 @@ export async function migrateCustomerDocuments(
     uploadedFiles: [],
   };
 
-  let currentChecklist: DocumentChecklistState = customer.document_checklist || {
+  const currentChecklist: DocumentChecklistState = customer.document_checklist || {
     test_drive: {},
     close_deal: {},
     registration: {},
@@ -219,7 +220,7 @@ export async function migrateCustomerDocuments(
     const batchNames = batch.map(f => f.name).join(', ');
 
     onProgress?.(i + 1, files.length, batchNames);
-    console.log(`[Migration] Uploading batch ${Math.floor(i / CONCURRENCY) + 1}: ${batchNames}`);
+    debug.log(`[Migration] Uploading batch ${Math.floor(i / CONCURRENCY) + 1}: ${batchNames}`);
 
     // Upload batch in parallel
     const batchPromises = batch.map(file => uploadSingleFile(file, customer.name, UPLOAD_TIMEOUT));
@@ -246,7 +247,7 @@ export async function migrateCustomerDocuments(
           uploadedAt: uploadResult.doc.uploadedAt,
         };
 
-        if (existingItem && existingItem.uploadedFiles) {
+        if (existingItem?.uploadedFiles) {
           existingItem.uploadedFiles.push(newFileEntry);
           existingItem.status = 'uploaded';
           existingItem.uploadedAt = new Date().toISOString();
@@ -296,12 +297,11 @@ export async function migrateCustomerDocuments(
  */
 export function createMigrationFiles(
   fileList: FileList,
-  _basePath: string = ''
+  _basePath = ''
 ): MigrationFile[] {
   const files: MigrationFile[] = [];
 
-  for (let i = 0; i < fileList.length; i++) {
-    const file = fileList[i];
+  for (const file of Array.from(fileList)) {
     // webkitRelativePath contains the folder structure
     const relativePath = (file as any).webkitRelativePath || file.name;
     const pathParts = relativePath.split('/');

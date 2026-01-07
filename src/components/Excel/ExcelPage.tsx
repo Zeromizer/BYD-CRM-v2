@@ -104,7 +104,7 @@ export function ExcelPage() {
   const getFilteredFields = () => {
     if (!fieldSearch) return fieldTypesByCategory;
 
-    const filtered: Record<string, Array<{ key: string; label: string }>> = {};
+    const filtered: Record<string, { key: string; label: string }[]> = {};
     const searchLower = fieldSearch.toLowerCase();
 
     for (const [category, fields] of Object.entries(fieldTypesByCategory)) {
@@ -384,7 +384,7 @@ export function ExcelPage() {
 
         try {
           let filePath: string | null = null;
-          let sheetNames = template.sheet_names;
+          const sheetNames = template.sheet_names;
 
           // Upload master file if available (skip parsing since we already have sheet names from mappings)
           if (template.masterFileBlob && template.masterFileName) {

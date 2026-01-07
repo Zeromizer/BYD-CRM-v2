@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect, useOptimistic, useTransition } from 'react';
 import { Check, Circle, Flag, Calendar, DotsThree, Trash } from '@phosphor-icons/react';
 import { useTodoStore } from '@/stores/useTodoStore';
+import { debug } from '@/utils/debug';
 import type { Todo, Priority } from '@/types';
 
 interface TaskItemProps {
@@ -60,7 +61,7 @@ export function TaskItem({ task, compact = false }: TaskItemProps) {
       try {
         await toggleTodo(task.id);
       } catch (error) {
-        console.error('Failed to toggle task:', error);
+        debug.error('Failed to toggle task:', error);
         // On error, the optimistic state will revert when task prop updates
       }
     });
@@ -71,7 +72,7 @@ export function TaskItem({ task, compact = false }: TaskItemProps) {
     try {
       await deleteTodo(task.id);
     } catch (error) {
-      console.error('Failed to delete task:', error);
+      debug.error('Failed to delete task:', error);
       setIsDeleting(false);
     }
   };

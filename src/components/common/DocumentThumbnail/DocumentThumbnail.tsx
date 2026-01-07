@@ -49,10 +49,10 @@ function DocumentThumbnailBase({
   const isVideo = mimeType?.startsWith('video/');
   const isExcel = mimeType?.includes('spreadsheet') ||
                   mimeType?.includes('excel') ||
-                  filename?.match(/\.(xlsx?|xls)$/i);
+                  /\.(xlsx?|xls)$/i.exec(filename);
   const isWord = mimeType?.includes('word') ||
                  mimeType?.includes('document') ||
-                 filename?.match(/\.(docx?|doc)$/i);
+                 /\.(docx?|doc)$/i.exec(filename);
 
   // Use IntersectionObserver to detect when thumbnail is visible
   useEffect(() => {

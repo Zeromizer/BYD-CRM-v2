@@ -114,7 +114,7 @@ export function getAvailableDocumentTypes(): { value: string; label: string }[] 
 async function pdfPageToImage(
   pdf: pdfjsLib.PDFDocumentProxy,
   pageNum: number,
-  scale: number = 2 // Higher for OCR accuracy
+  scale = 2 // Higher for OCR accuracy
 ): Promise<string> {
   const page = await pdf.getPage(pageNum);
   const viewport = page.getViewport({ scale });
@@ -506,7 +506,7 @@ export async function splitPdf(
   originalFile: File,
   splits: SplitDocument[],
   pageTexts: string[] = [],
-  removeBlankPages: boolean = true
+  removeBlankPages = true
 ): Promise<SplitDocument[]> {
   const arrayBuffer = await originalFile.arrayBuffer();
   const originalPdf = await PDFDocument.load(arrayBuffer);

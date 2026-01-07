@@ -147,10 +147,10 @@ export interface CustomerImportResult {
   imported: number;
   skipped: number;
   errors: string[];
-  customers: Array<{
+  customers: {
     customer: Omit<CustomerInsert, 'user_id'>;
     guarantors: Omit<GuarantorInsert, 'customer_id'>[];
-  }>;
+  }[];
 }
 
 /**
@@ -236,7 +236,7 @@ function getDefaultDocumentChecklist(): DocumentChecklistState {
  */
 function convertCustomer(old: OldCustomer): Omit<CustomerInsert, 'user_id'> {
   // Determine current milestone from checklist
-  let currentMilestone = old.checklist?.currentMilestone || 'test_drive';
+  const currentMilestone = old.checklist?.currentMilestone || 'test_drive';
 
   // Convert checklist - may have camelCase keys in old format
   let checklist = old.checklist;
@@ -417,7 +417,7 @@ function extractGuarantors(old: OldCustomer): Omit<GuarantorInsert, 'customer_id
   ] as const;
 
   for (const { field, position } of guarantorFields) {
-    if (field && field.name) {
+    if (field?.name) {
       guarantors.push(convertGuarantor(field, position));
     }
   }

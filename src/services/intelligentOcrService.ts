@@ -269,7 +269,7 @@ async function classifyExcelWithClaude(file: File): Promise<VisionClaudeResult> 
         const jsonData = XLSX.utils.sheet_to_json<unknown[]>(firstSheet, { header: 1 });
 
         // Get headers (first row) - may contain undefined/null values
-        const headers = (jsonData[0] as unknown[]) || [];
+        const headers = (jsonData[0]) || [];
 
         // Convert to objects with headers
         const rowsWithHeaders = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet);
@@ -527,7 +527,7 @@ async function classifySingleDocument(
 export async function classifyDocumentsWithVisionClaudeParallel(
   files: { file: File; name: string }[],
   onProgress?: (current: number, total: number, filename: string, result?: VisionClaudeResult) => void,
-  concurrency: number = 4
+  concurrency = 4
 ): Promise<{ file: File; name: string; classification: VisionClaudeResult }[]> {
   const results: { file: File; name: string; classification: VisionClaudeResult }[] = [];
   let completed = 0;
@@ -707,7 +707,7 @@ function calculateAge(dob: string | undefined): number {
 async function convertPdfPageToImage(
   pdf: pdfjsLib.PDFDocumentProxy,
   pageNum: number,
-  scale: number = 2
+  scale = 2
 ): Promise<string> {
   const page = await pdf.getPage(pageNum);
   const viewport = page.getViewport({ scale });
@@ -821,7 +821,7 @@ export async function parseExcelFile(file: File): Promise<VisionClaudeResult> {
         const jsonData = XLSX.utils.sheet_to_json<unknown[]>(firstSheet, { header: 1 });
 
         // Get headers (first row) - may contain undefined/null values
-        const headers = (jsonData[0] as unknown[]) || [];
+        const headers = (jsonData[0]) || [];
         // dataRows available if needed: jsonData.slice(1)
 
         // Convert to objects with headers

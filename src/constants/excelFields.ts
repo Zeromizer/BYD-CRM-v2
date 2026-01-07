@@ -212,8 +212,8 @@ export const PERCENTAGE_FIELDS = new Set([
 /**
  * Get field types grouped by category
  */
-export function getFieldTypesByCategory(): Record<string, Array<{ key: string; label: string }>> {
-  const grouped: Record<string, Array<{ key: string; label: string }>> = {};
+export function getFieldTypesByCategory(): Record<string, { key: string; label: string }[]> {
+  const grouped: Record<string, { key: string; label: string }[]> = {};
 
   Object.entries(FIELD_TYPES).forEach(([key, value]) => {
     const category = value.category;

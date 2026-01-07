@@ -5,6 +5,7 @@
  */
 
 import { getSupabase } from '@/lib/supabase';
+import { debug } from '@/utils/debug';
 
 export interface ExtractedIDData {
   name: string;
@@ -55,9 +56,9 @@ export async function extractIDWithGemini(
 
   onProgress?.({ stage: 'Processing with AI...', progress: 30 });
 
-  console.log('Calling extract-id Edge Function...');
-  console.log('Front image size:', frontImageData.length, 'chars');
-  console.log('Back image size:', backImageData?.length || 0, 'chars');
+  debug.log('Calling extract-id Edge Function...');
+  debug.log('Front image size:', frontImageData.length, 'chars');
+  debug.log('Back image size:', backImageData?.length || 0, 'chars');
 
   const { data, error } = await supabase.functions.invoke('extract-id', {
     body: {
@@ -67,12 +68,12 @@ export async function extractIDWithGemini(
     },
   });
 
-  console.log('Edge Function response:', { data, error });
+  debug.log('Edge Function response:', { data, error });
 
   onProgress?.({ stage: 'Parsing results...', progress: 80 });
 
   if (error) {
-    console.error('Edge Function error details:', error);
+    debug.error('Edge Function error details:', error);
     throw new Error(error.message || 'Failed to process ID. Please try again.');
   }
 
@@ -121,12 +122,12 @@ export async function extractLicenseWithGemini(
   });
 
   if (error) {
-    console.error('License extraction error:', error);
+    debug.error('License extraction error:', error);
     return { licenseStartDate: '', confidence: 0 };
   }
 
   if (data.error) {
-    console.error('License extraction error:', data.error);
+    debug.error('License extraction error:', data.error);
     return { licenseStartDate: '', confidence: 0 };
   }
 

@@ -165,8 +165,8 @@ export const FIELD_TYPES: Record<string, FieldType> = {
 /**
  * Get field types grouped by category
  */
-export function getFieldTypesByCategory(): Record<string, Array<{ key: string } & FieldType>> {
-  const grouped: Record<string, Array<{ key: string } & FieldType>> = {};
+export function getFieldTypesByCategory(): Record<string, ({ key: string } & FieldType)[]> {
+  const grouped: Record<string, ({ key: string } & FieldType)[]> = {};
 
   Object.entries(FIELD_TYPES).forEach(([key, value]) => {
     const category = value.category;

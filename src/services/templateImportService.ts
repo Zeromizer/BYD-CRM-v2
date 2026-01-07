@@ -240,7 +240,7 @@ export function convertTemplates(
       };
 
       // Attach master file if available
-      if (data._masterFiles && data._masterFiles[oldTemplate.id]) {
+      if (data._masterFiles?.[oldTemplate.id]) {
         convertedTemplate.masterFileBlob = data._masterFiles[oldTemplate.id].blob;
         convertedTemplate.masterFileName = data._masterFiles[oldTemplate.id].filename;
       }

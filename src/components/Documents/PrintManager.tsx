@@ -11,6 +11,7 @@ import { useDocumentStore } from '@/stores/useDocumentStore';
 import { useCustomerStore } from '@/stores/useCustomerStore';
 import { getAllCustomerDocuments, type CustomerDocument } from '@/services/customerDocumentService';
 import { formatCurrencySGD as formatCurrency } from '@/utils/formatting';
+import { debug } from '@/utils/debug';
 import type { DocumentTemplate, Customer, Guarantor } from '@/types';
 import './PrintManager.css';
 
@@ -75,7 +76,7 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
       }
       setCustomerPhotos(images);
     } catch (error) {
-      console.error('Error loading customer photos:', error);
+      debug.error('Error loading customer photos:', error);
       setCustomerPhotos([]);
     } finally {
       setIsLoadingPhotos(false);
@@ -517,7 +518,7 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
                 pdf.addImage(photoData, 'JPEG', drawX, drawY, drawWidth, drawHeight);
               }
             } catch (err) {
-              console.error(`Error loading photo ${j}:`, err);
+              debug.error(`Error loading photo ${j}:`, err);
             }
           }
         }
@@ -527,7 +528,7 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
       const fileName = `${selectedCustomer.name}_${selectedTemplates.map((t) => t.name).join('_')}.pdf`;
       pdf.save(fileName);
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      debug.error('Error generating PDF:', error);
     } finally {
       setIsGeneratingPdf(false);
     }

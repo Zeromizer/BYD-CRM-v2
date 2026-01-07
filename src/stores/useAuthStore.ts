@@ -92,20 +92,22 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             supabase.auth.onAuthStateChange((event, session) => {
               if (event === 'SIGNED_IN' && session?.user) {
                 // Dispatch async work outside callback to avoid deadlock
-                setTimeout(async () => {
-                  const { data: profile } = await getSupabase()
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
+                setTimeout(() => {
+                  void (async () => {
+                    const { data: profile } = await getSupabase()
+                      .from('profiles')
+                      .select('*')
+                      .eq('id', session.user.id)
+                      .single();
 
-                  loadGeminiApiKey().catch(console.error);
+                    loadGeminiApiKey().catch(console.error);
 
-                  useAuthStore.setState((state) => {
-                    state.user = session.user;
-                    state.session = session;
-                    state.profile = profile as Profile | null;
-                  });
+                    useAuthStore.setState((state) => {
+                      state.user = session.user;
+                      state.session = session;
+                      state.profile = profile as Profile | null;
+                    });
+                  })();
                 }, 0);
               } else if (event === 'SIGNED_OUT') {
                 clearGeminiApiKeyCache();

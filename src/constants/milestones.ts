@@ -169,7 +169,7 @@ export function getMilestoneUrgency(dateString: string | null): 'overdue' | 'urg
  * Calculate milestone completion percentage
  */
 export function getMilestoneProgress(milestoneId: MilestoneId, checklistState: ChecklistState | null): number {
-  if (!checklistState || !checklistState[milestoneId]) {
+  if (!checklistState?.[milestoneId]) {
     return 0;
   }
 

@@ -111,7 +111,7 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
       if (renderTaskRef.current) {
         try {
           renderTaskRef.current.cancel();
-        } catch (e) {
+        } catch (_e) {
           // Ignore cancel errors
         }
         renderTaskRef.current = null;
@@ -168,7 +168,7 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
       if (renderTaskRef.current) {
         try {
           renderTaskRef.current.cancel();
-        } catch (e) {
+        } catch (_e) {
           // Ignore cancel errors
         }
       }

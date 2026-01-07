@@ -16,7 +16,7 @@ import './Dashboard.css';
  */
 function dataUrlToFile(dataUrl: string, filename: string): File {
   const arr = dataUrl.split(',');
-  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const mime = (/:(.*?);/.exec(arr[0]))?.[1] || 'image/jpeg';
   const bstr = atob(arr[1]);
   let n = bstr.length;
   const u8arr = new Uint8Array(n);
@@ -101,7 +101,7 @@ function DesktopDashboard() {
             .then(() => console.log('Scanned ID images uploaded successfully'))
             .catch((err) => console.error('Failed to upload scanned images:', err));
         }
-      } catch (err) {
+      } catch (_err) {
         error('Failed to create customer');
       }
     });

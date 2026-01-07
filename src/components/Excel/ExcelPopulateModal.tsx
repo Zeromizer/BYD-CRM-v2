@@ -65,7 +65,7 @@ export function ExcelPopulateModal({
     if (!selectedTemplate) return [];
 
     const dataMapping = getCustomerDataMapping(customer, guarantors);
-    const preview: Array<{ cell: string; field: string; value: string }> = [];
+    const preview: { cell: string; field: string; value: string }[] = [];
 
     for (const [sheetName, cellMappings] of Object.entries(
       selectedTemplate.field_mappings || {}

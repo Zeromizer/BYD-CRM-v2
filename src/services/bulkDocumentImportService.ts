@@ -215,7 +215,7 @@ async function classifyImageOrPdfDocument(file: File): Promise<DocumentClassific
         rawText: result.rawText,
       };
     }
-  } catch (err) {
+  } catch (_err) {
     // Not an NRIC, try next
   }
 
@@ -238,7 +238,7 @@ async function classifyImageOrPdfDocument(file: File): Promise<DocumentClassific
         rawText: result.rawText,
       };
     }
-  } catch (err) {
+  } catch (_err) {
     // Not a VSA form, try generic classification
   }
 

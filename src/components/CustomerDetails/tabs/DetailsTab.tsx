@@ -105,7 +105,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
         }
         await onUpdate(customer.id, updates);
         success('Customer details saved');
-      } catch (err) {
+      } catch (_err) {
         toastError('Failed to save customer details');
       }
     });
@@ -139,7 +139,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
       try {
         await saveGuarantors(customer.id, guarantors);
         success('Guarantors saved');
-      } catch (err) {
+      } catch (_err) {
         toastError('Failed to save guarantors');
       }
     });

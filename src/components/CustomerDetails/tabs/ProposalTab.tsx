@@ -164,7 +164,7 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
       try {
         await onUpdate(customer.id, updates);
         success('Proposal saved');
-      } catch (err) {
+      } catch (_err) {
         toastError('Failed to save proposal');
       }
     });

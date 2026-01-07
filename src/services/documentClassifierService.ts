@@ -5,6 +5,7 @@
  */
 
 import { getSupabase } from '@/lib/supabase';
+import { debug } from '@/utils/debug';
 
 // Document types that can be classified
 export const DOCUMENT_TYPES = {
@@ -81,8 +82,8 @@ export async function classifyDocument(
 
   onProgress?.({ stage: 'Processing with AI...', progress: 30 });
 
-  console.log('Calling classify-document Edge Function...');
-  console.log('Image data size:', imageData.length, 'chars');
+  debug.log('Calling classify-document Edge Function...');
+  debug.log('Image data size:', imageData.length, 'chars');
 
   // Add timeout to prevent hanging
   const timeoutMs = 20000; // 20 seconds timeout
@@ -96,12 +97,12 @@ export async function classifyDocument(
 
   const { data, error } = await Promise.race([classifyPromise, timeoutPromise]);
 
-  console.log('Edge Function response:', { data, error });
+  debug.log('Edge Function response:', { data, error });
 
   onProgress?.({ stage: 'Parsing results...', progress: 80 });
 
   if (error) {
-    console.error('Document classification error:', error);
+    debug.error('Document classification error:', error);
     throw new Error(error.message || 'Failed to classify document. Please try again.');
   }
 
@@ -135,11 +136,11 @@ async function classifySingleFile(
   file: File,
   name: string
 ): Promise<{ file: File; name: string; classification: ClassificationResult }> {
-  console.log(`[classifySingleFile] Starting: ${name}, type: ${file.type}, size: ${file.size}`);
+  debug.log(`[classifySingleFile] Starting: ${name}, type: ${file.type}, size: ${file.size}`);
 
   // 30 second timeout per file
   const TOTAL_TIMEOUT = 30000;
-  console.log(`[classifySingleFile] Timeout: 30s, size: ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
+  debug.log(`[classifySingleFile] Timeout: 30s, size: ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
 
   const classifyWithTimeout = async (): Promise<ClassificationResult> => {
     // Check if it's a supported file type
@@ -156,7 +157,7 @@ async function classifySingleFile(
       let docType: DocumentTypeId = 'other';
       let docTypeName = 'Other Document';
       let folder = 'Other';
-      let milestone: string = 'test_drive';
+      let milestone = 'test_drive';
       let confidence = 70;
 
       // Try to identify document type from filename
@@ -196,7 +197,7 @@ async function classifySingleFile(
       const nameParts = name.replace(/[_-]/g, ' ').split(' ');
       const customerName = nameParts.length >= 2 ? `${nameParts[0]} ${nameParts[1]}` : '';
 
-      console.log(`[classifySingleFile] Excel file classified by filename: ${docType}`);
+      debug.log(`[classifySingleFile] Excel file classified by filename: ${docType}`);
       return {
         documentType: docType,
         documentTypeName: docTypeName,
@@ -224,12 +225,12 @@ async function classifySingleFile(
       };
     }
 
-    console.log(`[classifySingleFile] Converting to base64: ${name}`);
+    debug.log(`[classifySingleFile] Converting to base64: ${name}`);
     const imageData = await fileToBase64(file);
-    console.log(`[classifySingleFile] Base64 done: ${name}, length: ${imageData.length}`);
+    debug.log(`[classifySingleFile] Base64 done: ${name}, length: ${imageData.length}`);
 
     const classification = await classifyDocument(imageData);
-    console.log(`[classifySingleFile] Classification done: ${name}`);
+    debug.log(`[classifySingleFile] Classification done: ${name}`);
     return classification;
   };
 
@@ -239,10 +240,10 @@ async function classifySingleFile(
     });
 
     const classification = await Promise.race([classifyWithTimeout(), timeoutPromise]);
-    console.log(`[classifySingleFile] Complete: ${name}`);
+    debug.log(`[classifySingleFile] Complete: ${name}`);
     return { file, name, classification };
   } catch (err) {
-    console.error(`[classifySingleFile] Failed: ${name}:`, err);
+    debug.error(`[classifySingleFile] Failed: ${name}:`, err);
     return {
       file,
       name,
@@ -274,14 +275,14 @@ export async function classifyDocuments(
   const BATCH_DELAY = 1500; // 1.5 seconds between API calls
 
   const totalBatches = Math.ceil(files.length / BATCH_SIZE);
-  console.log(`[Queue] Starting classification for ${files.length} files (${totalBatches} batches, size ${BATCH_SIZE})`);
+  debug.log(`[Queue] Starting classification for ${files.length} files (${totalBatches} batches, size ${BATCH_SIZE})`);
 
   // Process files in batches
   for (let i = 0; i < files.length; i += BATCH_SIZE) {
     const batch = files.slice(i, i + BATCH_SIZE);
     const batchNum = Math.floor(i / BATCH_SIZE) + 1;
 
-    console.log(`[Queue] Processing batch ${batchNum}/${totalBatches}: ${batch.map(f => f.name).join(', ')}`);
+    debug.log(`[Queue] Processing batch ${batchNum}/${totalBatches}: ${batch.map(f => f.name).join(', ')}`);
 
     // Report progress for batch start
     onProgress?.(i + 1, files.length, batch.map(f => f.name).join(', '));
@@ -305,12 +306,12 @@ export async function classifyDocuments(
 
     // Delay between batches (only if API calls were made and more batches remain)
     if (hadApiCalls && i + BATCH_SIZE < files.length) {
-      console.log(`[Queue] Waiting ${BATCH_DELAY}ms before next batch...`);
+      debug.log(`[Queue] Waiting ${BATCH_DELAY}ms before next batch...`);
       await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
     }
   }
 
-  console.log(`[Queue] Completed classification for ${results.length} files`);
+  debug.log(`[Queue] Completed classification for ${results.length} files`);
   return results;
 }
 
