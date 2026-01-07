@@ -14,7 +14,6 @@ type Theme = 'light' | 'dark' | 'cool';
 
 interface HeaderProps {
   theme: Theme;
-  onCycleTheme: () => void;
   onSetTheme: (theme: Theme) => void;
 }
 
@@ -24,7 +23,7 @@ const THEME_CONFIG = {
   cool: { icon: Snowflake, label: 'Cool', next: 'Light Mode' },
 } as const;
 
-export function Header({ theme, onCycleTheme, onSetTheme }: HeaderProps) {
+export function Header({ theme, onSetTheme }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
