@@ -31,7 +31,7 @@ export default defineConfig({
     }),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
         name: 'BYD CRM',
         short_name: 'BYD CRM',
@@ -42,9 +42,9 @@ export default defineConfig({
         start_url: '/BYD-CRM-v2/',
         scope: '/BYD-CRM-v2/',
         icons: [
-          { src: 'pwa-192x192.svg', sizes: '192x192', type: 'image/svg+xml' },
-          { src: 'pwa-512x512.svg', sizes: '512x512', type: 'image/svg+xml' },
-          { src: 'pwa-512x512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'maskable' },
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
