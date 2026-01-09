@@ -121,9 +121,82 @@
   filter: brightness(1.1);
 }
 
+.current-milestone-badge.active {
+  filter: brightness(1.1);
+}
+
+.current-milestone-badge .chevron-icon {
+  transition: transform 0.15s ease;
+}
+
+.current-milestone-badge .chevron-icon.rotated {
+  transform: rotate(180deg);
+}
+
 .current-milestone-badge span {
   flex: 1;
   text-align: left;
+}
+
+/* Milestone Dropdown */
+.milestone-dropdown-container {
+  position: relative;
+}
+
+.milestone-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.milestone-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-align: left;
+}
+
+.milestone-dropdown-item:hover {
+  background: var(--bg-secondary);
+}
+
+.milestone-dropdown-item.selected {
+  background: var(--bg-secondary);
+}
+
+.milestone-dropdown-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.milestone-dropdown-label {
+  flex: 1;
+}
+
+.milestone-dropdown-check {
+  color: #059669;
+  flex-shrink: 0;
 }
 
 /* Next Steps Section */
@@ -148,7 +221,7 @@
   background: var(--bg-secondary);
 }
 
-.next-step-item input[type="checkbox"] {
+.next-step-item input[type='checkbox'] {
   position: absolute;
   opacity: 0;
   width: 0;
@@ -291,7 +364,7 @@
   background: var(--bg-secondary);
 }
 
-.checklist-row input[type="checkbox"] {
+.checklist-row input[type='checkbox'] {
   position: absolute;
   opacity: 0;
   width: 0;
@@ -669,7 +742,7 @@
 }
 
 .add-task-form textarea,
-.add-task-form input[type="date"],
+.add-task-form input[type='date'],
 .add-task-form select {
   padding: 0.5rem 0.625rem;
   font-size: 0.8125rem;
@@ -782,19 +855,19 @@
 }
 
 /* Dark Theme Overrides */
-[data-theme="dark"] .sidebar-save-bar {
+[data-theme='dark'] .sidebar-save-bar {
   background: linear-gradient(135deg, #422006 0%, #78350f 100%);
   border-color: #b45309;
   color: #fcd34d;
 }
 
-[data-theme="dark"] .sidebar-save-actions button {
+[data-theme='dark'] .sidebar-save-actions button {
   background: #374151;
   border-color: #4b5563;
   color: #e5e7eb;
 }
 
-[data-theme="dark"] .sidebar-save-actions button:hover:not(:disabled) {
+[data-theme='dark'] .sidebar-save-actions button:hover:not(:disabled) {
   background: #4b5563;
 }
 
@@ -836,6 +909,18 @@
 .progress-sidebar.mobile .current-milestone-badge {
   padding: 12px 16px;
   font-size: 1rem;
+}
+
+/* Mobile Milestone Dropdown */
+.progress-sidebar.mobile .milestone-dropdown-item {
+  padding: 12px 16px;
+  min-height: var(--touch-target-min);
+  font-size: 0.9375rem;
+}
+
+.progress-sidebar.mobile .milestone-dropdown-icon {
+  width: 28px;
+  height: 28px;
 }
 
 /* Mobile Next Steps */
