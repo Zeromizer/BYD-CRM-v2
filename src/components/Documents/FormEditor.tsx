@@ -3,10 +3,10 @@
  * Visual canvas-based field mapping editor for document templates
  */
 
-import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, UploadSimple, FloppyDisk, Trash, TextT } from '@phosphor-icons/react';
-import { Button, Modal } from '@/components/common';
-import { useDocumentStore } from '@/stores/useDocumentStore';
+import { useState, useRef, useEffect } from 'react'
+import { ArrowLeft, UploadSimple, FloppyDisk, Trash, TextT } from '@phosphor-icons/react'
+import { Button, Modal } from '@/components/common'
+import { useDocumentStore } from '@/stores/useDocumentStore'
 import {
   FONT_SIZES,
   FONT_FAMILIES,
@@ -14,62 +14,63 @@ import {
   getFieldTypesByCategory,
   getFieldLabel,
   getFieldExampleData,
-} from '@/constants/fieldTypes';
-import type { DocumentTemplate, FieldConfig, FieldMappings, TextAlign } from '@/types';
-import './FormEditor.css';
+  getFieldDefaultSize,
+} from '@/constants/fieldTypes'
+import type { DocumentTemplate, FieldConfig, FieldMappings, TextAlign } from '@/types'
+import './FormEditor.css'
 
 interface FormEditorProps {
-  template: DocumentTemplate;
-  onClose: () => void;
-  onSave?: () => void;
+  template: DocumentTemplate
+  onClose: () => void
+  onSave?: () => void
 }
 
 interface DragState {
-  isDragging: boolean;
-  fieldId: string | null;
-  startX: number;
-  startY: number;
-  originalX: number;
-  originalY: number;
+  isDragging: boolean
+  fieldId: string | null
+  startX: number
+  startY: number
+  originalX: number
+  originalY: number
 }
 
 interface ResizeState {
-  isResizing: boolean;
-  fieldId: string | null;
-  handle: 'e' | 'w' | 's' | 'n' | 'se' | 'sw' | 'ne' | 'nw' | null;
-  startX: number;
-  startY: number;
-  originalWidth: number;
-  originalHeight: number;
-  originalX: number;
-  originalY: number;
+  isResizing: boolean
+  fieldId: string | null
+  handle: 'e' | 'w' | 's' | 'n' | 'se' | 'sw' | 'ne' | 'nw' | null
+  startX: number
+  startY: number
+  originalWidth: number
+  originalHeight: number
+  originalX: number
+  originalY: number
 }
 
-type ToolMode = 'select' | 'pan' | 'add';
+type ToolMode = 'select' | 'pan' | 'add'
 
 const DEFAULT_FIELD: Omit<FieldConfig, 'type'> = {
   x: 100,
   y: 100,
-  width: 300,
-  height: 40,
-  fontSize: 14,
+  width: 500,
+  height: 50,
+  fontSize: 32,
   fontFamily: 'Arial',
   textAlign: 'left',
   color: '#000000',
-};
+}
 
 export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
-  const { updateFieldMappings, uploadTemplateImage, updateTemplate, isSaving } = useDocumentStore();
+  const { updateFieldMappings, uploadTemplateImage, updateTemplate, isSaving } = useDocumentStore()
 
   // Field state
-  const [fields, setFields] = useState<FieldMappings>(template.fields || {});
-  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [fields, setFields] = useState<FieldMappings>(template.fields || {})
+  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
   // Canvas state
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [toolMode, setToolMode] = useState<ToolMode>('select');
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const [toolMode, setToolMode] = useState<ToolMode>('select')
 
   // Drag & resize state
   const [dragState, setDragState] = useState<DragState>({
@@ -79,7 +80,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
     startY: 0,
     originalX: 0,
     originalY: 0,
-  });
+  })
   const [resizeState, setResizeState] = useState<ResizeState>({
     isResizing: false,
     fieldId: null,
@@ -90,93 +91,104 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
     originalHeight: 0,
     originalX: 0,
     originalY: 0,
-  });
-  const [isPanning, setIsPanning] = useState(false);
-  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  })
+  const [isPanning, setIsPanning] = useState(false)
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 })
 
   // Modal state
-  const [showAddFieldModal, setShowAddFieldModal] = useState(false);
-  const [showImageUpload, setShowImageUpload] = useState(false);
+  const [showAddFieldModal, setShowAddFieldModal] = useState(false)
+  const [showImageUpload, setShowImageUpload] = useState(false)
+
+  // Pending field for click-to-place
+  const [pendingFieldType, setPendingFieldType] = useState<string | null>(null)
 
   // Image dimensions for fit-to-screen
-  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(
+    null
+  )
 
   // Refs
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const imageRef = useRef<HTMLImageElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const selectedField = selectedFieldId ? fields[selectedFieldId] : null;
+  const selectedField = selectedFieldId ? fields[selectedFieldId] : null
 
   // Handle image load - auto fit to screen
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = e.currentTarget;
-    setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+    const img = e.currentTarget
+    setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight })
 
     // Auto fit to container on first load
     if (containerRef.current && zoom === 1) {
-      const containerWidth = containerRef.current.clientWidth - 40;
-      const containerHeight = containerRef.current.clientHeight - 40;
-      const scaleX = containerWidth / img.naturalWidth;
-      const scaleY = containerHeight / img.naturalHeight;
-      const fitZoom = Math.min(scaleX, scaleY, 1);
-      setZoom(Math.max(0.1, fitZoom));
+      const containerWidth = containerRef.current.clientWidth - 40
+      const containerHeight = containerRef.current.clientHeight - 40
+      const scaleX = containerWidth / img.naturalWidth
+      const scaleY = containerHeight / img.naturalHeight
+      const fitZoom = Math.min(scaleX, scaleY, 1)
+      setZoom(Math.max(0.1, fitZoom))
     }
-  };
+  }
 
   // Fit image to screen
   const fitToScreen = () => {
-    if (!imageDimensions || !containerRef.current) return;
-    const containerWidth = containerRef.current.clientWidth - 40;
-    const containerHeight = containerRef.current.clientHeight - 40;
-    const scaleX = containerWidth / imageDimensions.width;
-    const scaleY = containerHeight / imageDimensions.height;
-    const fitZoom = Math.min(scaleX, scaleY, 1);
-    setZoom(Math.max(0.1, fitZoom));
-    setPan({ x: 0, y: 0 });
-  };
+    if (!imageDimensions || !containerRef.current) return
+    const containerWidth = containerRef.current.clientWidth - 40
+    const containerHeight = containerRef.current.clientHeight - 40
+    const scaleX = containerWidth / imageDimensions.width
+    const scaleY = containerHeight / imageDimensions.height
+    const fitZoom = Math.min(scaleX, scaleY, 1)
+    setZoom(Math.max(0.1, fitZoom))
+    setPan({ x: 0, y: 0 })
+  }
 
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Delete' && selectedFieldId) {
-        deleteField(selectedFieldId);
+        deleteField(selectedFieldId)
       } else if (e.key === 'Escape') {
-        setSelectedFieldId(null);
+        // Cancel placement mode first, or deselect field
+        if (pendingFieldType) {
+          setPendingFieldType(null)
+          setToolMode('select')
+        } else {
+          setSelectedFieldId(null)
+        }
       } else if (e.ctrlKey && e.key === 's') {
-        e.preventDefault();
-        handleSave();
+        e.preventDefault()
+        handleSave()
       }
-    };
+    }
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedFieldId]);
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedFieldId, pendingFieldType])
 
   // Handle mouse wheel zoom
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const container = containerRef.current
+    if (!container) return
 
     const handleWheel = (e: WheelEvent) => {
       if (e.ctrlKey) {
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        setZoom((z) => Math.max(0.1, Math.min(3, z + delta)));
+        e.preventDefault()
+        const delta = e.deltaY > 0 ? -0.1 : 0.1
+        setZoom((z) => Math.max(0.1, Math.min(3, z + delta)))
       }
-    };
+    }
 
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    return () => container.removeEventListener('wheel', handleWheel);
-  }, []);
+    container.addEventListener('wheel', handleWheel, { passive: false })
+    return () => container.removeEventListener('wheel', handleWheel)
+  }, [])
 
   // Mouse move handler for drag and resize
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (dragState.isDragging && dragState.fieldId) {
-        const dx = (e.clientX - dragState.startX) / zoom;
-        const dy = (e.clientY - dragState.startY) / zoom;
+        const dx = (e.clientX - dragState.startX) / zoom
+        const dy = (e.clientY - dragState.startY) / zoom
 
         setFields((prev) => ({
           ...prev,
@@ -185,54 +197,54 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
             x: Math.max(0, dragState.originalX + dx),
             y: Math.max(0, dragState.originalY + dy),
           },
-        }));
-        setHasUnsavedChanges(true);
+        }))
+        setHasUnsavedChanges(true)
       } else if (resizeState.isResizing && resizeState.fieldId) {
-        const dx = (e.clientX - resizeState.startX) / zoom;
-        const dy = (e.clientY - resizeState.startY) / zoom;
+        const dx = (e.clientX - resizeState.startX) / zoom
+        const dy = (e.clientY - resizeState.startY) / zoom
 
         setFields((prev) => {
-          const field = prev[resizeState.fieldId!];
-          let newWidth = resizeState.originalWidth;
-          let newHeight = resizeState.originalHeight;
-          let newX = resizeState.originalX;
-          let newY = resizeState.originalY;
+          const field = prev[resizeState.fieldId!]
+          let newWidth = resizeState.originalWidth
+          let newHeight = resizeState.originalHeight
+          let newX = resizeState.originalX
+          let newY = resizeState.originalY
 
           switch (resizeState.handle) {
             case 'e':
-              newWidth = Math.max(50, resizeState.originalWidth + dx);
-              break;
+              newWidth = Math.max(50, resizeState.originalWidth + dx)
+              break
             case 'w':
-              newWidth = Math.max(50, resizeState.originalWidth - dx);
-              newX = resizeState.originalX + dx;
-              break;
+              newWidth = Math.max(50, resizeState.originalWidth - dx)
+              newX = resizeState.originalX + dx
+              break
             case 's':
-              newHeight = Math.max(20, resizeState.originalHeight + dy);
-              break;
+              newHeight = Math.max(20, resizeState.originalHeight + dy)
+              break
             case 'n':
-              newHeight = Math.max(20, resizeState.originalHeight - dy);
-              newY = resizeState.originalY + dy;
-              break;
+              newHeight = Math.max(20, resizeState.originalHeight - dy)
+              newY = resizeState.originalY + dy
+              break
             case 'se':
-              newWidth = Math.max(50, resizeState.originalWidth + dx);
-              newHeight = Math.max(20, resizeState.originalHeight + dy);
-              break;
+              newWidth = Math.max(50, resizeState.originalWidth + dx)
+              newHeight = Math.max(20, resizeState.originalHeight + dy)
+              break
             case 'sw':
-              newWidth = Math.max(50, resizeState.originalWidth - dx);
-              newX = resizeState.originalX + dx;
-              newHeight = Math.max(20, resizeState.originalHeight + dy);
-              break;
+              newWidth = Math.max(50, resizeState.originalWidth - dx)
+              newX = resizeState.originalX + dx
+              newHeight = Math.max(20, resizeState.originalHeight + dy)
+              break
             case 'ne':
-              newWidth = Math.max(50, resizeState.originalWidth + dx);
-              newHeight = Math.max(20, resizeState.originalHeight - dy);
-              newY = resizeState.originalY + dy;
-              break;
+              newWidth = Math.max(50, resizeState.originalWidth + dx)
+              newHeight = Math.max(20, resizeState.originalHeight - dy)
+              newY = resizeState.originalY + dy
+              break
             case 'nw':
-              newWidth = Math.max(50, resizeState.originalWidth - dx);
-              newX = resizeState.originalX + dx;
-              newHeight = Math.max(20, resizeState.originalHeight - dy);
-              newY = resizeState.originalY + dy;
-              break;
+              newWidth = Math.max(50, resizeState.originalWidth - dx)
+              newX = resizeState.originalX + dx
+              newHeight = Math.max(20, resizeState.originalHeight - dy)
+              newY = resizeState.originalY + dy
+              break
           }
 
           return {
@@ -244,57 +256,65 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
               x: newX,
               y: newY,
             },
-          };
-        });
-        setHasUnsavedChanges(true);
+          }
+        })
+        setHasUnsavedChanges(true)
       } else if (isPanning) {
-        const dx = e.clientX - panStart.x;
-        const dy = e.clientY - panStart.y;
-        setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
-        setPanStart({ x: e.clientX, y: e.clientY });
+        const dx = e.clientX - panStart.x
+        const dy = e.clientY - panStart.y
+        setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }))
+        setPanStart({ x: e.clientX, y: e.clientY })
       }
-    };
+    }
 
     const handleMouseUp = () => {
-      setDragState((prev) => ({ ...prev, isDragging: false, fieldId: null }));
-      setResizeState((prev) => ({ ...prev, isResizing: false, fieldId: null, handle: null }));
-      setIsPanning(false);
-    };
+      setDragState((prev) => ({ ...prev, isDragging: false, fieldId: null }))
+      setResizeState((prev) => ({ ...prev, isResizing: false, fieldId: null, handle: null }))
+      setIsPanning(false)
+    }
 
     if (dragState.isDragging || resizeState.isResizing || isPanning) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('mousemove', handleMouseMove)
+      window.addEventListener('mouseup', handleMouseUp)
     }
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [dragState, resizeState, isPanning, panStart, zoom]);
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [dragState, resizeState, isPanning, panStart, zoom])
 
   const handleCanvasMouseDown = (e: React.MouseEvent) => {
     if (toolMode === 'pan' || e.button === 1) {
-      setIsPanning(true);
-      setPanStart({ x: e.clientX, y: e.clientY });
-      e.preventDefault();
+      setIsPanning(true)
+      setPanStart({ x: e.clientX, y: e.clientY })
+      e.preventDefault()
+    } else if (toolMode === 'add' && pendingFieldType) {
+      // Click-to-place: create field at clicked position
+      const rect = canvasRef.current?.getBoundingClientRect()
+      if (rect) {
+        const x = (e.clientX - rect.left - pan.x) / zoom
+        const y = (e.clientY - rect.top - pan.y) / zoom
+        createFieldAtPosition(pendingFieldType, x, y)
+      }
     } else if (toolMode === 'select') {
       // Deselect when clicking empty canvas
       if (e.target === canvasRef.current || e.target === imageRef.current) {
-        setSelectedFieldId(null);
+        setSelectedFieldId(null)
       }
     }
-  };
+  }
 
   const handleFieldMouseDown = (e: React.MouseEvent, fieldId: string) => {
-    e.stopPropagation();
+    e.stopPropagation()
 
     // Always allow selecting and dragging fields, auto-switch to select mode
     if (toolMode !== 'select') {
-      setToolMode('select');
+      setToolMode('select')
     }
 
-    setSelectedFieldId(fieldId);
-    const field = fields[fieldId];
+    setSelectedFieldId(fieldId)
+    const field = fields[fieldId]
 
     setDragState({
       isDragging: true,
@@ -303,16 +323,16 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
       startY: e.clientY,
       originalX: field.x,
       originalY: field.y,
-    });
-  };
+    })
+  }
 
   const handleResizeMouseDown = (
     e: React.MouseEvent,
     fieldId: string,
     handle: ResizeState['handle']
   ) => {
-    e.stopPropagation();
-    const field = fields[fieldId];
+    e.stopPropagation()
+    const field = fields[fieldId]
 
     setResizeState({
       isResizing: true,
@@ -324,36 +344,50 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
       originalHeight: field.height,
       originalX: field.x,
       originalY: field.y,
-    });
-  };
+    })
+  }
 
+  // Enter placement mode - field will be created when user clicks on canvas
   const addField = (fieldType: string) => {
-    const fieldId = `field_${Date.now()}`;
+    setPendingFieldType(fieldType)
+    setToolMode('add')
+    setShowAddFieldModal(false)
+  }
+
+  // Create field at the clicked position with smart sizing
+  const createFieldAtPosition = (fieldType: string, x: number, y: number) => {
+    const fieldId = `field_${Date.now()}`
+    const { width, height } = getFieldDefaultSize(fieldType)
     const newField: FieldConfig = {
       ...DEFAULT_FIELD,
       type: fieldType,
-    };
+      x: Math.max(0, x),
+      y: Math.max(0, y),
+      width,
+      height,
+    }
 
     setFields((prev) => ({
       ...prev,
       [fieldId]: newField,
-    }));
-    setSelectedFieldId(fieldId);
-    setHasUnsavedChanges(true);
-    setShowAddFieldModal(false);
-  };
+    }))
+    setSelectedFieldId(fieldId)
+    setHasUnsavedChanges(true)
+    setPendingFieldType(null)
+    setToolMode('select')
+  }
 
   const deleteField = (fieldId: string) => {
     setFields((prev) => {
-      const newFields = { ...prev };
-      delete newFields[fieldId];
-      return newFields;
-    });
+      const newFields = { ...prev }
+      delete newFields[fieldId]
+      return newFields
+    })
     if (selectedFieldId === fieldId) {
-      setSelectedFieldId(null);
+      setSelectedFieldId(null)
     }
-    setHasUnsavedChanges(true);
-  };
+    setHasUnsavedChanges(true)
+  }
 
   const updateField = (fieldId: string, updates: Partial<FieldConfig>) => {
     setFields((prev) => ({
@@ -362,39 +396,39 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
         ...prev[fieldId],
         ...updates,
       },
-    }));
-    setHasUnsavedChanges(true);
-  };
+    }))
+    setHasUnsavedChanges(true)
+  }
 
   const handleSave = async () => {
     try {
-      await updateFieldMappings(template.id, fields);
-      setHasUnsavedChanges(false);
-      onSave?.();
+      await updateFieldMappings(template.id, fields)
+      setHasUnsavedChanges(false)
+      onSave?.()
     } catch (err) {
-      console.error('Error saving fields:', err);
+      console.error('Error saving fields:', err)
     }
-  };
+  }
 
   const handleImageUpload = async (file: File) => {
     try {
-      const result = await uploadTemplateImage(file);
+      const result = await uploadTemplateImage(file)
       await updateTemplate(template.id, {
         image_path: result.path,
         image_url: result.url,
-      });
-      setShowImageUpload(false);
+      })
+      setShowImageUpload(false)
     } catch (err) {
-      console.error('Error uploading image:', err);
+      console.error('Error uploading image:', err)
     }
-  };
+  }
 
   const resetView = () => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  };
+    setZoom(1)
+    setPan({ x: 0, y: 0 })
+  }
 
-  const fieldsByCategory = getFieldTypesByCategory();
+  const fieldsByCategory = getFieldTypesByCategory()
 
   return (
     <div className="form-editor">
@@ -437,11 +471,19 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
           <div className="fe-divider" />
 
           <div className="zoom-controls">
-            <button className="zoom-btn" onClick={() => setZoom((z) => Math.max(0.1, z - 0.1))} title="Zoom Out">
+            <button
+              className="zoom-btn"
+              onClick={() => setZoom((z) => Math.max(0.1, z - 0.1))}
+              title="Zoom Out"
+            >
               -
             </button>
             <span className="zoom-level">{Math.round(zoom * 100)}%</span>
-            <button className="zoom-btn" onClick={() => setZoom((z) => Math.min(3, z + 0.1))} title="Zoom In">
+            <button
+              className="zoom-btn"
+              onClick={() => setZoom((z) => Math.min(3, z + 0.1))}
+              title="Zoom In"
+            >
               +
             </button>
             <button className="zoom-btn-text" onClick={fitToScreen} title="Fit to Screen">
@@ -454,7 +496,11 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
         </div>
 
         <div className="fe-toolbar-right">
-          <Button variant="outline" onClick={() => setShowImageUpload(true)} leftIcon={<UploadSimple size={16} />}>
+          <Button
+            variant="outline"
+            onClick={() => setShowImageUpload(true)}
+            leftIcon={<UploadSimple size={16} />}
+          >
             Upload Image
           </Button>
           <Button onClick={handleSave} isLoading={isSaving} leftIcon={<FloppyDisk size={16} />}>
@@ -469,7 +515,9 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
           className="fe-canvas-container"
           ref={containerRef}
           onMouseDown={handleCanvasMouseDown}
-          style={{ cursor: toolMode === 'pan' ? 'grab' : 'default' }}
+          style={{
+            cursor: toolMode === 'pan' ? 'grab' : toolMode === 'add' ? 'crosshair' : 'default',
+          }}
         >
           <div
             className="fe-canvas"
@@ -499,10 +547,17 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
               </div>
             )}
 
-            {/* Help tip when no fields */}
-            {Object.keys(fields).length === 0 && template.image_url && (
+            {/* Help tip when no fields or in placement mode */}
+            {pendingFieldType && (
+              <div className="fe-help-tip placement-mode">
+                Click anywhere to place <strong>{getFieldLabel(pendingFieldType)}</strong> • Press{' '}
+                <kbd>Esc</kbd> to cancel
+              </div>
+            )}
+            {Object.keys(fields).length === 0 && template.image_url && !pendingFieldType && (
               <div className="fe-help-tip">
-                Click the <kbd>+</kbd> button in the toolbar to add fields • <kbd>Ctrl</kbd>+<kbd>Scroll</kbd> to zoom
+                Click the <kbd>+</kbd> button in the toolbar to add fields • <kbd>Ctrl</kbd>+
+                <kbd>Scroll</kbd> to zoom
               </div>
             )}
 
@@ -653,7 +708,9 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 <input
                   type="number"
                   value={Math.round(selectedField.height)}
-                  onChange={(e) => updateField(selectedFieldId!, { height: Number(e.target.value) })}
+                  onChange={(e) =>
+                    updateField(selectedFieldId!, { height: Number(e.target.value) })
+                  }
                 />
               </div>
             </div>
@@ -677,7 +734,9 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 <label>Font Size</label>
                 <select
                   value={selectedField.fontSize}
-                  onChange={(e) => updateField(selectedFieldId!, { fontSize: Number(e.target.value) })}
+                  onChange={(e) =>
+                    updateField(selectedFieldId!, { fontSize: Number(e.target.value) })
+                  }
                 >
                   {FONT_SIZES.map((size) => (
                     <option key={size} value={size}>
@@ -690,7 +749,9 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 <label>Alignment</label>
                 <select
                   value={selectedField.textAlign}
-                  onChange={(e) => updateField(selectedFieldId!, { textAlign: e.target.value as TextAlign })}
+                  onChange={(e) =>
+                    updateField(selectedFieldId!, { textAlign: e.target.value as TextAlign })
+                  }
                 >
                   {TEXT_ALIGNMENTS.map((align) => (
                     <option key={align.value} value={align.value}>
@@ -756,10 +817,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
         size="sm"
       >
         <div className="image-upload-modal">
-          <div
-            className="upload-dropzone"
-            onClick={() => fileInputRef.current?.click()}
-          >
+          <div className="upload-dropzone" onClick={() => fileInputRef.current?.click()}>
             <UploadSimple size={32} className="upload-icon" />
             <p>Click to select an image</p>
             <small>PNG, JPG up to 10MB</small>
@@ -770,12 +828,12 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
             accept="image/*"
             hidden
             onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleImageUpload(file);
+              const file = e.target.files?.[0]
+              if (file) handleImageUpload(file)
             }}
           />
         </div>
       </Modal>
     </div>
-  );
+  )
 }
