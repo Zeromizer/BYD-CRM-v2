@@ -553,20 +553,8 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
   }
 
   const handleGenerateDocument = async () => {
-    console.log('handleGenerateDocument: Starting, fetching templates...')
     // Force refresh templates to get latest data with fresh signed URLs
     await fetchTemplates()
-    // Access fresh state directly from store (not stale closure)
-    const freshTemplates = useDocumentStore.getState().templates
-    console.log('handleGenerateDocument: Fetch complete, templates count:', freshTemplates.length)
-    freshTemplates.forEach(t => {
-      console.log(`Template "${t.name}":`, {
-        hasPages: !!t.pages,
-        pagesLength: t.pages?.length,
-        firstPageUrl: t.pages?.[0]?.image_url,
-        legacyImageUrl: t.image_url,
-      })
-    })
     setShowTemplateSelect(true)
   }
 
@@ -1723,7 +1711,6 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
         size="lg"
       >
         <div className="template-select-modal">
-          {console.log('Modal rendering, templates count:', templates.length, 'categories:', Object.keys(templatesByCategory))}
           <p className="template-select-description">
             Select a template to generate a document for <strong>{customer.name}</strong>
           </p>
@@ -1745,15 +1732,6 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                       const firstPageUrl = pages[0]?.image_url
                       const fieldCount = getTotalFieldCount(template)
 
-                      // Debug logging
-                      console.log('Template in modal:', template.name, {
-                        hasPages: !!template.pages,
-                        pagesLength: template.pages?.length,
-                        pages: template.pages,
-                        firstPageUrl,
-                        fieldCount,
-                      })
-
                       return (
                         <button
                           key={template.id}
@@ -1772,9 +1750,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                             </div>
                           )}
                           <span className="template-name">{template.name}</span>
-                          <span className="template-fields">
-                            {fieldCount} fields
-                          </span>
+                          <span className="template-fields">{fieldCount} fields</span>
                         </button>
                       )
                     })}
