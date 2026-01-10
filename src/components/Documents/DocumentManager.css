@@ -238,8 +238,12 @@
   color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
   flex: 1;
+  line-height: 1.3;
 }
 
 .template-actions {
@@ -275,8 +279,14 @@
   border: 1px solid var(--border-color);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  z-index: 100;
+  z-index: 1000;
   overflow: hidden;
+}
+
+.action-dropdown.fixed-dropdown {
+  position: fixed;
+  top: auto;
+  right: auto;
 }
 
 .action-dropdown button {
@@ -345,7 +355,7 @@
   color: var(--text-primary);
 }
 
-.form-group input[type="text"],
+.form-group input[type='text'],
 .form-group select {
   padding: 0.75rem;
   background-color: var(--bg-secondary);
@@ -356,7 +366,7 @@
   transition: border-color 0.15s ease;
 }
 
-.form-group input[type="text"]:focus,
+.form-group input[type='text']:focus,
 .form-group select:focus {
   outline: none;
   border-color: var(--primary);

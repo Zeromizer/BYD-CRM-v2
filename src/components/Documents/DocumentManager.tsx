@@ -86,7 +86,9 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
   const [isSyncing, setIsSyncing] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null)
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(
+    null
+  )
 
   // New template form state
   const [newTemplateName, setNewTemplateName] = useState('')
@@ -105,8 +107,11 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as HTMLElement
+      // Close if clicking outside any template-actions container or dropdown
+      if (!target.closest('.template-actions') && !target.closest('.fixed-dropdown')) {
         setOpenDropdownId(null)
+        setDropdownPosition(null)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -444,52 +449,26 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
                   <h4 className="template-name" title={template.name}>
                     {template.name}
                   </h4>
-                  <div
-                    className="template-actions"
-                    ref={openDropdownId === template.id ? dropdownRef : null}
-                  >
+                  <div className="template-actions">
                     <button
                       className="action-trigger"
                       onClick={(e) => {
                         e.stopPropagation()
-                        setOpenDropdownId(openDropdownId === template.id ? null : template.id)
+                        if (openDropdownId === template.id) {
+                          setOpenDropdownId(null)
+                          setDropdownPosition(null)
+                        } else {
+                          const rect = e.currentTarget.getBoundingClientRect()
+                          setDropdownPosition({
+                            top: rect.bottom + 4,
+                            left: rect.right - 160, // 160px is dropdown width
+                          })
+                          setOpenDropdownId(template.id)
+                        }
                       }}
                     >
                       <DotsThreeVertical size={18} className="more-icon" />
                     </button>
-                    {openDropdownId === template.id && (
-                      <div className="action-dropdown">
-                        <button
-                          onClick={() => {
-                            onEditTemplate?.(template)
-                            setOpenDropdownId(null)
-                          }}
-                        >
-                          <PencilSimple size={14} className="menu-icon" /> Edit Fields
-                        </button>
-                        <button
-                          onClick={() => {
-                            onPrintTemplate?.(template)
-                            setOpenDropdownId(null)
-                          }}
-                        >
-                          <Printer size={14} className="menu-icon" /> Print Preview
-                        </button>
-                        <button onClick={() => handleDuplicateTemplate(template)}>
-                          <Copy size={14} className="menu-icon" /> Duplicate
-                        </button>
-                        <button
-                          className="danger"
-                          onClick={() => {
-                            setSelectedTemplate(template)
-                            setShowDeleteModal(true)
-                            setOpenDropdownId(null)
-                          }}
-                        >
-                          <Trash size={14} className="menu-icon" /> Delete
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -505,6 +484,68 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Fixed Position Dropdown */}
+      {openDropdownId && dropdownPosition && (
+        <div
+          className="action-dropdown fixed-dropdown"
+          style={{
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+          }}
+        >
+          <button
+            onClick={() => {
+              const template = templates.find((t) => t.id === openDropdownId)
+              if (template) {
+                setOpenDropdownId(null)
+                setDropdownPosition(null)
+                onEditTemplate?.(template)
+              }
+            }}
+          >
+            <PencilSimple size={14} className="menu-icon" /> Edit Fields
+          </button>
+          <button
+            onClick={() => {
+              const template = templates.find((t) => t.id === openDropdownId)
+              if (template) {
+                setOpenDropdownId(null)
+                setDropdownPosition(null)
+                onPrintTemplate?.(template)
+              }
+            }}
+          >
+            <Printer size={14} className="menu-icon" /> Print Preview
+          </button>
+          <button
+            onClick={() => {
+              const template = templates.find((t) => t.id === openDropdownId)
+              if (template) {
+                setOpenDropdownId(null)
+                setDropdownPosition(null)
+                void handleDuplicateTemplate(template)
+              }
+            }}
+          >
+            <Copy size={14} className="menu-icon" /> Duplicate
+          </button>
+          <button
+            className="danger"
+            onClick={() => {
+              const template = templates.find((t) => t.id === openDropdownId)
+              if (template) {
+                setSelectedTemplate(template)
+                setShowDeleteModal(true)
+                setOpenDropdownId(null)
+                setDropdownPosition(null)
+              }
+            }}
+          >
+            <Trash size={14} className="menu-icon" /> Delete
+          </button>
         </div>
       )}
 
