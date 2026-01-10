@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { CircleNotch, Cloud, Plus, MagnifyingGlass, File, Image, DotsThreeVertical, PencilSimple, Printer, Copy, Trash, UploadSimple, X, DotsSixVertical } from '@phosphor-icons/react';
+import { CircleNotch, Cloud, Plus, MagnifyingGlass, File, Image, DotsThreeVertical, PencilSimple, Printer, Copy, Trash, X, DotsSixVertical } from '@phosphor-icons/react';
 import { Button, Modal } from '@/components/common';
 import { useToast } from '@/components/common';
 import { useDocumentStore } from '@/stores/useDocumentStore';
@@ -37,7 +37,6 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
     fetchTemplates,
     createTemplate,
     deleteTemplate,
-    uploadTemplateImage,
     uploadTemplateImages,
     subscribeToChanges,
     clearError,

@@ -48,7 +48,7 @@ interface DocumentActions {
 
   // Storage
   uploadTemplateImage: (file: File) => Promise<{ path: string; url: string }>;
-  uploadTemplateImages: (files: File[]) => Promise<Array<{ path: string; url: string }>>;
+  uploadTemplateImages: (files: File[]) => Promise<{ path: string; url: string }[]>;
   getSignedUrl: (path: string) => Promise<string>;
   deleteTemplateImage: (path: string) => Promise<void>;
 

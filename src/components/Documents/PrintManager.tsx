@@ -12,8 +12,8 @@ import { useCustomerStore } from '@/stores/useCustomerStore';
 import { getAllCustomerDocuments, type CustomerDocument } from '@/services/customerDocumentService';
 import { formatCurrencySGD as formatCurrency } from '@/utils/formatting';
 import { debug } from '@/utils/debug';
-import type { DocumentTemplate, Customer, Guarantor, TemplatePage } from '@/types';
-import { getTemplatePages, isMultiPageTemplate } from '@/types';
+import type { DocumentTemplate, Customer, Guarantor } from '@/types';
+import { getTemplatePages } from '@/types';
 import './PrintManager.css';
 
 interface PrintManagerProps {
@@ -398,13 +398,11 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
 
       let isFirstPage = true;
 
-      for (let i = 0; i < selectedTemplates.length; i++) {
-        const template = selectedTemplates[i];
+      for (const template of selectedTemplates) {
         const templatePages = getTemplatePages(template);
 
         // Process each page of the template
-        for (let p = 0; p < templatePages.length; p++) {
-          const page = templatePages[p];
+        for (const page of templatePages) {
 
           // Create temporary canvas for each page
           const tempCanvas = document.createElement('canvas');

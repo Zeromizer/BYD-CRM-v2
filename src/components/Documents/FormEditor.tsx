@@ -61,7 +61,7 @@ const DEFAULT_FIELD: Omit<FieldConfig, 'type'> = {
 }
 
 export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
-  const { updateFieldMappings, uploadTemplateImage, updateTemplate, updatePageFields, addPageToTemplate, isSaving } = useDocumentStore()
+  const { updateFieldMappings, uploadTemplateImage, updateTemplate, isSaving } = useDocumentStore()
 
   // Multi-page state
   const [pages, setPages] = useState<TemplatePage[]>(() => getTemplatePages(template))
