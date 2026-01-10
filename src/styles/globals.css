@@ -18,9 +18,7 @@ html {
 }
 
 body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
-    'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   line-height: 1.5;
   /* PWA: Dynamic viewport height with fallback */
   min-height: 100vh;
@@ -46,6 +44,9 @@ body {
   --primary-active: #b21f2d;
   --primary-alpha: rgba(220, 53, 69, 0.1);
   --primary-subtle: rgba(220, 53, 69, 0.04);
+  --primary-alpha-5: rgba(220, 53, 69, 0.05);
+  --primary-alpha-10: rgba(220, 53, 69, 0.1);
+  --primary-alpha-20: rgba(220, 53, 69, 0.2);
 
   /* Colors - Semantic */
   --success: #16a34a;
@@ -57,46 +58,50 @@ body {
   --info: #2563eb;
   --info-alpha: rgba(37, 99, 235, 0.1);
 
-  /* Colors - Background (Warm neutral grays) */
+  /* Colors - Background (Rich warm neutrals) */
   --bg-primary: #ffffff;
-  --bg-secondary: #f8f9fa;
-  --bg-tertiary: #f1f3f5;
-  --bg-hover: #e9ecef;
+  --bg-secondary: #fafbfc;
+  --bg-tertiary: #f4f6f8;
+  --bg-hover: #edf0f3;
   --bg-elevated: #ffffff;
-  --bg-sunken: #f1f3f5;
-  --bg-overlay: rgba(0, 0, 0, 0.5);
+  --bg-sunken: #f0f2f5;
+  --bg-overlay: rgba(13, 15, 18, 0.6);
+  --bg-accent: #fef8f8;
 
-  /* Colors - Text (Warm neutrals) */
-  --text-primary: #212529;
-  --text-secondary: #495057;
-  --text-tertiary: #6c757d;
-  --text-muted: #adb5bd;
+  /* Colors - Text (Rich charcoal system) */
+  --text-primary: #171a1f;
+  --text-secondary: #4a5361;
+  --text-tertiary: #64707d;
+  --text-muted: #8b95a3;
   --text-inverse: #ffffff;
-  --text-data: #495057;
+  --text-data: #4a5361;
 
-  /* Colors - Border (Warm neutral borders) */
-  --border-color: #dee2e6;
-  --border-subtle: #e9ecef;
-  --border-hover: #ced4da;
+  /* Colors - Border (Rich warm borders) */
+  --border-color: #d8dde4;
+  --border-subtle: #eef1f4;
+  --border-hover: #b4bcc7;
   --border-focus: var(--primary);
+  --border-emphasis: #8b95a3;
 
-  /* Shadows - Layered system for depth */
-  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.04);
-  --shadow-md: 0 2px 4px rgba(16, 24, 40, 0.03), 0 4px 8px rgba(16, 24, 40, 0.06);
-  --shadow-lg:
-    0 4px 6px rgba(16, 24, 40, 0.02), 0 8px 16px rgba(16, 24, 40, 0.06),
-    0 12px 24px rgba(16, 24, 40, 0.04);
+  /* Shadows - Editorial system (less blur, more offset) */
+  --shadow-xs: 0 1px 2px rgba(13, 15, 18, 0.04);
+  --shadow-sm: 0 2px 4px rgba(13, 15, 18, 0.06);
+  --shadow-md: 0 4px 8px rgba(13, 15, 18, 0.04), 0 2px 4px rgba(13, 15, 18, 0.06);
+  --shadow-lg: 0 8px 24px rgba(13, 15, 18, 0.08), 0 4px 8px rgba(13, 15, 18, 0.04);
   --shadow-xl:
-    0 8px 12px rgba(16, 24, 40, 0.02), 0 16px 32px rgba(16, 24, 40, 0.08),
-    0 24px 48px rgba(16, 24, 40, 0.05);
+    0 16px 48px rgba(13, 15, 18, 0.12),
+    0 8px 16px rgba(13, 15, 18, 0.06);
+
+  /* Shadows - Colored (Editorial accent) */
+  --shadow-primary: 0 4px 16px rgba(220, 53, 69, 0.2);
+  --shadow-primary-lg: 0 8px 32px rgba(220, 53, 69, 0.25);
 
   /* Shadows - Semantic */
   --shadow-card: var(--shadow-sm);
   --shadow-card-hover: var(--shadow-md);
   --shadow-modal: var(--shadow-xl);
   --shadow-dropdown: var(--shadow-lg);
-  --shadow-focus: 0 0 0 3px var(--primary-alpha);
+  --shadow-focus: 0 0 0 3px var(--primary-alpha-10);
 
   /* Border Radius - Sharp system */
   --radius-sm: 4px;
@@ -122,11 +127,15 @@ body {
   --header-height: 56px;
   --sidebar-width: 280px;
 
-  /* Transitions */
-  --transition-fast: 150ms ease;
-  --transition-normal: 200ms ease;
-  --transition-slow: 300ms ease;
+  /* Transitions - Editorial easing */
+  --transition-fast: 150ms;
+  --transition-normal: 250ms;
+  --transition-slow: 400ms;
+  --transition-slower: 600ms;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-sine: cubic-bezier(0.37, 0, 0.63, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* Mobile */
   --touch-target-min: 44px;
@@ -135,23 +144,42 @@ body {
   --mobile-header-height: 48px;
   --panel-indicator-height: 56px;
 
-  /* Typography */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Roboto', sans-serif;
-  --font-mono: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+  /* Typography - Editorial System */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+
+  /* Type Scale - Dramatic editorial range */
   --text-xs: 0.6875rem;
-  --text-sm: 0.8125rem;
+  --text-sm: 0.75rem;
   --text-base: 0.875rem;
-  --text-md: 0.9375rem;
-  --text-lg: 1rem;
-  --text-xl: 1.125rem;
-  --text-2xl: 1.25rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.5rem;
+  --text-4xl: 3.5rem;
+
+  /* Font Weights */
   --font-normal: 400;
   --font-medium: 500;
   --font-semibold: 600;
-  --tracking-tight: -0.01em;
+  --font-bold: 700;
+
+  /* Letter Spacing - Editorial */
+  --tracking-tighter: -0.03em;
+  --tracking-tight: -0.015em;
   --tracking-normal: 0;
-  --tracking-wide: 0.01em;
-  --tracking-label: 0.02em;
+  --tracking-wide: 0.025em;
+  --tracking-wider: 0.05em;
+  --tracking-label: 0.05em;
+
+  /* Line Heights */
+  --leading-none: 1;
+  --leading-tight: 1.15;
+  --leading-snug: 1.3;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
 
   /* Milestone Colors */
   --milestone-test-drive: #3b82f6;
@@ -169,6 +197,9 @@ body {
   --primary-active: #e53935;
   --primary-alpha: rgba(239, 83, 80, 0.15);
   --primary-subtle: rgba(239, 83, 80, 0.08);
+  --primary-alpha-5: rgba(239, 83, 80, 0.08);
+  --primary-alpha-10: rgba(239, 83, 80, 0.12);
+  --primary-alpha-20: rgba(239, 83, 80, 0.2);
 
   /* Colors - Semantic */
   --success: #22c55e;
@@ -188,6 +219,7 @@ body {
   --bg-elevated: #1e293b;
   --bg-sunken: #0c1222;
   --bg-overlay: rgba(0, 0, 0, 0.75);
+  --bg-accent: rgba(239, 83, 80, 0.08);
 
   /* Colors - Text */
   --text-primary: #f1f5f9;
@@ -202,6 +234,7 @@ body {
   --border-subtle: #283548;
   --border-hover: #475569;
   --border-focus: var(--primary);
+  --border-emphasis: #64748b;
 
   /* Shadows - Darker for dark mode */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -211,6 +244,11 @@ body {
     0 4px 6px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.3), 0 12px 24px rgba(0, 0, 0, 0.2);
   --shadow-xl:
     0 8px 12px rgba(0, 0, 0, 0.15), 0 16px 32px rgba(0, 0, 0, 0.35), 0 24px 48px rgba(0, 0, 0, 0.25);
+
+  /* Shadows - Colored (Editorial accent for dark mode) */
+  --shadow-primary: 0 4px 16px rgba(239, 83, 80, 0.25);
+  --shadow-primary-lg: 0 8px 32px rgba(239, 83, 80, 0.3);
+  --shadow-focus: 0 0 0 3px rgba(239, 83, 80, 0.15);
 }
 
 /* Cool Theme - Sophistication & Trust (Stripe/Mercury aesthetic) */
@@ -299,6 +337,84 @@ body {
   }
 }
 
+/* Editorial Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes staggerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleReveal {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes underlineReveal {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Animation Utility Classes */
+.animate-fade-in-up {
+  animation: fadeInUp var(--transition-slow) var(--ease-out-expo);
+}
+
+.animate-stagger {
+  animation: staggerFadeIn var(--transition-normal) var(--ease-out-expo);
+  animation-fill-mode: both;
+}
+
+.animate-scale-reveal {
+  animation: scaleReveal var(--transition-slow) var(--ease-out-expo);
+}
+
+/* Stagger delays for lists */
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }
+.stagger-6 { animation-delay: 300ms; }
+.stagger-7 { animation-delay: 350ms; }
+.stagger-8 { animation-delay: 400ms; }
+
 /* Route Loading State (for lazy-loaded routes) */
 .route-loading {
   display: flex;
@@ -310,40 +426,48 @@ body {
   color: var(--text-secondary);
 }
 
-/* Typography */
+/* Typography - Editorial Headings */
 h1,
 h2,
 h3,
 h4,
 h5,
 h6 {
-  font-weight: 600;
-  line-height: 1.25;
+  font-family: var(--font-display);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
   color: var(--text-primary);
 }
 
 h1 {
-  font-size: 2rem;
+  font-size: var(--text-3xl);
+  letter-spacing: var(--tracking-tighter);
 }
 
 h2 {
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
+  letter-spacing: var(--tracking-tighter);
 }
 
 h3 {
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
 }
 
 h4 {
-  font-size: 1.125rem;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
 }
 
 h5 {
-  font-size: 1rem;
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
 }
 
 h6 {
-  font-size: 0.875rem;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
 }
 
 p {
@@ -434,10 +558,12 @@ a:hover {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
   letter-spacing: var(--tracking-label);
-  color: var(--text-secondary);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
 }
 
 .form-label svg {

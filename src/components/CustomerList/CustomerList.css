@@ -1,3 +1,29 @@
+/* iOS-Style Animation Keyframes */
+@keyframes cardSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.02);
+  }
+  80% {
+    transform: translateY(3px) scale(0.99);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes selectionSpring {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.94); }
+  60% { transform: scale(1.03); }
+  80% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
 .customer-list {
   display: flex;
   flex-direction: column;
@@ -19,10 +45,11 @@
 }
 
 .list-title {
+  font-family: var(--font-display);
   font-size: var(--text-xl);
-  font-weight: var(--font-semibold);
+  font-weight: var(--font-bold);
   color: var(--text-primary);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-tighter);
   margin: 0;
 }
 
@@ -77,13 +104,23 @@
   border: none;
   border-radius: 8px;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   cursor: pointer;
-  transition: background 0.15s;
+  transition:
+    background-color var(--transition-fast) var(--ease-out-quint),
+    box-shadow var(--transition-normal) var(--ease-out-expo),
+    transform var(--transition-fast) var(--ease-spring);
 }
 
 .add-customer-btn:hover {
   background: var(--primary-hover);
+  box-shadow: var(--shadow-primary);
+  transform: translateY(-1px);
+}
+
+.add-customer-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 .add-customer-btn svg {
@@ -213,6 +250,9 @@
   overflow-x: hidden;
   padding: 0.75rem;
   min-width: 0;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 .list-empty {
@@ -224,29 +264,46 @@
   font-size: 0.875rem;
 }
 
-/* Customer Card */
+/* Customer Card - iOS Style */
 .customer-card {
   padding: var(--space-4);
   border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all var(--transition-fast);
   margin-bottom: var(--space-2);
   background: var(--bg-primary);
   border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-xs);
+  border-left: 3px solid transparent;
+  box-shadow: none;
   overflow: hidden;
+
+  /* iOS spring animation on entry */
+  animation: cardSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  animation-delay: var(--stagger-delay, 0ms);
+
+  /* Enhanced transitions */
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.3s ease-out,
+    background-color 0.2s ease-out,
+    border-color 0.2s ease-out;
 }
 
 .customer-card:hover {
+  transform: translateY(-4px) scale(1.01);
   border-color: var(--border-hover);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.customer-card:active {
+  transform: scale(0.95);
+  transition: transform 0.1s ease-out;
 }
 
 .customer-card.selected {
-  background: var(--primary-subtle);
+  background: var(--bg-accent);
   border-color: var(--primary);
-  box-shadow: var(--shadow-sm);
+  border-left-color: var(--primary);
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.15);
 }
 
 .card-header {
@@ -324,7 +381,7 @@
 .progress-fill {
   height: 100%;
   border-radius: 2px;
-  transition: width 0.3s;
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .progress-text {

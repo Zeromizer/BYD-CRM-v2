@@ -338,12 +338,13 @@ export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
           </div>
         ) : (
           <>
-            {filteredCustomers.map((customer) => (
+            {filteredCustomers.map((customer, index) => (
               <CustomerCard
                 key={customer.id}
                 customer={customer}
                 isSelected={customer.id === selectedCustomerId}
                 onSelect={() => selectCustomer(customer.id)}
+                index={index}
               />
             ))}
             {/* Infinite scroll sentinel */}
@@ -452,9 +453,10 @@ interface CustomerCardProps {
   customer: Customer;
   isSelected: boolean;
   onSelect: () => void;
+  index: number;
 }
 
-function CustomerCard({ customer, isSelected, onSelect }: CustomerCardProps) {
+function CustomerCard({ customer, isSelected, onSelect, index }: CustomerCardProps) {
   const milestone = MILESTONES.find((m) => m.id === customer.current_milestone);
   const progress = getOverallProgress(customer.checklist);
 
@@ -462,6 +464,7 @@ function CustomerCard({ customer, isSelected, onSelect }: CustomerCardProps) {
     <div
       className={`customer-card ${isSelected ? 'selected' : ''}`}
       onClick={onSelect}
+      style={{ '--stagger-delay': `${Math.min(index, 12) * 80}ms` } as React.CSSProperties}
     >
       <div className="card-header">
         <div className="customer-avatar">

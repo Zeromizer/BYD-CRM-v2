@@ -2,17 +2,17 @@
   position: fixed;
   inset: 0;
   background: var(--bg-overlay);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1100;
   padding: var(--space-4);
-  animation: fadeIn var(--transition-fast) ease-out;
+  animation: modalFadeIn var(--transition-normal) var(--ease-out-quint);
 }
 
-@keyframes fadeIn {
+@keyframes modalFadeIn {
   from {
     opacity: 0;
   }
@@ -29,17 +29,17 @@
   max-height: calc(100vh - 2rem);
   display: flex;
   flex-direction: column;
-  animation: scaleIn var(--transition-fast) ease-out;
+  animation: modalScaleIn var(--transition-slow) var(--ease-out-expo);
 }
 
-@keyframes scaleIn {
+@keyframes modalScaleIn {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.96) translateY(8px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translateY(0);
   }
 }
 
@@ -79,8 +79,9 @@
 }
 
 .modal-title {
+  font-family: var(--font-display);
   font-size: var(--text-xl);
-  font-weight: var(--font-semibold);
+  font-weight: var(--font-bold);
   letter-spacing: var(--tracking-tight);
   color: var(--text-primary);
   margin: 0;
@@ -130,6 +131,7 @@
   border-top: 1px solid var(--border-subtle);
   flex-shrink: 0;
   background: var(--bg-secondary);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
 }
 
 /* Mobile modal adjustments */
