@@ -25,6 +25,7 @@ import {
   extractLicenseWithGemini,
   loadGeminiApiKey,
   isGeminiAvailable,
+  preWarmEdgeFunction,
   type ProcessingProgress,
 } from '@/services/geminiService'
 import './IDScanner.css'
@@ -35,9 +36,9 @@ const GUIDE_FRAME_ASPECT_RATIO = 1.586 // Credit card ratio (landscape)
 const GUIDE_FRAME_WIDTH_PERCENT_PORTRAIT = 0.75 // 75% for portrait
 const GUIDE_FRAME_ASPECT_RATIO_PORTRAIT = 0.65 // Portrait ratio
 
-// AI image settings (reduced for faster processing)
-const AI_IMAGE_MAX_WIDTH = 1280
-const AI_IMAGE_QUALITY = 0.85
+// AI image settings (optimized for faster processing)
+const AI_IMAGE_MAX_WIDTH = 1024
+const AI_IMAGE_QUALITY = 0.75
 
 export interface ScannedData {
   name: string
@@ -103,23 +104,23 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
   const aiCanvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
 
-  // Pre-warm auth check when modal opens (warms Supabase auth cache)
-  const preWarmAuth = useCallback(async () => {
+  // Pre-warm auth and edge function when modal opens
+  const preWarm = useCallback(async () => {
     try {
-      await getSupabase().auth.getUser()
+      await Promise.all([getSupabase().auth.getUser(), preWarmEdgeFunction()])
     } catch {
       // Ignore errors - this is just pre-warming
     }
   }, [])
 
-  // Reset state and pre-warm auth when modal opens
+  // Reset state and pre-warm when modal opens
   useEffect(() => {
     if (isOpen) {
       resetScanner()
-      void preWarmAuth() // Pre-warm auth while user positions camera
+      void preWarm() // Pre-warm auth and edge function while user positions camera
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, preWarmAuth])
+  }, [isOpen, preWarm])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -287,7 +288,8 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
     const aiCtx = aiCanvas.getContext('2d')
     if (!aiCtx) return
     aiCtx.drawImage(video, guideX, guideY, guideWidth, guideHeight, 0, 0, aiWidth, aiHeight)
-    const aiImage = aiCanvas.toDataURL('image/jpeg', AI_IMAGE_QUALITY)
+    // Use WebP for smaller file size (25-35% smaller than JPEG)
+    const aiImage = aiCanvas.toDataURL('image/webp', AI_IMAGE_QUALITY)
 
     if (step === 'front') {
       setFrontImage(fullResImage)

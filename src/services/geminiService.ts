@@ -50,6 +50,22 @@ export function isGeminiAvailable(): boolean {
 }
 
 /**
+ * Pre-warm the edge function to eliminate cold start latency
+ * Call this when the ID scanner modal opens
+ */
+export async function preWarmEdgeFunction(): Promise<void> {
+  if (!navigator.onLine) return
+  try {
+    const supabase = getSupabase()
+    await supabase.functions.invoke('extract-id', {
+      body: { type: 'ping' },
+    })
+  } catch {
+    // Ignore errors - this is just pre-warming
+  }
+}
+
+/**
  * Extract ID details using Gemini AI via Edge Function
  */
 export async function extractIDWithGemini(
@@ -57,20 +73,25 @@ export async function extractIDWithGemini(
   backImageData: string | null = null,
   onProgress?: (progress: ProcessingProgress) => void
 ): Promise<ExtractedIDData> {
+  const startTime = performance.now()
+
   if (!navigator.onLine) {
     throw new Error('No internet connection. Please check your network and try again.')
   }
 
   onProgress?.({ stage: 'Analyzing ID with AI...', progress: 10 })
 
-  // Verify user is authenticated
+  // Use cached session for faster auth check
   const supabase = getSupabase()
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
+    data: { session },
+  } = await supabase.auth.getSession()
+  if (!session) {
     throw new Error('Please sign in to use the scanner.')
   }
+
+  const authTime = performance.now() - startTime
+  debug.log('[ID Scan] Auth check:', Math.round(authTime), 'ms')
 
   onProgress?.({ stage: 'Processing with AI...', progress: 30 })
 
@@ -78,6 +99,7 @@ export async function extractIDWithGemini(
   debug.log('Front image size:', frontImageData.length, 'chars')
   debug.log('Back image size:', backImageData?.length ?? 0, 'chars')
 
+  const edgeStart = performance.now()
   const response = await supabase.functions.invoke<ExtractIDResponse>('extract-id', {
     body: {
       type: 'id',
@@ -85,6 +107,9 @@ export async function extractIDWithGemini(
       backImage: backImageData,
     },
   })
+  const edgeTime = performance.now() - edgeStart
+  debug.log('[ID Scan] Edge function:', Math.round(edgeTime), 'ms')
+
   const data: ExtractIDResponse | null = response.data
   const error: EdgeFunctionError | null = response.error as EdgeFunctionError | null
 
@@ -102,6 +127,9 @@ export async function extractIDWithGemini(
   }
 
   onProgress?.({ stage: 'Complete', progress: 100 })
+
+  const totalTime = performance.now() - startTime
+  debug.log('[ID Scan] Total time:', Math.round(totalTime), 'ms')
 
   return {
     name: data?.name ?? '',
@@ -126,11 +154,12 @@ export async function extractLicenseWithGemini(
 
   onProgress?.({ stage: 'Analyzing license with AI...', progress: 10 })
 
+  // Use cached session for faster auth check
   const supabase = getSupabase()
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
+    data: { session },
+  } = await supabase.auth.getSession()
+  if (!session) {
     throw new Error('Please sign in to use the scanner.')
   }
 
