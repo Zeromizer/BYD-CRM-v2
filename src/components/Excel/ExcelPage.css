@@ -232,6 +232,12 @@
   overflow: hidden;
 }
 
+.action-dropdown.fixed-dropdown {
+  position: fixed;
+  top: auto;
+  right: auto;
+}
+
 .action-dropdown button {
   display: flex;
   align-items: center;

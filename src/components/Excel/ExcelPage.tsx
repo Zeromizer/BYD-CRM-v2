@@ -50,6 +50,9 @@ export function ExcelPage() {
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<ExcelTemplate | null>(null)
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(
+    null
+  )
 
   // Create template form state
   const [newTemplateName, setNewTemplateName] = useState('')
@@ -90,9 +93,10 @@ export function ExcelPage() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement
-      // Close if clicking outside any template-actions container
-      if (!target.closest('.template-actions')) {
+      // Close if clicking outside any template-actions container or dropdown
+      if (!target.closest('.template-actions') && !target.closest('.fixed-dropdown')) {
         setOpenDropdownId(null)
+        setDropdownPosition(null)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -524,36 +528,23 @@ export function ExcelPage() {
                   <div className="template-actions" onClick={(e) => e.stopPropagation()}>
                     <button
                       className="action-trigger"
-                      onClick={() =>
-                        setOpenDropdownId(openDropdownId === template.id ? null : template.id)
-                      }
+                      onClick={(e) => {
+                        if (openDropdownId === template.id) {
+                          setOpenDropdownId(null)
+                          setDropdownPosition(null)
+                        } else {
+                          const rect = e.currentTarget.getBoundingClientRect()
+                          setDropdownPosition({
+                            top: rect.bottom + 4,
+                            left: rect.right - 160, // 160px is dropdown width
+                          })
+                          setOpenDropdownId(template.id)
+                        }
+                      }}
                       title="More options"
                     >
                       <DotsThreeVertical size={18} />
                     </button>
-                    {openDropdownId === template.id && (
-                      <div className="action-dropdown">
-                        <button onClick={() => openMappingModal(template)}>
-                          <Gear size={14} className="menu-icon" />
-                          Edit Mappings
-                        </button>
-                        <button onClick={() => openUploadModal(template)}>
-                          <UploadSimple size={14} className="menu-icon" />
-                          {template.file_path ? 'Replace File' : 'Upload File'}
-                        </button>
-                        <button
-                          className="danger"
-                          onClick={() => {
-                            setSelectedTemplate(template)
-                            setShowDeleteModal(true)
-                            setOpenDropdownId(null)
-                          }}
-                        >
-                          <Trash size={14} className="menu-icon" />
-                          Delete
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
                 <div className="excel-card-meta">
@@ -566,6 +557,61 @@ export function ExcelPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Fixed Position Dropdown */}
+      {openDropdownId && dropdownPosition && (
+        <div
+          className="action-dropdown fixed-dropdown"
+          style={{
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+          }}
+        >
+          <button
+            onClick={() => {
+              const template = templates.find((t) => t.id === openDropdownId)
+              if (template) {
+                setOpenDropdownId(null)
+                setDropdownPosition(null)
+                openMappingModal(template)
+              }
+            }}
+          >
+            <Gear size={14} className="menu-icon" />
+            Edit Mappings
+          </button>
+          <button
+            onClick={() => {
+              const template = templates.find((t) => t.id === openDropdownId)
+              if (template) {
+                setOpenDropdownId(null)
+                setDropdownPosition(null)
+                openUploadModal(template)
+              }
+            }}
+          >
+            <UploadSimple size={14} className="menu-icon" />
+            {templates.find((t) => t.id === openDropdownId)?.file_path
+              ? 'Replace File'
+              : 'Upload File'}
+          </button>
+          <button
+            className="danger"
+            onClick={() => {
+              const template = templates.find((t) => t.id === openDropdownId)
+              if (template) {
+                setSelectedTemplate(template)
+                setShowDeleteModal(true)
+                setOpenDropdownId(null)
+                setDropdownPosition(null)
+              }
+            }}
+          >
+            <Trash size={14} className="menu-icon" />
+            Delete
+          </button>
         </div>
       )}
 
