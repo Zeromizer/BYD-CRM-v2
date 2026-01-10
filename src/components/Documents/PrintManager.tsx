@@ -17,6 +17,7 @@ import {
   Check,
   Images,
   Trash,
+  ShareNetwork,
 } from '@phosphor-icons/react'
 import { Button, Modal } from '@/components/common'
 import { jsPDF } from 'jspdf'
@@ -25,6 +26,8 @@ import { useCustomerStore } from '@/stores/useCustomerStore'
 import { getAllCustomerDocuments, type CustomerDocument } from '@/services/customerDocumentService'
 import { formatCurrencySGD as formatCurrency } from '@/utils/formatting'
 import { debug } from '@/utils/debug'
+import { useShareCapability } from '@/hooks/useShareCapability'
+import { shareOrDownloadFile, MIME_TYPES } from '@/utils/fileShare'
 import type { DocumentTemplate, Customer, Guarantor } from '@/types'
 import { getTemplatePages } from '@/types'
 import './PrintManager.css'
@@ -38,6 +41,7 @@ interface PrintManagerProps {
 export function PrintManager({ template, customer: initialCustomer, onClose }: PrintManagerProps) {
   const { templates, fetchTemplates } = useDocumentStore()
   const { customers, fetchCustomers } = useCustomerStore()
+  const showShare = useShareCapability()
 
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(initialCustomer ?? null)
   const [selectedTemplates, setSelectedTemplates] = useState<DocumentTemplate[]>([template])
@@ -285,8 +289,11 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
       tradeInInsuranceCompany: customer.vsa_trade_in_insurance_company ?? '',
       tradeInPolicyNumber: customer.vsa_trade_in_policy_number ?? '',
       // Auto fields - use trade-in owner if filled, else fallback to customer
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       tradeInNameAuto: customer.vsa_trade_in_owner_name || customer.name || '',
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       tradeInNricAuto: customer.vsa_trade_in_owner_nric || customer.nric || '',
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       tradeInMobileAuto: customer.vsa_trade_in_owner_mobile || customer.phone || '',
 
       // Delivery
@@ -552,9 +559,15 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
         }
       }
 
-      // Save PDF
+      // Save or share PDF
       const fileName = `${selectedCustomer.name}_${selectedTemplates.map((t) => t.name).join('_')}.pdf`
-      pdf.save(fileName)
+      const pdfBlob = pdf.output('blob')
+      await shareOrDownloadFile({
+        blob: pdfBlob,
+        fileName,
+        mimeType: MIME_TYPES.PDF,
+        title: `${selectedCustomer.name} - Document`,
+      })
     } catch (error) {
       debug.error('Error generating PDF:', error)
     } finally {
@@ -697,6 +710,7 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
   }
 
   // Filter customers
+  /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
   const filteredCustomers = customers.filter(
     (c) =>
       !c.archive_status &&
@@ -704,6 +718,7 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
         c.phone?.includes(searchQuery) ||
         c.email?.toLowerCase().includes(searchQuery.toLowerCase()))
   )
+  /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
 
   // Filter templates for selection
   const filteredTemplates = templates.filter(
@@ -844,9 +859,9 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
             onClick={generatePdf}
             isLoading={isGeneratingPdf}
             disabled={!selectedCustomer}
-            leftIcon={<DownloadSimple size={16} />}
+            leftIcon={showShare ? <ShareNetwork size={16} /> : <DownloadSimple size={16} />}
           >
-            Download PDF
+            {showShare ? 'Share PDF' : 'Download PDF'}
           </Button>
           <Button
             onClick={handlePrint}
@@ -887,8 +902,8 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
             onClick={generatePdf}
             disabled={!selectedCustomer || isGeneratingPdf}
           >
-            <DownloadSimple size={20} />
-            <span>PDF</span>
+            {showShare ? <ShareNetwork size={20} /> : <DownloadSimple size={20} />}
+            <span>{showShare ? 'Share' : 'PDF'}</span>
           </button>
           <button
             className="pm-mobile-action-btn primary"

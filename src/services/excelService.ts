@@ -9,6 +9,7 @@ import type { Customer, Guarantor } from '@/types'
 import type { ExcelTemplate, ExcelFieldMappings } from '@/types/excel.types'
 import { CURRENCY_FIELDS, PERCENTAGE_FIELDS } from '@/constants/excelFields'
 import { formatCurrency, currencyToNumber } from '@/utils/formatting'
+import { downloadFile, shareOrDownloadFile, MIME_TYPES } from '@/utils/fileShare'
 
 // Lazy load xlsx-populate module
 let xlsxModule: typeof import('xlsx-populate') | null = null
@@ -138,8 +139,11 @@ export function getCustomerDataMapping(
     tradeInInsuranceCompany: customer.vsa_trade_in_insurance_company ?? '',
     tradeInPolicyNumber: customer.vsa_trade_in_policy_number ?? '',
     // Auto fields - use trade-in owner if filled, else fallback to customer
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     tradeInNameAuto: customer.vsa_trade_in_owner_name || customer.name || '',
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     tradeInNricAuto: customer.vsa_trade_in_owner_nric || customer.nric || '',
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     tradeInMobileAuto: customer.vsa_trade_in_owner_mobile || customer.phone || '',
 
     // Delivery Details
@@ -313,17 +317,27 @@ export async function populateExcelTemplate(
 }
 
 /**
- * Download Excel file
+ * Download Excel file (uses shared utility)
  */
 export function downloadExcelFile(blob: Blob, fileName: string): void {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = fileName
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  downloadFile(blob, fileName)
+}
+
+/**
+ * Share or download Excel file based on platform
+ * Uses Web Share API on mobile, standard download on desktop
+ */
+export async function shareOrDownloadExcelFile(
+  blob: Blob,
+  fileName: string,
+  customerName?: string
+): Promise<boolean> {
+  return shareOrDownloadFile({
+    blob,
+    fileName,
+    mimeType: MIME_TYPES.XLSX,
+    title: customerName ? `${customerName} - Excel Document` : fileName,
+  })
 }
 
 /**

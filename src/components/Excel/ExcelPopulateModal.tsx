@@ -4,16 +4,17 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
-import { FileXls, UploadSimple, DownloadSimple, X } from '@phosphor-icons/react'
+import { FileXls, UploadSimple, DownloadSimple, ShareNetwork, X } from '@phosphor-icons/react'
 import { Button, Modal } from '@/components/common'
 import { useToast } from '@/components/common'
 import { useExcelStore } from '@/stores/useExcelStore'
 import {
   populateExcelTemplate,
-  downloadExcelFile,
+  shareOrDownloadExcelFile,
   generateFileName,
   getCustomerDataMapping,
 } from '@/services/excelService'
+import { useShareCapability } from '@/hooks/useShareCapability'
 import { getFieldLabel } from '@/constants/excelFields'
 import type { Customer, Guarantor, ExcelTemplate } from '@/types'
 import './ExcelPopulateModal.css'
@@ -33,6 +34,7 @@ export function ExcelPopulateModal({
 }: ExcelPopulateModalProps) {
   const { templates, fetchTemplates, downloadExcelFile: downloadTemplateFile } = useExcelStore()
   const { success, error: toastError } = useToast()
+  const showShare = useShareCapability()
 
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
@@ -49,6 +51,7 @@ export function ExcelPopulateModal({
 
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId)
   const hasMasterFile = selectedTemplate?.file_path
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const canGenerate = selectedTemplateId && (hasMasterFile || uploadedFile)
 
   // Get mapping count
@@ -126,9 +129,9 @@ export function ExcelPopulateModal({
         fileBlob
       )
 
-      // Generate filename and download
+      // Generate filename and share/download
       const fileName = generateFileName(selectedTemplate.name, customer.name)
-      downloadExcelFile(populatedBlob, fileName)
+      await shareOrDownloadExcelFile(populatedBlob, fileName, customer.name)
 
       success('Excel file generated successfully')
       onClose()
@@ -246,8 +249,16 @@ export function ExcelPopulateModal({
             Cancel
           </Button>
           <Button onClick={handleGenerate} disabled={!canGenerate || isGenerating}>
-            <DownloadSimple size={16} className="btn-icon" />
-            {isGenerating ? 'Generating...' : 'Generate & Download'}
+            {showShare ? (
+              <ShareNetwork size={16} className="btn-icon" />
+            ) : (
+              <DownloadSimple size={16} className="btn-icon" />
+            )}
+            {isGenerating
+              ? 'Generating...'
+              : showShare
+                ? 'Generate & Share'
+                : 'Generate & Download'}
           </Button>
         </div>
       </div>
