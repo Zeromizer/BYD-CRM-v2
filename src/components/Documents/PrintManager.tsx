@@ -213,11 +213,8 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
     // Fit to width for consistent horizontal experience
     const scale = Math.max(0.1, Math.min(availableWidth / canvasSize.width, 1.5))
 
-    // Center horizontally, position at top
-    const scaledWidth = canvasSize.width * scale
-    const positionX = (containerRect.width - scaledWidth) / 2
-
-    transformRef.current.setTransform(positionX, 20, scale, 300) // 300ms animation
+    // Use library's centerView for proper centering
+    transformRef.current.centerView(scale, 300) // 300ms animation
   }, [canvasSize])
 
   // Reset to 100%
@@ -931,7 +928,8 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
           initialScale={1}
           minScale={0.1}
           maxScale={3}
-          centerOnInit={false}
+          centerOnInit
+          limitToBounds={false}
           wheel={{ step: 0.1 }}
           pinch={{ step: 5 }}
           doubleClick={{ disabled: true }}
@@ -939,10 +937,7 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
           onTransformed={(_, state) => setDisplayZoom(state.scale)}
           disabled={isGeneratingPdf}
         >
-          <TransformComponent
-            wrapperStyle={{ width: '100%', height: '100%' }}
-            contentStyle={{ display: 'flex', justifyContent: 'center' }}
-          >
+          <TransformComponent wrapperStyle={{ width: '100%', height: '100%' }}>
             <div className="pm-preview" ref={printRef}>
               <canvas ref={canvasRef} className="pm-canvas" />
               {!selectedCustomer && (
