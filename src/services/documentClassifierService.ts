@@ -183,8 +183,8 @@ export async function classifyDocument(
 
   if (error) {
     debug.error('Document classification error:', error)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
     const errorMessage =
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
       'message' in error ? String(error.message) : 'Failed to classify document. Please try again.'
     throw new Error(errorMessage)
   }

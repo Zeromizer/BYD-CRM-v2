@@ -159,8 +159,8 @@ export async function classifyWithVisionClaude(
 
   if (error) {
     console.error('Vision-Claude OCR error:', error)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
     const errorMessage =
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
       'message' in error ? String(error.message) : 'Failed to process document with Vision + Claude'
     throw new Error(errorMessage)
   }
@@ -215,8 +215,8 @@ async function extractTextWithVisionOnly(imageData: string): Promise<string> {
 
   if (error) {
     console.error('Vision OCR error:', error)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
     const errorMessage =
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
       'message' in error ? String(error.message) : 'Failed to extract text with Vision API'
     throw new Error(errorMessage)
   }
@@ -258,8 +258,8 @@ export async function classifyTextWithClaude(
 
   if (error) {
     console.error('Claude classification error:', error)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
     const errorMessage =
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
       'message' in error ? String(error.message) : 'Failed to classify text with Claude'
     throw new Error(errorMessage)
   }
@@ -329,9 +329,9 @@ async function classifyExcelWithClaude(file: File): Promise<VisionClaudeResult> 
 
         // Build text representation for Claude
         // Include filename, headers, and sample data
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string -- Excel headers can be any type, intentionally converting to string
         const headerStr = headers
           .filter((h) => h != null)
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string -- Excel headers can be any type, intentionally converting to string
           .map((h) => String(h))
           .join(', ')
         const sampleRows = rowsWithHeaders
@@ -954,9 +954,9 @@ function extractCustomerDataFromExcel(
   const result: VisionClaudeResult['extractedData'] = {}
 
   // Normalize headers for matching - filter out null/undefined values
-  // eslint-disable-next-line @typescript-eslint/no-base-to-string -- intentionally converting unknown Excel header values to strings
-  const normalizedHeaders = headers.map((h) =>
-    h != null && h !== '' ? String(h).toLowerCase().trim() : ''
+  const normalizedHeaders = headers.map(
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string -- intentionally converting unknown Excel header values to strings
+    (h) => (h != null && h !== '' ? String(h).toLowerCase().trim() : '')
   )
 
   // Common field mappings
@@ -992,9 +992,11 @@ function extractCustomerDataFromExcel(
       if (key && firstRow[key] !== undefined && firstRow[key] !== null && firstRow[key] !== '') {
         const value = firstRow[key]
         if (field === 'sellingPrice') {
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string -- value is from Excel cell, intentionally converting to string
           const numValue =
-            typeof value === 'number' ? value : parseFloat(String(value).replace(/[^0-9.-]/g, ''))
+            typeof value === 'number'
+              ? value
+              : // eslint-disable-next-line @typescript-eslint/no-base-to-string -- value is from Excel cell, intentionally converting to string
+                parseFloat(String(value).replace(/[^0-9.-]/g, ''))
           if (!isNaN(numValue)) {
             result.sellingPrice = numValue
           }

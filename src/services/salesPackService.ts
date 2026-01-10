@@ -232,8 +232,8 @@ async function classifyPagesWithClaude(pageTexts: string[]): Promise<BatchClassi
 
   if (error) {
     console.error('[SalesPack] Batch classification error:', error)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
     const errorMessage =
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
       'message' in error ? String(error.message) : 'Failed to classify pages with Claude'
     throw new Error(errorMessage)
   }
@@ -321,8 +321,8 @@ async function analyzeWithClaudeVision(
 
   if (error) {
     console.error('[SalesPack] Claude Vision analysis error:', error)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
     const errorMessage =
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
       'message' in error ? String(error.message) : 'Failed to analyze PDF with Claude Vision'
     throw new Error(errorMessage)
   }
