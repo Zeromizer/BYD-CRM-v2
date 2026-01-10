@@ -207,12 +207,11 @@
 /* Preview Container */
 .pm-preview-container {
   flex: 1;
-  overflow: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
+  touch-action: none;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 1rem;
   background-color: var(--bg-tertiary);
   background-image:
     linear-gradient(45deg, var(--bg-secondary) 25%, transparent 25%),
@@ -230,7 +229,13 @@
 .pm-preview {
   position: relative;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
-  transition: transform 0.1s ease;
+}
+
+/* react-zoom-pan-pinch wrapper styles */
+.pm-preview-container .react-transform-wrapper,
+.pm-preview-container .react-transform-component {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .pm-canvas {

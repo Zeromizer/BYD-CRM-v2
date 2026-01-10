@@ -5,6 +5,11 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import {
+  TransformWrapper,
+  TransformComponent,
+  type ReactZoomPanPinchRef,
+} from 'react-zoom-pan-pinch'
+import {
   ArrowLeft,
   User,
   File,
@@ -47,7 +52,7 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
   const [selectedTemplates, setSelectedTemplates] = useState<DocumentTemplate[]>([template])
   const [currentTemplateIndex, setCurrentTemplateIndex] = useState(0)
   const [currentPageIndex, setCurrentPageIndex] = useState(0)
-  const [zoom, setZoom] = useState(1)
+  const [displayZoom, setDisplayZoom] = useState(1)
   const [showCustomerSelect, setShowCustomerSelect] = useState(!initialCustomer)
   const [showTemplateSelect, setShowTemplateSelect] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -63,6 +68,7 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const printRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const transformRef = useRef<ReactZoomPanPinchRef>(null)
 
   const currentTemplate = selectedTemplates[currentTemplateIndex]
   const currentTemplatePages = currentTemplate ? getTemplatePages(currentTemplate) : []
@@ -196,35 +202,37 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
     drawCanvas()
   }, [drawCanvas])
 
-  // Fit to screen function
-  const fitToScreen = useCallback(() => {
-    if (!containerRef.current || !canvasSize) return
+  // Fit to width function (for consistent document sizing)
+  const fitToWidth = useCallback(() => {
+    if (!transformRef.current || !containerRef.current || !canvasSize) return
 
     const containerRect = containerRef.current.getBoundingClientRect()
-    const padding = 20 // Reduced padding for more space
-    const availableWidth = containerRect.width - padding * 2
-    const availableHeight = containerRect.height - padding * 2
+    const padding = 40 // 20px on each side
+    const availableWidth = containerRect.width - padding
 
-    const scaleX = availableWidth / canvasSize.width
-    const scaleY = availableHeight / canvasSize.height
-    const newZoom = Math.min(scaleX, scaleY, 1.5) // Allow up to 150% for better readability
+    // Fit to width for consistent horizontal experience
+    const scale = Math.max(0.1, Math.min(availableWidth / canvasSize.width, 1.5))
 
-    setZoom(Math.max(0.1, newZoom))
+    // Center horizontally, position at top
+    const scaledWidth = canvasSize.width * scale
+    const positionX = (containerRect.width - scaledWidth) / 2
+
+    transformRef.current.setTransform(positionX, 20, scale, 300) // 300ms animation
   }, [canvasSize])
 
   // Reset to 100%
   const resetView = useCallback(() => {
-    setZoom(1)
+    transformRef.current?.resetTransform(300)
   }, [])
 
-  // Auto-fit when canvas size changes (template loads)
+  // Auto-fit when canvas size changes (template loads) or page changes
   useEffect(() => {
     if (canvasSize) {
       // Small delay to ensure container has proper dimensions
-      const timer = setTimeout(fitToScreen, 100)
+      const timer = setTimeout(fitToWidth, 150)
       return () => clearTimeout(timer)
     }
-  }, [canvasSize, fitToScreen])
+  }, [canvasSize, currentPageIndex, fitToWidth])
 
   // Get customer data mapping
   const getCustomerDataMapping = (customer: Customer): Record<string, string> => {
@@ -837,14 +845,14 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
 
           {/* Zoom controls */}
           <div className="zoom-controls">
-            <button className="zoom-btn" onClick={() => setZoom((z) => Math.max(0.1, z - 0.1))}>
+            <button className="zoom-btn" onClick={() => transformRef.current?.zoomOut(0.25)}>
               -
             </button>
-            <span className="zoom-level">{Math.round(zoom * 100)}%</span>
-            <button className="zoom-btn" onClick={() => setZoom((z) => Math.min(3, z + 0.1))}>
+            <span className="zoom-level">{Math.round(displayZoom * 100)}%</span>
+            <button className="zoom-btn" onClick={() => transformRef.current?.zoomIn(0.25)}>
               +
             </button>
-            <button className="zoom-btn-text" onClick={fitToScreen}>
+            <button className="zoom-btn-text" onClick={fitToWidth}>
               Fit
             </button>
             <button className="zoom-btn-text" onClick={resetView}>
@@ -876,14 +884,14 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
       {/* Mobile Bottom Action Bar */}
       <div className="pm-mobile-actions">
         <div className="pm-mobile-zoom">
-          <button className="pm-mobile-btn" onClick={() => setZoom((z) => Math.max(0.1, z - 0.1))}>
+          <button className="pm-mobile-btn" onClick={() => transformRef.current?.zoomOut(0.25)}>
             -
           </button>
-          <span className="pm-mobile-zoom-level">{Math.round(zoom * 100)}%</span>
-          <button className="pm-mobile-btn" onClick={() => setZoom((z) => Math.min(3, z + 0.1))}>
+          <span className="pm-mobile-zoom-level">{Math.round(displayZoom * 100)}%</span>
+          <button className="pm-mobile-btn" onClick={() => transformRef.current?.zoomIn(0.25)}>
             +
           </button>
-          <button className="pm-mobile-btn pm-mobile-fit" onClick={fitToScreen}>
+          <button className="pm-mobile-btn pm-mobile-fit" onClick={fitToWidth}>
             Fit
           </button>
         </div>
@@ -918,20 +926,35 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
 
       {/* Preview Area */}
       <div className="pm-preview-container" ref={containerRef}>
-        <div
-          className="pm-preview"
-          style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
-          ref={printRef}
+        <TransformWrapper
+          ref={transformRef}
+          initialScale={1}
+          minScale={0.1}
+          maxScale={3}
+          centerOnInit={false}
+          wheel={{ step: 0.1 }}
+          pinch={{ step: 5 }}
+          doubleClick={{ disabled: true }}
+          panning={{ velocityDisabled: true }}
+          onTransformed={(_, state) => setDisplayZoom(state.scale)}
+          disabled={isGeneratingPdf}
         >
-          <canvas ref={canvasRef} className="pm-canvas" />
-          {!selectedCustomer && (
-            <div className="pm-no-customer">
-              <User size={48} className="no-customer-icon" />
-              <p>Select a customer to preview</p>
-              <Button onClick={() => setShowCustomerSelect(true)}>Select Customer</Button>
+          <TransformComponent
+            wrapperStyle={{ width: '100%', height: '100%' }}
+            contentStyle={{ display: 'flex', justifyContent: 'center' }}
+          >
+            <div className="pm-preview" ref={printRef}>
+              <canvas ref={canvasRef} className="pm-canvas" />
+              {!selectedCustomer && (
+                <div className="pm-no-customer">
+                  <User size={48} className="no-customer-icon" />
+                  <p>Select a customer to preview</p>
+                  <Button onClick={() => setShowCustomerSelect(true)}>Select Customer</Button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </TransformComponent>
+        </TransformWrapper>
       </div>
 
       {/* Customer Select Modal */}
