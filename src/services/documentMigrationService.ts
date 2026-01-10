@@ -141,6 +141,26 @@ export interface MigrationResult {
   }[]
 }
 
+// Extended migration file with optional document type
+interface MigrationFileWithType extends MigrationFile {
+  documentType?: string
+}
+
+// Upload result interface
+interface UploadedDocument {
+  id: string
+  name: string
+  uploadedAt: string
+}
+
+interface UploadResult {
+  success: boolean
+  doc?: UploadedDocument
+  error?: string
+  documentType: string
+  milestone: string
+}
+
 /**
  * Upload a single file with timeout
  */
@@ -148,16 +168,10 @@ async function uploadSingleFile(
   migrationFile: MigrationFile,
   customerName: string,
   timeoutMs = 60000
-): Promise<{
-  success: boolean
-  doc?: any
-  error?: string
-  documentType: string
-  milestone: string
-}> {
+): Promise<UploadResult> {
+  const fileWithType = migrationFile as MigrationFileWithType
   const documentType =
-    (migrationFile as any).documentType ||
-    detectDocumentType(migrationFile.name, migrationFile.folder)
+    fileWithType.documentType ?? detectDocumentType(migrationFile.name, migrationFile.folder)
   const milestone = getMilestoneForDocType(documentType)
 
   if (!migrationFile.file) {
@@ -170,7 +184,7 @@ async function uploadSingleFile(
       setTimeout(() => reject(new Error('Upload timed out')), timeoutMs)
     })
 
-    const uploadedDoc = await Promise.race([uploadPromise, timeoutPromise])
+    const uploadedDoc = (await Promise.race([uploadPromise, timeoutPromise])) as UploadedDocument
     debug.log(`[Migration] Upload complete: ${migrationFile.name}`)
     return { success: true, doc: uploadedDoc, documentType, milestone }
   } catch (err) {
@@ -281,7 +295,7 @@ export async function migrateCustomerDocuments(
           milestone: uploadResult.milestone,
         })
       } else {
-        result.errors.push(`${migrationFile.name}: ${uploadResult.error || 'Unknown error'}`)
+        result.errors.push(`${migrationFile.name}: ${uploadResult.error ?? 'Unknown error'}`)
         result.failed++
       }
 
@@ -311,10 +325,12 @@ export function createMigrationFiles(fileList: FileList, _basePath = ''): Migrat
   const files: MigrationFile[] = []
 
   for (const file of Array.from(fileList)) {
-    // webkitRelativePath contains the folder structure
-    const relativePath = (file as any).webkitRelativePath || file.name
-    const pathParts = relativePath.split('/')
-    const folder = pathParts.length > 1 ? pathParts[pathParts.length - 2] : undefined
+    // webkitRelativePath contains the folder structure (empty string if not set)
+
+    const relativePath: string = file.webkitRelativePath || file.name
+    const pathParts: string[] = relativePath.split('/')
+    const folder: string | undefined =
+      pathParts.length > 1 ? pathParts[pathParts.length - 2] : undefined
 
     files.push({
       name: file.name,

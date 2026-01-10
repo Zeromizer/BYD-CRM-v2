@@ -244,7 +244,7 @@ function getDefaultDocumentChecklist(): DocumentChecklistState {
  */
 function convertCustomer(old: OldCustomer): Omit<CustomerInsert, 'user_id'> {
   // Determine current milestone from checklist
-  const currentMilestone = old.checklist?.currentMilestone || 'test_drive'
+  const currentMilestone = old.checklist?.currentMilestone ?? 'test_drive'
 
   // Convert checklist - may have camelCase keys in old format
   let checklist = old.checklist
@@ -379,9 +379,9 @@ function convertCustomer(old: OldCustomer): Omit<CustomerInsert, 'user_id'> {
     proposal_remarks: old.proposal_remarks ?? null,
 
     // JSONB Fields
-    checklist: checklist || getDefaultChecklistState(),
-    milestone_dates: milestoneDates || getDefaultMilestoneDates(),
-    document_checklist: old.documentChecklist || getDefaultDocumentChecklist(),
+    checklist: checklist ?? getDefaultChecklistState(),
+    milestone_dates: milestoneDates ?? getDefaultMilestoneDates(),
+    document_checklist: old.documentChecklist ?? getDefaultDocumentChecklist(),
   }
 }
 
@@ -415,7 +415,7 @@ function extractGuarantors(old: OldCustomer): Omit<GuarantorInsert, 'customer_id
   if (old.guarantors && Array.isArray(old.guarantors)) {
     old.guarantors.forEach((g, index) => {
       if (g.name) {
-        const position = (g.position || index + 1) as 1 | 2 | 3 | 4 | 5
+        const position = (g.position ?? index + 1) as 1 | 2 | 3 | 4 | 5
         guarantors.push(convertGuarantor(g, position))
       }
     })
@@ -439,6 +439,14 @@ function extractGuarantors(old: OldCustomer): Omit<GuarantorInsert, 'customer_id
   return guarantors
 }
 
+// Type for raw parsed JSON data
+interface RawExportData {
+  version?: string
+  exportDate?: string
+  type?: 'customers' | 'all_data'
+  customers?: unknown[]
+}
+
 /**
  * Parse import file (JSON)
  */
@@ -448,15 +456,25 @@ export async function parseCustomerImportFile(file: File): Promise<OldExportData
 
     reader.onload = (e) => {
       try {
-        const data = JSON.parse(e.target?.result as string)
+        const rawData: unknown = JSON.parse(e.target?.result as string)
 
         // Handle different export formats
-        if (Array.isArray(data)) {
+        if (Array.isArray(rawData)) {
           // Direct array of customers
-          resolve({ customers: data })
-        } else if (data.customers && Array.isArray(data.customers)) {
-          // Wrapped format with metadata
-          resolve(data)
+          resolve({ customers: rawData as OldCustomer[] })
+        } else if (typeof rawData === 'object' && rawData !== null) {
+          const data = rawData as RawExportData
+          if (data.customers && Array.isArray(data.customers)) {
+            // Wrapped format with metadata
+            resolve({
+              version: data.version,
+              exportDate: data.exportDate,
+              type: data.type,
+              customers: data.customers as OldCustomer[],
+            })
+          } else {
+            reject(new Error('Invalid customer data format'))
+          }
         } else {
           reject(new Error('Invalid customer data format'))
         }

@@ -52,7 +52,9 @@ export interface ExtractedDocumentData {
   tradeInAmount?: number
   // Document metadata
   documentDate?: string
-  [key: string]: any
+  // Additional dynamic fields from OCR
+  documentType?: DocumentType
+  confidence?: number
 }
 
 export interface CustomerMatch {
@@ -243,33 +245,33 @@ async function classifyImageOrPdfDocument(file: File): Promise<DocumentClassific
   }
 
   // Generic document classification
-  const genericResult = await extractDocumentData<any>(
+  const genericResult = await extractDocumentData<ExtractedDocumentData>(
     file,
     'unknown',
     getGenericClassificationPrompt()
   )
 
   return {
-    documentType: genericResult.structuredData.documentType || 'unknown',
+    documentType: genericResult.structuredData.documentType ?? 'unknown',
     confidence: genericResult.confidence,
     extractedData: genericResult.structuredData,
     rawText: genericResult.rawText,
   }
 }
 
-async function classifyExcelDocument(_file: File): Promise<DocumentClassification> {
+function classifyExcelDocument(_file: File): Promise<DocumentClassification> {
   // TODO: Parse Excel file when implementing
   // const sheets = await parseExcelFile(file);
   // For now, simple heuristic - would expand with xlsx-populate cell reading
   // In real implementation, read cells to detect VSA template vs customer list
 
-  return {
-    documentType: 'vsa_form', // Placeholder
+  return Promise.resolve({
+    documentType: 'vsa_form' as const, // Placeholder
     confidence: 0.7,
     extractedData: {
       // Would extract from Excel cells
     },
-  }
+  })
 }
 
 function getGenericClassificationPrompt(): string {
@@ -313,10 +315,10 @@ Return JSON:
 
 // ==================== CUSTOMER MATCHING ====================
 
-export async function matchDocumentToCustomer(
+export function matchDocumentToCustomer(
   extractedData: ExtractedDocumentData,
   customers: Customer[]
-): Promise<CustomerMatch> {
+): CustomerMatch {
   // 1. Exact NRIC match (highest priority)
   if (extractedData.nric) {
     const exactMatch = customers.find((c) => c.nric === extractedData.nric)
@@ -333,13 +335,11 @@ export async function matchDocumentToCustomer(
 
   // 2. Fuzzy name match
   if (extractedData.name) {
+    const extractedName = extractedData.name
     const nameMatches = customers
       .map((c) => ({
         customer: c,
-        similarity: calculateStringSimilarity(
-          extractedData.name!.toLowerCase(),
-          c.name.toLowerCase()
-        ),
+        similarity: calculateStringSimilarity(extractedName.toLowerCase(), c.name.toLowerCase()),
       }))
       .filter((m) => m.similarity > 0.85)
       .sort((a, b) => b.similarity - a.similarity)
@@ -361,6 +361,7 @@ export async function matchDocumentToCustomer(
   if (extractedData.phone || extractedData.email) {
     const contactMatch = customers.find(
       (c) =>
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- boolean OR for matching logic
         (extractedData.phone && c.phone === extractedData.phone) ||
         (extractedData.email && c.email === extractedData.email)
     )
@@ -404,10 +405,10 @@ export function generateFileName(
   const { documentType, extractedData } = classification
 
   // Get prefix
-  const prefix = DOCUMENT_TYPE_PREFIXES[documentType] || 'Document'
+  const prefix = DOCUMENT_TYPE_PREFIXES[documentType] ?? 'Document'
 
   // Get identifier (NRIC or ID number)
-  const identifier = extractedData.nric || extractedData.phone || 'NoID'
+  const identifier = extractedData.nric ?? extractedData.phone ?? 'NoID'
 
   // Get name (sanitized)
   const name = extractedData.name
@@ -476,7 +477,7 @@ export async function processBulkDocuments(
       const classification = await classifyDocument(fileToProcess)
 
       // Match to customer
-      const customerMatch = await matchDocumentToCustomer(classification.extractedData, customers)
+      const customerMatch = matchDocumentToCustomer(classification.extractedData, customers)
 
       // Generate new filename
       const newFileName = generateFileName(classification, customerMatch, fileToProcess.extension)

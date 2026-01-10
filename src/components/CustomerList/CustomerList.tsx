@@ -105,6 +105,7 @@ export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
     // Search
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
+      /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
       result = result.filter(
         (c) =>
           c.name.toLowerCase().includes(query) ||
@@ -112,6 +113,7 @@ export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
           c.email?.toLowerCase().includes(query) ||
           c.vsa_no?.toLowerCase().includes(query)
       )
+      /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
     }
 
     // Sort
@@ -220,7 +222,7 @@ export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
   }
 
   // Handle export
-  const handleExport = async () => {
+  const handleExport = () => {
     try {
       // For now, export without guarantors (would need to fetch them)
       const guarantorsMap: Record<number, Guarantor[]> = {}
@@ -504,6 +506,7 @@ function CustomerCard({ customer, isSelected, onSelect, index }: CustomerCardPro
             className="progress-fill"
             style={{
               width: `${progress}%`,
+              // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
               backgroundColor: milestone?.color || '#64748b',
             }}
           />

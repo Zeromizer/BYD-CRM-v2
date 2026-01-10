@@ -933,6 +933,7 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
                 </div>
               </div>
 
+              {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- truthiness check for conditional rendering */}
               {(licenseFrontImage || licenseBackImage) && (
                 <div className="scanned-images">
                   <h4>Scanned Driving License</h4>

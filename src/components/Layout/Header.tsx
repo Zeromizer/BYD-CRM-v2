@@ -127,7 +127,9 @@ export function Header({ theme, onSetTheme }: HeaderProps) {
           {/* User Menu */}
           <div className="user-menu-container">
             <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="user-menu-trigger">
+              {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */}
               <div className="user-avatar">{profile?.display_name?.[0]?.toUpperCase() || 'U'}</div>
+              {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */}
               <span className="user-name desktop-only">{profile?.display_name || 'User'}</span>
             </button>
 
@@ -136,6 +138,7 @@ export function Header({ theme, onSetTheme }: HeaderProps) {
                 <div className="menu-overlay" onClick={() => setUserMenuOpen(false)} />
                 <div className="user-menu">
                   <div className="user-menu-header">
+                    {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */}
                     <p className="user-menu-name">{profile?.display_name || 'User'}</p>
                     <p className="user-menu-email">{profile?.email}</p>
                   </div>

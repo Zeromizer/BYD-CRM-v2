@@ -15,15 +15,13 @@ const thumbnailCache = new Map<string, string>()
 // Lazy load PDF.js only when needed
 let pdfjsPromise: Promise<typeof import('pdfjs-dist')> | null = null
 const getPdfjs = () => {
-  if (!pdfjsPromise) {
-    pdfjsPromise = import('pdfjs-dist').then((pdfjs) => {
-      pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-        'pdfjs-dist/build/pdf.worker.min.mjs',
-        import.meta.url
-      ).toString()
-      return pdfjs
-    })
-  }
+  pdfjsPromise ??= import('pdfjs-dist').then((pdfjs) => {
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+      'pdfjs-dist/build/pdf.worker.min.mjs',
+      import.meta.url
+    ).toString()
+    return pdfjs
+  })
   return pdfjsPromise
 }
 

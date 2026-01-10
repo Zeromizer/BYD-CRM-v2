@@ -112,7 +112,7 @@ export async function parseImportFile(file: File): Promise<OldExportData> {
 
     reader.onload = (e) => {
       try {
-        const data = JSON.parse(e.target?.result as string)
+        const data = JSON.parse(e.target?.result as string) as OldExportData
         resolve(data)
       } catch {
         reject(new Error('Invalid JSON file'))
@@ -144,7 +144,7 @@ async function parseZipFile(
   // Try to read manifest.json
   if (zipContent.files['manifest.json']) {
     const manifestContent = await zipContent.files['manifest.json'].async('text')
-    manifest = JSON.parse(manifestContent)
+    manifest = JSON.parse(manifestContent) as OldExportData
   }
 
   // Extract Excel master files
@@ -174,7 +174,7 @@ async function parseZipFile(
 
     if (jsonFiles.length > 0) {
       const firstJson = await zipContent.files[jsonFiles[0]].async('text')
-      manifest = JSON.parse(firstJson)
+      manifest = JSON.parse(firstJson) as OldExportData
     }
   }
 

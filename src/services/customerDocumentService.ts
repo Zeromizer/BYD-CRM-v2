@@ -350,13 +350,20 @@ export async function getCustomerDocuments(
 
   // Build document list
   for (const { file, filePath } of fileInfos) {
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Fallback on empty URL
+    const docUrl = (cachedUrls.get(filePath) || newUrls.get(filePath)) ?? ''
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Supabase metadata is untyped
+    const size: number = file.metadata?.size ?? 0
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/prefer-nullish-coalescing -- Supabase metadata is untyped
+    const mimeType: string = file.metadata?.mimetype || 'application/octet-stream'
     documents.push({
       id: file.id,
       name: file.name,
       path: filePath,
-      url: (cachedUrls.get(filePath) || newUrls.get(filePath)) ?? '',
-      size: file.metadata?.size ?? 0,
-      mimeType: file.metadata?.mimetype || 'application/octet-stream',
+      url: docUrl,
+      size,
+      mimeType,
+
       uploadedAt: file.created_at || new Date().toISOString(),
     })
   }
@@ -594,15 +601,25 @@ export async function getAllCustomerDocuments(
         if (!folderMap.has(folder)) {
           folderMap.set(folder, [])
         }
-        folderMap.get(folder)!.push({
-          id: file.id,
-          name: file.name,
-          path: filePath,
-          url: (cachedUrls.get(filePath) || newUrls.get(filePath)) ?? '',
-          size: file.metadata?.size ?? 0,
-          mimeType: file.metadata?.mimetype || 'application/octet-stream',
-          uploadedAt: file.created_at || new Date().toISOString(),
-        })
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Fallback on empty URL
+        const docUrl = (cachedUrls.get(filePath) || newUrls.get(filePath)) ?? ''
+
+        const size: number = file.metadata?.size ?? 0
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Supabase metadata is untyped
+        const mimeType: string = file.metadata?.mimetype || 'application/octet-stream'
+        const docs = folderMap.get(folder)
+        if (docs) {
+          docs.push({
+            id: file.id,
+            name: file.name,
+            path: filePath,
+            url: docUrl,
+            size,
+            mimeType,
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Fallback on empty string
+            uploadedAt: file.created_at || new Date().toISOString(),
+          })
+        }
       }
 
       const result = Array.from(folderMap.entries())

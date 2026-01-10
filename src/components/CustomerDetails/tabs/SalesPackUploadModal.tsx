@@ -190,11 +190,18 @@ export function SalesPackUploadModal({
 
         try {
           const filename = generateSplitFilename(
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- fallback on empty string is intentional
             customer.name || analysis?.customerName || 'UNKNOWN',
             split.documentType
           )
 
-          const file = new File([split.pdfBlob!], filename, { type: 'application/pdf' })
+          // pdfBlob should exist after splitting, skip if missing
+          if (!split.pdfBlob) {
+            console.error(`Missing PDF blob for ${split.documentTypeName}`)
+            failedCount++
+            continue
+          }
+          const file = new File([split.pdfBlob], filename, { type: 'application/pdf' })
           await uploadCustomerDocument(split.documentType, file, customer.name)
           successCount++
         } catch (err) {

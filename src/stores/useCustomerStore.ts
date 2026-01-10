@@ -150,6 +150,7 @@ export const useCustomerStore = create<CustomerState & CustomerActions>()(
 
           fetchCustomerById: async (id) => {
             try {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Supabase returns typed data based on table schema
               const { data, error } = await getSupabase()
                 .from('customers')
                 .select('*')
@@ -186,6 +187,7 @@ export const useCustomerStore = create<CustomerState & CustomerActions>()(
 
               const customerData: CustomerInsert = {
                 user_id: user.id,
+                // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- fallback on empty string is intentional for name default
                 name: data.name || 'New Customer',
 
                 // Basic Info
@@ -205,12 +207,13 @@ export const useCustomerStore = create<CustomerState & CustomerActions>()(
                 archive_status: data.archive_status ?? null,
                 archived_at: data.archived_at ?? null,
                 deal_closed: data.deal_closed ?? false,
+                // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- fallback on empty string is intentional for milestone default
                 current_milestone: data.current_milestone || 'test_drive',
 
                 // JSONB fields - use provided values or defaults
-                checklist: data.checklist || getDefaultChecklistState(),
-                milestone_dates: data.milestone_dates || getDefaultMilestoneDates(),
-                document_checklist: data.document_checklist || getDefaultDocumentChecklistState(),
+                checklist: data.checklist ?? getDefaultChecklistState(),
+                milestone_dates: data.milestone_dates ?? getDefaultMilestoneDates(),
+                document_checklist: data.document_checklist ?? getDefaultDocumentChecklistState(),
 
                 // VSA Details - Vehicle
                 vsa_make_model: toNullIfEmpty(data.vsa_make_model),
@@ -295,6 +298,7 @@ export const useCustomerStore = create<CustomerState & CustomerActions>()(
                 proposal_remarks: toNullIfEmpty(data.proposal_remarks),
               }
 
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Supabase returns typed data based on table schema
               const { data: newCustomer, error } = await getSupabase()
                 .from('customers')
                 .insert(customerData)
@@ -540,6 +544,7 @@ export const useCustomerStore = create<CustomerState & CustomerActions>()(
               )
               .subscribe((status) => {
                 console.log('[CustomerStore] Channel status:', status)
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison -- Supabase channel status is a string enum
                 if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                   console.log('[CustomerStore] Will reconnect in 3s...')
                   setTimeout(() => get().subscribeToChanges(), 3000)

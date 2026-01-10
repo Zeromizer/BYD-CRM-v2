@@ -97,6 +97,7 @@ export const useExcelStore = create<ExcelState & ExcelActions>()(
 
         fetchTemplateById: async (id) => {
           try {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Supabase returns typed data based on table schema
             const { data, error } = await getSupabase()
               .from('excel_templates')
               .select('*')
@@ -128,12 +129,14 @@ export const useExcelStore = create<ExcelState & ExcelActions>()(
 
             const templateData: ExcelTemplateInsert = {
               user_id: user.id,
+              // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- fallback on empty string is intentional
               name: data.name || 'New Excel Template',
               file_path: data.file_path ?? null,
               field_mappings: data.field_mappings ?? {},
               sheet_names: data.sheet_names ?? [],
             }
 
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Supabase returns typed data based on table schema
             const { data: newTemplate, error } = await supabase
               .from('excel_templates')
               .insert(templateData)
@@ -325,6 +328,7 @@ export const useExcelStore = create<ExcelState & ExcelActions>()(
             )
             .subscribe((status) => {
               console.log('[ExcelStore] Channel status:', status)
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison -- Supabase channel status is a string enum
               if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                 console.log('[ExcelStore] Will reconnect in 3s...')
                 setTimeout(() => get().subscribeToChanges(), 3000)

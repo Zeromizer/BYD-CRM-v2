@@ -52,7 +52,7 @@ export function CustomerForm({ initialData, onSubmit, onCancel, isLoading }: Cus
     // Synchronous guard using ref (state updates are async and can miss rapid clicks)
     if (isSubmittingRef.current || isLoading) return
     isSubmittingRef.current = true
-    onSubmit(formData, scannedImages || undefined)
+    onSubmit(formData, scannedImages ?? undefined)
   }
 
   const handleScanData = (data: ScannedData) => {

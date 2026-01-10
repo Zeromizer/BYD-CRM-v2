@@ -92,9 +92,12 @@ export const useDocumentStore = create<DocumentState & DocumentActions>()(
 
             if (error) throw error
 
+            // Cast data to DocumentTemplate[] - Supabase returns typed data based on table schema
+            const templates = (data ?? []) as DocumentTemplate[]
+
             // Refresh signed URLs for templates with image_path or pages
             const templatesWithUrls = await Promise.all(
-              (data ?? []).map(async (template) => {
+              templates.map(async (template) => {
                 // Handle multi-page templates
                 if (template.pages && Array.isArray(template.pages) && template.pages.length > 0) {
                   try {
@@ -111,6 +114,7 @@ export const useDocumentStore = create<DocumentState & DocumentActions>()(
                               urlError
                             )
                           }
+                          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- fallback on empty string is intentional
                           return { ...page, image_url: urlData?.signedUrl || page.image_url }
                         }
                         return page
@@ -128,6 +132,7 @@ export const useDocumentStore = create<DocumentState & DocumentActions>()(
                     const { data: urlData } = await supabase.storage
                       .from('document-templates')
                       .createSignedUrl(template.image_path, 3600)
+                    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- fallback on empty string is intentional
                     return { ...template, image_url: urlData?.signedUrl || template.image_url }
                   } catch {
                     return template
@@ -138,7 +143,7 @@ export const useDocumentStore = create<DocumentState & DocumentActions>()(
             )
 
             set((state) => {
-              state.templates = templatesWithUrls as DocumentTemplate[]
+              state.templates = templatesWithUrls
               state.isLoading = false
             })
           } catch (error) {
@@ -152,6 +157,7 @@ export const useDocumentStore = create<DocumentState & DocumentActions>()(
         fetchTemplateById: async (id) => {
           try {
             const supabase = getSupabase()
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Supabase returns typed data based on table schema
             const { data, error } = await supabase
               .from('document_templates')
               .select('*')
@@ -160,21 +166,24 @@ export const useDocumentStore = create<DocumentState & DocumentActions>()(
 
             if (error) throw error
 
+            // Cast to DocumentTemplate
+            const template = data as DocumentTemplate
+
             // Refresh signed URL if template has image_path
-            if (data?.image_path) {
+            if (template?.image_path) {
               try {
                 const { data: urlData } = await supabase.storage
                   .from('document-templates')
-                  .createSignedUrl(data.image_path, 3600)
+                  .createSignedUrl(template.image_path, 3600)
                 if (urlData?.signedUrl) {
-                  data.image_url = urlData.signedUrl
+                  template.image_url = urlData.signedUrl
                 }
               } catch {
                 // Keep existing URL if refresh fails
               }
             }
 
-            return data as DocumentTemplate
+            return template
           } catch (error) {
             set((state) => {
               state.error = (error as Error).message
@@ -196,6 +205,7 @@ export const useDocumentStore = create<DocumentState & DocumentActions>()(
             if (!user) throw new Error('Not authenticated')
 
             // Build template data - supports both legacy single-page and multi-page
+            /* eslint-disable @typescript-eslint/prefer-nullish-coalescing -- fallback on empty string/zero is intentional for defaults */
             const templateData: DocumentTemplateInsert & { pages?: TemplatePage[] | null } = {
               user_id: user.id,
               name: data.name || 'New Template',
@@ -210,7 +220,9 @@ export const useDocumentStore = create<DocumentState & DocumentActions>()(
               fields: data.pages ? {} : (data.fields ?? {}),
               pages: data.pages ?? null,
             }
+            /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
 
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Supabase returns typed data based on table schema
             const { data: newTemplate, error } = await supabase
               .from('document_templates')
               .insert(templateData)
@@ -280,9 +292,9 @@ export const useDocumentStore = create<DocumentState & DocumentActions>()(
             // Delete images from storage
             if (template) {
               // Handle multi-page templates
-              if (isMultiPageTemplate(template)) {
+              if (isMultiPageTemplate(template) && template.pages) {
                 await Promise.all(
-                  template.pages!.map(async (page) => {
+                  template.pages.map(async (page) => {
                     if (page.image_path) {
                       await get().deleteTemplateImage(page.image_path)
                     }
@@ -386,7 +398,7 @@ export const useDocumentStore = create<DocumentState & DocumentActions>()(
           // Create new page object
           const newPage: TemplatePage = {
             id: `page_${Date.now()}`,
-            page_number: position || getTemplatePages(template).length + 1,
+            page_number: position ?? getTemplatePages(template).length + 1,
             image_path: path,
             image_url: url,
             width: null,
@@ -529,6 +541,7 @@ export const useDocumentStore = create<DocumentState & DocumentActions>()(
             )
             .subscribe((status) => {
               console.log('[DocumentStore] Channel status:', status)
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison -- Supabase channel status is a string enum
               if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                 console.log('[DocumentStore] Will reconnect in 3s...')
                 setTimeout(() => get().subscribeToChanges(), 3000)

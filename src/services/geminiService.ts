@@ -7,6 +7,22 @@
 import { getSupabase } from '@/lib/supabase'
 import { debug } from '@/utils/debug'
 
+// Edge function response types
+interface ExtractIDResponse {
+  name?: string
+  nric?: string
+  dob?: string
+  address?: string
+  addressContinue?: string
+  confidence?: number
+  licenseStartDate?: string
+  error?: string
+}
+
+interface EdgeFunctionError {
+  message?: string
+}
+
 export interface ExtractedIDData {
   name: string
   nric: string
@@ -62,13 +78,15 @@ export async function extractIDWithGemini(
   debug.log('Front image size:', frontImageData.length, 'chars')
   debug.log('Back image size:', backImageData?.length ?? 0, 'chars')
 
-  const { data, error } = await supabase.functions.invoke('extract-id', {
+  const response = await supabase.functions.invoke<ExtractIDResponse>('extract-id', {
     body: {
       type: 'id',
       frontImage: frontImageData,
       backImage: backImageData,
     },
   })
+  const data: ExtractIDResponse | null = response.data
+  const error: EdgeFunctionError | null = response.error as EdgeFunctionError | null
 
   debug.log('Edge Function response:', { data, error })
 
@@ -76,22 +94,22 @@ export async function extractIDWithGemini(
 
   if (error) {
     debug.error('Edge Function error details:', error)
-    throw new Error(error.message || 'Failed to process ID. Please try again.')
+    throw new Error(error.message ?? 'Failed to process ID. Please try again.')
   }
 
-  if (data.error) {
+  if (data?.error) {
     throw new Error(data.error)
   }
 
   onProgress?.({ stage: 'Complete', progress: 100 })
 
   return {
-    name: data.name ?? '',
-    nric: data.nric ?? '',
-    dob: data.dob ?? '',
-    address: data.address ?? '',
-    addressContinue: data.addressContinue ?? '',
-    confidence: data.confidence ?? 0,
+    name: data?.name ?? '',
+    nric: data?.nric ?? '',
+    dob: data?.dob ?? '',
+    address: data?.address ?? '',
+    addressContinue: data?.addressContinue ?? '',
+    confidence: data?.confidence ?? 0,
   }
 }
 
@@ -118,19 +136,21 @@ export async function extractLicenseWithGemini(
 
   onProgress?.({ stage: 'Processing license data...', progress: 50 })
 
-  const { data, error } = await supabase.functions.invoke('extract-id', {
+  const response = await supabase.functions.invoke<ExtractIDResponse>('extract-id', {
     body: {
       type: 'license',
       frontImage: licenseFrontImageData,
     },
   })
+  const data: ExtractIDResponse | null = response.data
+  const licenseError: EdgeFunctionError | null = response.error as EdgeFunctionError | null
 
-  if (error) {
-    debug.error('License extraction error:', error)
+  if (licenseError) {
+    debug.error('License extraction error:', licenseError)
     return { licenseStartDate: '', confidence: 0 }
   }
 
-  if (data.error) {
+  if (data?.error) {
     debug.error('License extraction error:', data.error)
     return { licenseStartDate: '', confidence: 0 }
   }
@@ -138,8 +158,8 @@ export async function extractLicenseWithGemini(
   onProgress?.({ stage: 'License data extracted', progress: 100 })
 
   return {
-    licenseStartDate: data.licenseStartDate ?? '',
-    confidence: data.confidence ?? 0,
+    licenseStartDate: data?.licenseStartDate ?? '',
+    confidence: data?.confidence ?? 0,
   }
 }
 

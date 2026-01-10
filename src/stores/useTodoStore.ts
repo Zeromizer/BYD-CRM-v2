@@ -101,6 +101,7 @@ export const useTodoStore = create<TodoState & TodoActions>()(
                 user_id: user.id,
                 text: data.text ?? '',
                 completed: false,
+                // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- fallback on empty string is intentional
                 priority: data.priority || 'medium',
                 due_date: data.due_date ?? null,
                 customer_id: data.customer_id ?? null,
@@ -109,6 +110,7 @@ export const useTodoStore = create<TodoState & TodoActions>()(
                 checklist_item_id: data.checklist_item_id ?? null,
               }
 
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Supabase returns typed data based on table schema
               const { data: newTodo, error } = await supabase
                 .from('todos')
                 .insert(todoData)
@@ -249,6 +251,7 @@ export const useTodoStore = create<TodoState & TodoActions>()(
               )
               .subscribe((status) => {
                 console.log('[TodoStore] Channel status:', status)
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison -- Supabase channel status is a string enum
                 if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                   console.log('[TodoStore] Will reconnect in 3s...')
                   setTimeout(() => get().subscribeToChanges(), 3000)

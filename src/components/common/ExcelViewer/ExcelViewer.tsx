@@ -1,30 +1,31 @@
-import { DownloadSimple, ArrowsOut, MicrosoftExcelLogo } from '@phosphor-icons/react';
-import './ExcelViewer.css';
+import { DownloadSimple, ArrowsOut, MicrosoftExcelLogo } from '@phosphor-icons/react'
+import './ExcelViewer.css'
 
 interface ExcelViewerProps {
-  url: string;
-  filename?: string;
-  onDownload?: () => void;
+  url: string
+  filename?: string
+  onDownload?: () => void
 }
 
 export function ExcelViewer({ url, filename, onDownload }: ExcelViewerProps) {
   const handleOpenExternal = () => {
-    window.open(url, '_blank');
-  };
+    window.open(url, '_blank')
+  }
 
   const handleDownload = () => {
     if (onDownload) {
-      onDownload();
+      onDownload()
     } else {
       // Fallback: trigger download via link
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename || 'document.xlsx';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const link = document.createElement('a')
+      link.href = url
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Fallback on empty string
+      link.download = filename || 'document.xlsx'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
     }
-  };
+  }
 
   return (
     <div className="excel-viewer">
@@ -33,6 +34,7 @@ export function ExcelViewer({ url, filename, onDownload }: ExcelViewerProps) {
         <div className="excel-toolbar-left">
           <span className="excel-sheet-info">
             <MicrosoftExcelLogo size={16} weight="fill" style={{ color: '#217346' }} />
+            {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Fallback on empty string */}
             {filename || 'Excel Document'}
           </span>
         </div>
@@ -45,11 +47,7 @@ export function ExcelViewer({ url, filename, onDownload }: ExcelViewerProps) {
           >
             <ArrowsOut size={18} weight="bold" style={{ color: 'var(--text-secondary)' }} />
           </button>
-          <button
-            className="excel-toolbar-btn"
-            onClick={handleDownload}
-            title="Download"
-          >
+          <button className="excel-toolbar-btn" onClick={handleDownload} title="Download">
             <DownloadSimple size={18} weight="bold" style={{ color: 'var(--text-secondary)' }} />
           </button>
         </div>
@@ -71,11 +69,7 @@ export function ExcelViewer({ url, filename, onDownload }: ExcelViewerProps) {
       </div>
 
       {/* Filename footer */}
-      {filename && (
-        <div className="excel-filename-footer">
-          {filename}
-        </div>
-      )}
+      {filename && <div className="excel-filename-footer">{filename}</div>}
     </div>
-  );
+  )
 }

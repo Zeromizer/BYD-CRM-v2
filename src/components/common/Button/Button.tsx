@@ -1,14 +1,14 @@
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
-import { CircleNotch } from '@phosphor-icons/react';
-import './Button.css';
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { CircleNotch } from '@phosphor-icons/react'
+import './Button.css'
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
-  isLoading?: boolean;
-  leftIcon?: ReactNode;
-  rightIcon?: ReactNode;
-  fullWidth?: boolean;
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'
+  size?: 'sm' | 'md' | 'lg'
+  isLoading?: boolean
+  leftIcon?: ReactNode
+  rightIcon?: ReactNode
+  fullWidth?: boolean
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -30,6 +30,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         disabled={disabled || isLoading}
         className={`btn btn-${variant} btn-${size} ${fullWidth ? 'btn-full' : ''} ${className}`}
         {...props}
@@ -42,8 +43,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {children && <span className="btn-text">{children}</span>}
         {!isLoading && rightIcon && <span className="btn-icon">{rightIcon}</span>}
       </button>
-    );
+    )
   }
-);
+)
 
-Button.displayName = 'Button';
+Button.displayName = 'Button'

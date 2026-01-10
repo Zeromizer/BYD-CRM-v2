@@ -50,7 +50,7 @@ export interface VsaFormData {
   }
 }
 
-export interface OcrResult<T = any> {
+export interface OcrResult<T = unknown> {
   rawText: string
   structuredData: T
   confidence: number
@@ -89,6 +89,21 @@ export interface VisionClaudeResult {
     headers?: string[]
     preview?: Record<string, unknown>[]
   }
+}
+
+/**
+ * Response from vision-claude-ocr Edge Function
+ * This interface represents the expected shape of the response
+ */
+interface VisionClaudeEdgeFunctionResponse {
+  error?: string
+  documentType?: string
+  confidence?: number
+  customerName?: string
+  signed?: boolean
+  summary?: string
+  rawText?: string
+  extractedData?: VisionClaudeResult['extractedData']
 }
 
 // Document type to folder/milestone mapping
@@ -136,26 +151,34 @@ export async function classifyWithVisionClaude(
   }
 
   // Call the Edge Function
-  const { data, error } = await supabase.functions.invoke('vision-claude-ocr', {
-    body: { imageData, documentType },
-  })
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Supabase types error as any
+  const { data: rawData, error } =
+    await supabase.functions.invoke<VisionClaudeEdgeFunctionResponse>('vision-claude-ocr', {
+      body: { imageData, documentType },
+    })
 
   if (error) {
     console.error('Vision-Claude OCR error:', error)
-    throw new Error(error.message || 'Failed to process document with Vision + Claude')
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
+    const errorMessage =
+      'message' in error ? String(error.message) : 'Failed to process document with Vision + Claude'
+    throw new Error(errorMessage)
   }
 
-  if (data?.error) {
+  const data = rawData ?? {}
+
+  if (data.error) {
     throw new Error(data.error)
   }
 
   // Map the document type to folder/milestone
-  const typeInfo = DOCUMENT_TYPE_INFO[data.documentType] || DOCUMENT_TYPE_INFO.other
+  const docType = data.documentType ?? 'other'
+  const typeInfo = DOCUMENT_TYPE_INFO[docType] ?? DOCUMENT_TYPE_INFO.other
 
   return {
-    documentType: data.documentType || 'other',
+    documentType: docType,
     documentTypeName: typeInfo.name,
-    confidence: data.confidence || 50,
+    confidence: data.confidence ?? 50,
     customerName: data.customerName ?? '',
     signed: data.signed ?? false,
     summary: data.summary ?? '',
@@ -184,16 +207,23 @@ async function extractTextWithVisionOnly(imageData: string): Promise<string> {
   }
 
   // Call the Edge Function with visionOnly=true
-  const { data, error } = await supabase.functions.invoke('vision-claude-ocr', {
-    body: { imageData, visionOnly: true },
-  })
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Supabase types error as any
+  const { data: rawData, error } =
+    await supabase.functions.invoke<VisionClaudeEdgeFunctionResponse>('vision-claude-ocr', {
+      body: { imageData, visionOnly: true },
+    })
 
   if (error) {
     console.error('Vision OCR error:', error)
-    throw new Error(error.message || 'Failed to extract text with Vision API')
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
+    const errorMessage =
+      'message' in error ? String(error.message) : 'Failed to extract text with Vision API'
+    throw new Error(errorMessage)
   }
 
-  if (data?.error) {
+  const data = rawData ?? {}
+
+  if (data.error) {
     throw new Error(data.error)
   }
 
@@ -220,30 +250,38 @@ export async function classifyTextWithClaude(
   }
 
   // Call the Edge Function with rawText instead of imageData
-  const { data, error } = await supabase.functions.invoke('vision-claude-ocr', {
-    body: { rawText, documentType, sourceType },
-  })
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Supabase types error as any
+  const { data: edgeData, error } =
+    await supabase.functions.invoke<VisionClaudeEdgeFunctionResponse>('vision-claude-ocr', {
+      body: { rawText, documentType, sourceType },
+    })
 
   if (error) {
     console.error('Claude classification error:', error)
-    throw new Error(error.message || 'Failed to classify text with Claude')
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
+    const errorMessage =
+      'message' in error ? String(error.message) : 'Failed to classify text with Claude'
+    throw new Error(errorMessage)
   }
 
-  if (data?.error) {
+  const data = edgeData ?? {}
+
+  if (data.error) {
     throw new Error(data.error)
   }
 
   // Map the document type to folder/milestone
-  const typeInfo = DOCUMENT_TYPE_INFO[data.documentType] || DOCUMENT_TYPE_INFO.other
+  const docType = data.documentType ?? 'other'
+  const typeInfo = DOCUMENT_TYPE_INFO[docType] ?? DOCUMENT_TYPE_INFO.other
 
   return {
-    documentType: data.documentType || 'other',
+    documentType: docType,
     documentTypeName: typeInfo.name,
-    confidence: data.confidence || 50,
+    confidence: data.confidence ?? 50,
     customerName: data.customerName ?? '',
     signed: data.signed ?? false,
     summary: data.summary ?? '',
-    rawText: data.rawText || rawText,
+    rawText: data.rawText ?? rawText,
     folder: typeInfo.folder,
     milestone: typeInfo.milestone,
     extractedData: data.extractedData ?? {},
@@ -285,12 +323,13 @@ async function classifyExcelWithClaude(file: File): Promise<VisionClaudeResult> 
         const rowsWithHeaders = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet)
 
         // Get sheet range for dimensions
-        const range = XLSX.utils.decode_range(firstSheet['!ref'] || 'A1')
+        const range = XLSX.utils.decode_range(firstSheet['!ref'] ?? 'A1')
         const rowCount = range.e.r - range.s.r + 1
         const columnCount = range.e.c - range.s.c + 1
 
         // Build text representation for Claude
         // Include filename, headers, and sample data
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string -- Excel headers can be any type, intentionally converting to string
         const headerStr = headers
           .filter((h) => h != null)
           .map((h) => String(h))
@@ -299,7 +338,7 @@ async function classifyExcelWithClaude(file: File): Promise<VisionClaudeResult> 
           .slice(0, 30) // Limit to first 30 rows for context
           .map((row) =>
             Object.entries(row)
-              .map(([key, val]) => `${key}: ${val}`)
+              .map(([key, val]) => `${key}: ${String(val)}`)
               .join(' | ')
           )
           .join('\n')
@@ -333,7 +372,7 @@ ${sampleRows}`
 
         resolve(result)
       } catch (err) {
-        reject(err)
+        reject(err instanceof Error ? err : new Error(String(err)))
       }
     }
 
@@ -687,7 +726,7 @@ export async function extractVsaFormData(file: File): Promise<OcrResult<VsaFormD
  * Generic document extraction with custom prompt
  * Uses the Vision + Claude Edge Function
  */
-export async function extractDocumentData<T = any>(
+export async function extractDocumentData<T = unknown>(
   file: File,
   _documentType: string,
   _customSystemPrompt: string
@@ -803,7 +842,7 @@ export function isExcelFile(file: File | string): boolean {
   const name = typeof file === 'string' ? file : file.name
   const type = typeof file === 'string' ? '' : file.type
   const lowerName = name.toLowerCase()
-  const baseName = name.split('/').pop() || name
+  const baseName = name.split('/').pop() ?? name
 
   // Skip Excel temporary/lock files (created when file is open)
   if (baseName.startsWith('~$')) {
@@ -854,7 +893,7 @@ export async function parseExcelFile(file: File): Promise<VisionClaudeResult> {
         const rowsWithHeaders = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet)
 
         // Get sheet range for dimensions
-        const range = XLSX.utils.decode_range(firstSheet['!ref'] || 'A1')
+        const range = XLSX.utils.decode_range(firstSheet['!ref'] ?? 'A1')
         const rowCount = range.e.r - range.s.r + 1
         const columnCount = range.e.c - range.s.c + 1
 
@@ -863,7 +902,7 @@ export async function parseExcelFile(file: File): Promise<VisionClaudeResult> {
           .slice(0, 50) // Limit to first 50 rows
           .map((row) =>
             Object.entries(row)
-              .map(([key, val]) => `${key}: ${val}`)
+              .map(([key, val]) => `${key}: ${String(val)}`)
               .join(' | ')
           )
           .join('\n')
@@ -896,7 +935,7 @@ export async function parseExcelFile(file: File): Promise<VisionClaudeResult> {
           },
         })
       } catch (err) {
-        reject(err)
+        reject(err instanceof Error ? err : new Error(String(err)))
       }
     }
 
@@ -915,6 +954,7 @@ function extractCustomerDataFromExcel(
   const result: VisionClaudeResult['extractedData'] = {}
 
   // Normalize headers for matching - filter out null/undefined values
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string -- intentionally converting unknown Excel header values to strings
   const normalizedHeaders = headers.map((h) =>
     h != null && h !== '' ? String(h).toLowerCase().trim() : ''
   )
@@ -952,12 +992,14 @@ function extractCustomerDataFromExcel(
       if (key && firstRow[key] !== undefined && firstRow[key] !== null && firstRow[key] !== '') {
         const value = firstRow[key]
         if (field === 'sellingPrice') {
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string -- value is from Excel cell, intentionally converting to string
           const numValue =
             typeof value === 'number' ? value : parseFloat(String(value).replace(/[^0-9.-]/g, ''))
           if (!isNaN(numValue)) {
             result.sellingPrice = numValue
           }
         } else {
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string -- value is from Excel cell, intentionally converting to string
           ;(result as Record<string, unknown>)[field] = String(value)
         }
       }

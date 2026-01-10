@@ -680,9 +680,10 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
 
     try {
       // Convert MigrationFile[] to format needed for classification
+      // Filter ensures mf.file is defined, so type assertion is safe
       const filesToScan = migrationFiles
-        .filter((mf) => mf.file) // Only files that have File object
-        .map((mf) => ({ file: mf.file!, name: mf.name }))
+        .filter((mf): mf is typeof mf & { file: File } => mf.file !== undefined && mf.file !== null)
+        .map((mf) => ({ file: mf.file, name: mf.name }))
 
       let results: {
         file: File
@@ -1582,6 +1583,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
           setShowPreviewModal(false)
           setPreviewDoc(null)
         }}
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- fallback on empty string is intentional
         title={previewDoc?.name || 'Document Preview'}
         size="lg"
       >

@@ -142,10 +142,12 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
           return // Will re-render with new scale
         }
         // Fallback if still null
-        if (renderScale === null) renderScale = 1
+        renderScale ??= 1
 
         const viewport = page.getViewport({ scale: renderScale })
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const canvas = canvasRef.current!
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const context = canvas.getContext('2d')!
 
         // Set canvas dimensions
@@ -165,8 +167,8 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
 
         renderTaskRef.current = newRenderTask
         await newRenderTask.promise
-      } catch (err: any) {
-        if (err?.name !== 'RenderingCancelledException' && !cancelled) {
+      } catch (err) {
+        if ((err as Error)?.name !== 'RenderingCancelledException' && !cancelled) {
           console.error('Error rendering page:', err)
         }
       }
@@ -199,11 +201,11 @@ export function PdfViewer({ url, filename, onDownload }: PdfViewerProps) {
   }
 
   const handleZoomIn = () => {
-    setScale((prev) => Math.min((prev || 1) * 1.25, 3))
+    setScale((prev) => Math.min((prev ?? 1) * 1.25, 3))
   }
 
   const handleZoomOut = () => {
-    setScale((prev) => Math.max((prev || 1) / 1.25, 0.5))
+    setScale((prev) => Math.max((prev ?? 1) / 1.25, 0.5))
   }
 
   const handleOpenExternal = () => {

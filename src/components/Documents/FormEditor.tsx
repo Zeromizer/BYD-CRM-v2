@@ -136,6 +136,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
       setFields(currentPage.fields ?? {})
       setSelectedFieldId(null)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPageIndex])
 
   // Save current page fields to pages array before switching
@@ -199,6 +200,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFieldId, pendingFieldType])
 
   // Handle mouse wheel zoom
@@ -221,25 +223,29 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
   // Mouse move handler for drag and resize
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (dragState.isDragging && dragState.fieldId) {
+      // Extract fieldId to local const for type narrowing
+      const dragFieldId = dragState.fieldId
+      const resizeFieldId = resizeState.fieldId
+
+      if (dragState.isDragging && dragFieldId) {
         const dx = (e.clientX - dragState.startX) / zoom
         const dy = (e.clientY - dragState.startY) / zoom
 
         setFields((prev) => ({
           ...prev,
-          [dragState.fieldId!]: {
-            ...prev[dragState.fieldId!],
+          [dragFieldId]: {
+            ...prev[dragFieldId],
             x: Math.max(0, dragState.originalX + dx),
             y: Math.max(0, dragState.originalY + dy),
           },
         }))
         setHasUnsavedChanges(true)
-      } else if (resizeState.isResizing && resizeState.fieldId) {
+      } else if (resizeState.isResizing && resizeFieldId) {
         const dx = (e.clientX - resizeState.startX) / zoom
         const dy = (e.clientY - resizeState.startY) / zoom
 
         setFields((prev) => {
-          const field = prev[resizeState.fieldId!]
+          const field = prev[resizeFieldId]
           let newWidth = resizeState.originalWidth
           let newHeight = resizeState.originalHeight
           let newX = resizeState.originalX
@@ -284,7 +290,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
 
           return {
             ...prev,
-            [resizeState.fieldId!]: {
+            [resizeFieldId]: {
               ...field,
               width: newWidth,
               height: newHeight,
@@ -727,14 +733,14 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
           </div>
         </div>
 
-        {/* Properties Panel */}
-        {selectedField && (
+        {/* Properties Panel - selectedFieldId check enables type narrowing */}
+        {selectedField && selectedFieldId && (
           <div className="fe-properties">
             <div className="fe-properties-header">
               <h4>Field Properties</h4>
               <button
                 className="delete-field-btn"
-                onClick={() => deleteField(selectedFieldId!)}
+                onClick={() => deleteField(selectedFieldId)}
                 title="Delete Field"
               >
                 <Trash size={16} className="delete-icon" />
@@ -745,7 +751,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
               <label>Field Type</label>
               <select
                 value={selectedField.type}
-                onChange={(e) => updateField(selectedFieldId!, { type: e.target.value })}
+                onChange={(e) => updateField(selectedFieldId, { type: e.target.value })}
               >
                 {Object.entries(fieldsByCategory).map(([category, categoryFields]) => (
                   <optgroup key={category} label={category}>
@@ -765,7 +771,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 <input
                   type="text"
                   value={selectedField.customValue ?? ''}
-                  onChange={(e) => updateField(selectedFieldId!, { customValue: e.target.value })}
+                  onChange={(e) => updateField(selectedFieldId, { customValue: e.target.value })}
                   placeholder="Enter custom text..."
                 />
               </div>
@@ -777,7 +783,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 <input
                   type="number"
                   value={Math.round(selectedField.x)}
-                  onChange={(e) => updateField(selectedFieldId!, { x: Number(e.target.value) })}
+                  onChange={(e) => updateField(selectedFieldId, { x: Number(e.target.value) })}
                 />
               </div>
               <div className="property-group half">
@@ -785,7 +791,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 <input
                   type="number"
                   value={Math.round(selectedField.y)}
-                  onChange={(e) => updateField(selectedFieldId!, { y: Number(e.target.value) })}
+                  onChange={(e) => updateField(selectedFieldId, { y: Number(e.target.value) })}
                 />
               </div>
             </div>
@@ -796,7 +802,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 <input
                   type="number"
                   value={Math.round(selectedField.width)}
-                  onChange={(e) => updateField(selectedFieldId!, { width: Number(e.target.value) })}
+                  onChange={(e) => updateField(selectedFieldId, { width: Number(e.target.value) })}
                 />
               </div>
               <div className="property-group half">
@@ -804,9 +810,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 <input
                   type="number"
                   value={Math.round(selectedField.height)}
-                  onChange={(e) =>
-                    updateField(selectedFieldId!, { height: Number(e.target.value) })
-                  }
+                  onChange={(e) => updateField(selectedFieldId, { height: Number(e.target.value) })}
                 />
               </div>
             </div>
@@ -815,7 +819,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
               <label>Font Family</label>
               <select
                 value={selectedField.fontFamily}
-                onChange={(e) => updateField(selectedFieldId!, { fontFamily: e.target.value })}
+                onChange={(e) => updateField(selectedFieldId, { fontFamily: e.target.value })}
               >
                 {FONT_FAMILIES.map((font) => (
                   <option key={font.value} value={font.value}>
@@ -831,7 +835,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 <select
                   value={selectedField.fontSize}
                   onChange={(e) =>
-                    updateField(selectedFieldId!, { fontSize: Number(e.target.value) })
+                    updateField(selectedFieldId, { fontSize: Number(e.target.value) })
                   }
                 >
                   {FONT_SIZES.map((size) => (
@@ -846,7 +850,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 <select
                   value={selectedField.textAlign}
                   onChange={(e) =>
-                    updateField(selectedFieldId!, { textAlign: e.target.value as TextAlign })
+                    updateField(selectedFieldId, { textAlign: e.target.value as TextAlign })
                   }
                 >
                   {TEXT_ALIGNMENTS.map((align) => (
@@ -864,12 +868,12 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 <input
                   type="color"
                   value={selectedField.color}
-                  onChange={(e) => updateField(selectedFieldId!, { color: e.target.value })}
+                  onChange={(e) => updateField(selectedFieldId, { color: e.target.value })}
                 />
                 <input
                   type="text"
                   value={selectedField.color}
-                  onChange={(e) => updateField(selectedFieldId!, { color: e.target.value })}
+                  onChange={(e) => updateField(selectedFieldId, { color: e.target.value })}
                 />
               </div>
             </div>

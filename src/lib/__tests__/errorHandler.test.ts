@@ -75,10 +75,7 @@ describe('errorHandler', () => {
 
     it('retries on failure and succeeds', async () => {
       vi.useRealTimers() // Need real timers for retry delays
-      const fn = vi
-        .fn()
-        .mockRejectedValueOnce(new Error('fail'))
-        .mockResolvedValueOnce('success')
+      const fn = vi.fn().mockRejectedValueOnce(new Error('fail')).mockResolvedValueOnce('success')
       const result = await withRetry(fn, { maxAttempts: 3, backoffMs: 10 })
       expect(result).toBe('success')
       expect(fn).toHaveBeenCalledTimes(2)
@@ -156,7 +153,7 @@ describe('errorHandler', () => {
     it('processes all items', async () => {
       vi.useRealTimers()
       const items = [1, 2, 3, 4, 5]
-      const processor = vi.fn(async (item: number) => item * 2)
+      const processor = vi.fn((item: number) => Promise.resolve(item * 2))
       const results = await processBatch(items, processor, { concurrency: 2, delayMs: 10 })
       expect(results).toEqual([2, 4, 6, 8, 10])
       expect(processor).toHaveBeenCalledTimes(5)
@@ -165,7 +162,7 @@ describe('errorHandler', () => {
     it('calls onProgress with correct values', async () => {
       vi.useRealTimers()
       const items = [1, 2, 3, 4]
-      const processor = async (item: number) => item
+      const processor = (item: number) => Promise.resolve(item)
       const onProgress = vi.fn()
       await processBatch(items, processor, { concurrency: 2, delayMs: 10, onProgress })
       expect(onProgress).toHaveBeenCalledWith(2, 4)

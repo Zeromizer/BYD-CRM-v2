@@ -61,10 +61,10 @@ export interface DocumentTemplate extends Timestamps {
 // Check if template uses multi-page structure
 export function isMultiPageTemplate(template: DocumentTemplate): boolean {
   // Handle case where pages might be a JSON string from Supabase
-  let pages = template.pages
+  let pages: TemplatePage[] | null = template.pages
   if (typeof pages === 'string') {
     try {
-      pages = JSON.parse(pages)
+      pages = JSON.parse(pages) as TemplatePage[]
     } catch {
       return false
     }
@@ -75,10 +75,10 @@ export function isMultiPageTemplate(template: DocumentTemplate): boolean {
 // Get all pages (normalizes single/multi-page templates)
 export function getTemplatePages(template: DocumentTemplate): TemplatePage[] {
   // Handle case where pages might be a JSON string from Supabase
-  let pages = template.pages
+  let pages: TemplatePage[] | null = template.pages
   if (typeof pages === 'string') {
     try {
-      pages = JSON.parse(pages)
+      pages = JSON.parse(pages) as TemplatePage[]
     } catch {
       pages = null
     }
@@ -109,8 +109,8 @@ export function getTotalFieldCount(template: DocumentTemplate): number {
 
 // Get page count for display
 export function getPageCount(template: DocumentTemplate): number {
-  if (isMultiPageTemplate(template)) {
-    return template.pages!.length
+  if (isMultiPageTemplate(template) && template.pages) {
+    return template.pages.length
   }
   return template.image_path ? 1 : 0
 }

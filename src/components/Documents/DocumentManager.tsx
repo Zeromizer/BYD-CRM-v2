@@ -27,6 +27,20 @@ import type { DocumentTemplate, DocumentCategory, TemplatePage } from '@/types'
 import { getTotalFieldCount, getPageCount, isMultiPageTemplate, getTemplatePages } from '@/types'
 import './DocumentManager.css'
 
+// Edge function response types
+interface SyncOneDriveResponse {
+  success: boolean
+  processed?: number
+  pending?: number
+  failed?: number
+  message?: string
+  error?: string
+}
+
+interface EdgeFunctionError {
+  message?: string
+}
+
 interface DocumentManagerProps {
   onEditTemplate?: (template: DocumentTemplate) => void
   onPrintTemplate?: (template: DocumentTemplate) => void
@@ -214,9 +228,9 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
 
   const handleDuplicateTemplate = async (template: DocumentTemplate) => {
     try {
-      if (isMultiPageTemplate(template)) {
+      if (isMultiPageTemplate(template) && template.pages) {
         // Duplicate multi-page template with all pages
-        const duplicatedPages = template.pages!.map((page) => ({
+        const duplicatedPages = template.pages.map((page) => ({
           ...page,
           id: `page_${Date.now()}_${page.page_number}`,
           fields: { ...page.fields },
@@ -285,30 +299,32 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
   const handleSyncOneDrive = async () => {
     setIsSyncing(true)
     try {
-      const { data, error } = await getSupabase().functions.invoke('sync-onedrive')
+      const response = await getSupabase().functions.invoke<SyncOneDriveResponse>('sync-onedrive')
+      const data: SyncOneDriveResponse | null = response.data
+      const error: EdgeFunctionError | null = response.error as EdgeFunctionError | null
 
       if (error) {
-        throw new Error(error.message || 'Sync failed')
+        throw new Error(error.message ?? 'Sync failed')
       }
 
-      if (data.success) {
+      if (data?.success) {
         setSyncResult({
           processed: data.processed ?? 0,
           pending: data.pending ?? 0,
           failed: data.failed ?? 0,
-          message: data.message || 'Sync completed',
+          message: data.message ?? 'Sync completed',
         })
         setShowSyncResultModal(true)
 
-        if (data.processed > 0) {
+        if ((data.processed ?? 0) > 0) {
           success(`${data.processed} document(s) synced successfully`)
-        } else if (data.pending > 0) {
+        } else if ((data.pending ?? 0) > 0) {
           success(`${data.pending} document(s) need review`)
         } else {
           success('No new documents to sync')
         }
       } else {
-        throw new Error(data.error || 'Sync failed')
+        throw new Error(data?.error ?? 'Sync failed')
       }
     } catch (err) {
       console.error('Sync error:', err)

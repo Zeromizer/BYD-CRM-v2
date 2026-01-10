@@ -61,6 +61,27 @@ export interface BatchClassifyResult {
   }[]
 }
 
+/**
+ * Response from vision-claude-ocr Edge Function for batch-classify mode
+ */
+interface BatchClassifyEdgeFunctionResponse {
+  error?: string
+  customerName?: string
+  pages?: BatchClassifyResult['pages']
+  documentGroups?: BatchClassifyResult['documentGroups']
+}
+
+/**
+ * Response from vision-claude-ocr Edge Function for analyze-pdf mode
+ */
+interface AnalyzePdfEdgeFunctionResponse {
+  error?: string
+  pageTexts?: string[]
+  totalPages?: number
+  customerName?: string
+  documentGroups?: BatchClassifyResult['documentGroups']
+}
+
 // Document type to friendly name mapping
 const DOCUMENT_TYPE_INFO: Record<string, { name: string; folder: string }> = {
   nric_front: { name: 'NRIC Front', folder: 'nric_front' },
@@ -136,10 +157,11 @@ async function pdfPageToImage(
 
   try {
     // pdf.js requires both canvas and canvasContext
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- pdf.js types don't match actual API
     await page.render({
       canvasContext: context,
       viewport: viewport,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- pdf.js types require this cast
     } as any).promise
 
     // Check if canvas has any non-white content
@@ -199,19 +221,26 @@ async function classifyPagesWithClaude(pageTexts: string[]): Promise<BatchClassi
   })
 
   // Call the Edge Function with batch-classify mode
-  const { data, error } = await supabase.functions.invoke('vision-claude-ocr', {
-    body: {
-      mode: 'batch-classify',
-      pageTexts,
-    },
-  })
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Supabase types error as any
+  const { data: rawData, error } =
+    await supabase.functions.invoke<BatchClassifyEdgeFunctionResponse>('vision-claude-ocr', {
+      body: {
+        mode: 'batch-classify',
+        pageTexts,
+      },
+    })
 
   if (error) {
     console.error('[SalesPack] Batch classification error:', error)
-    throw new Error(error.message || 'Failed to classify pages with Claude')
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
+    const errorMessage =
+      'message' in error ? String(error.message) : 'Failed to classify pages with Claude'
+    throw new Error(errorMessage)
   }
 
-  if (data?.error) {
+  const data = rawData ?? {}
+
+  if (data.error) {
     console.error('[SalesPack] Batch classification returned error:', data.error)
     throw new Error(data.error)
   }
@@ -220,10 +249,7 @@ async function classifyPagesWithClaude(pageTexts: string[]): Promise<BatchClassi
     customerName: data.customerName,
     pagesCount: data.pages?.length,
     groupsCount: data.documentGroups?.length,
-    groups: data.documentGroups?.map(
-      (g: { documentType: string; pages: number[] }) =>
-        `${g.documentType}(pages:${g.pages.join(',')})`
-    ),
+    groups: data.documentGroups?.map((g) => `${g.documentType}(pages:${g.pages.join(',')})`),
   })
 
   return {
@@ -282,19 +308,28 @@ async function analyzeWithClaudeVision(
   }
 
   // Call the Edge Function with the PDF for direct Claude Vision analysis
-  const { data, error } = await supabase.functions.invoke('vision-claude-ocr', {
-    body: {
-      mode: 'analyze-pdf',
-      pdfData: pdfDataUrl,
-    },
-  })
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Supabase types error as any
+  const { data: rawData, error } = await supabase.functions.invoke<AnalyzePdfEdgeFunctionResponse>(
+    'vision-claude-ocr',
+    {
+      body: {
+        mode: 'analyze-pdf',
+        pdfData: pdfDataUrl,
+      },
+    }
+  )
 
   if (error) {
     console.error('[SalesPack] Claude Vision analysis error:', error)
-    throw new Error(error.message || 'Failed to analyze PDF with Claude Vision')
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
+    const errorMessage =
+      'message' in error ? String(error.message) : 'Failed to analyze PDF with Claude Vision'
+    throw new Error(errorMessage)
   }
 
-  if (data?.error) {
+  const data = rawData ?? {}
+
+  if (data.error) {
     console.error('[SalesPack] Claude Vision returned error:', data.error)
     throw new Error(data.error)
   }
@@ -303,7 +338,7 @@ async function analyzeWithClaudeVision(
 
   return {
     pageTexts: data.pageTexts ?? [],
-    totalPages: data.totalPages || 1,
+    totalPages: data.totalPages ?? 1,
     customerName: data.customerName ?? '',
     documentGroups: data.documentGroups ?? [],
   }
@@ -365,9 +400,9 @@ export async function analyzeSalesPack(
       const group = claudeResult.documentGroups.find((g) => g.pages.includes(i + 1))
       pageClassifications.push({
         pageNumber: i + 1,
-        documentType: group?.documentType || 'other',
-        documentTypeName: group?.documentTypeName || 'Other Document',
-        confidence: group?.confidence || 50,
+        documentType: group?.documentType ?? 'other',
+        documentTypeName: group?.documentTypeName ?? 'Other Document',
+        confidence: group?.confidence ?? 50,
         thumbnailDataUrl: thumbnails[i] ?? '',
         rawText: claudeResult.pageTexts[i] ?? '',
       })
@@ -377,7 +412,7 @@ export async function analyzeSalesPack(
     const suggestedSplits: SplitDocument[] = claudeResult.documentGroups.map((group, idx) => ({
       id: `doc-${idx}-${Date.now()}`,
       documentType: group.documentType,
-      documentTypeName: group.documentTypeName || getDocumentTypeInfo(group.documentType).name,
+      documentTypeName: group.documentTypeName ?? getDocumentTypeInfo(group.documentType).name,
       pages: group.pages,
       confidence: group.confidence,
       thumbnailDataUrl: thumbnails[group.pages[0] - 1] ?? '',

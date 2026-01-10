@@ -2,13 +2,13 @@
  * Supabase client configuration
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env file.');
+  throw new Error('Missing Supabase environment variables. Please check your .env file.')
 }
 
 const supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
@@ -17,26 +17,30 @@ const supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: true,
   },
-});
+})
 
 /**
  * Get the Supabase client instance.
  */
 export function getSupabase(): SupabaseClient {
-  return supabaseInstance;
+  return supabaseInstance
 }
 
 /**
  * @deprecated Use getSupabase() instead.
  */
-export const supabase = supabaseInstance;
+export const supabase = supabaseInstance
 
 export async function getCurrentUserId(): Promise<string | null> {
-  const { data: { user } } = await getSupabase().auth.getUser();
-  return user?.id ?? null;
+  const {
+    data: { user },
+  } = await getSupabase().auth.getUser()
+  return user?.id ?? null
 }
 
 export async function isAuthenticated(): Promise<boolean> {
-  const { data: { session } } = await getSupabase().auth.getSession();
-  return session !== null;
+  const {
+    data: { session },
+  } = await getSupabase().auth.getSession()
+  return session !== null
 }

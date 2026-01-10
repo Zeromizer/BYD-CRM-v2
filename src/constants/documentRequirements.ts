@@ -429,7 +429,7 @@ export function isDocumentChecklistComplete(
  */
 export function getDocumentFolder(documentTypeId: string): string {
   const docType = Object.values(DOCUMENT_TYPES).find((dt) => dt.id === documentTypeId)
-  return docType?.folder || 'Other'
+  return docType?.folder ?? 'Other'
 }
 
 /**

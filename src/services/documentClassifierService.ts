@@ -109,6 +109,19 @@ export interface ProcessingProgress {
 }
 
 /**
+ * Response from classify-document Edge Function
+ */
+interface ClassifyDocumentEdgeFunctionResponse {
+  error?: string
+  documentType?: string
+  confidence?: number
+  customerName?: string
+  suggestedFilename?: string
+  summary?: string
+  signed?: boolean
+}
+
+/**
  * Convert File to base64 data URL
  */
 export async function fileToBase64(file: File): Promise<string> {
@@ -153,40 +166,51 @@ export async function classifyDocument(
     setTimeout(() => reject(new Error('Classification timed out. Please try again.')), timeoutMs)
   })
 
-  const classifyPromise = supabase.functions.invoke('classify-document', {
-    body: { imageData },
-  })
+  const classifyPromise = supabase.functions.invoke<ClassifyDocumentEdgeFunctionResponse>(
+    'classify-document',
+    {
+      body: { imageData },
+    }
+  )
 
-  const { data, error } = await Promise.race([classifyPromise, timeoutPromise])
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Supabase types error as any; Promise.race with timeout also returns any
+  const { data: rawData, error } = await Promise.race([classifyPromise, timeoutPromise])
 
-  debug.log('Edge Function response:', { data, error })
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- error is typed as any by Supabase
+  debug.log('Edge Function response:', { data: rawData, error })
 
   onProgress?.({ stage: 'Parsing results...', progress: 80 })
 
   if (error) {
     debug.error('Document classification error:', error)
-    throw new Error(error.message || 'Failed to classify document. Please try again.')
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- error is typed as any by Supabase
+    const errorMessage =
+      'message' in error ? String(error.message) : 'Failed to classify document. Please try again.'
+    throw new Error(errorMessage)
   }
 
-  if (data?.error) {
+  const data = rawData ?? {}
+
+  if (data.error) {
     throw new Error(data.error)
   }
 
   onProgress?.({ stage: 'Complete', progress: 100 })
 
   // Map the result to our type structure
-  const docType = DOCUMENT_TYPES[data?.documentType as DocumentTypeId] || DOCUMENT_TYPES.other
+  const docTypeId = data.documentType ?? 'other'
+  const docType = DOCUMENT_TYPES[docTypeId as DocumentTypeId] ?? DOCUMENT_TYPES.other
 
   return {
-    documentType: (data?.documentType || 'other') as DocumentTypeId,
+    documentType: docTypeId as DocumentTypeId,
     documentTypeName: docType.name,
-    confidence: data?.confidence || 50,
+    confidence: data.confidence ?? 50,
     folder: docType.folder,
     milestone: docType.milestone,
-    customerName: data?.customerName ?? '',
-    suggestedFilename: data?.suggestedFilename ?? '',
-    summary: data?.summary ?? '',
-    signed: data?.signed ?? false,
+    customerName: data.customerName ?? '',
+    suggestedFilename: data.suggestedFilename ?? '',
+    summary: data.summary ?? '',
+    signed: data.signed ?? false,
   }
 }
 

@@ -15,9 +15,7 @@ import { downloadFile, shareOrDownloadFile, MIME_TYPES } from '@/utils/fileShare
 let xlsxModule: typeof import('xlsx-populate') | null = null
 
 const loadXlsxPopulate = async () => {
-  if (!xlsxModule) {
-    xlsxModule = await import('xlsx-populate')
-  }
+  xlsxModule ??= await import('xlsx-populate')
   return xlsxModule.default
 }
 
@@ -207,6 +205,7 @@ export function getCustomerDataMapping(
     proposalRemarks: customer.proposal_remarks ?? '',
 
     // Guarantor fields
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Empty array should fallback to customer.guarantors
     ...extractGuarantorFields(guarantors || customer.guarantors),
   }
 
