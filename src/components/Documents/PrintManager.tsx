@@ -284,18 +284,10 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
       tradeInOwnerMobile: customer.vsa_trade_in_owner_mobile ?? '',
       tradeInInsuranceCompany: customer.vsa_trade_in_insurance_company ?? '',
       tradeInPolicyNumber: customer.vsa_trade_in_policy_number ?? '',
-      tradeInNameAuto:
-        (customer.vsa_trade_in_owner_not_customer
-          ? customer.vsa_trade_in_owner_name
-          : customer.name) ?? '',
-      tradeInNricAuto:
-        (customer.vsa_trade_in_owner_not_customer
-          ? customer.vsa_trade_in_owner_nric
-          : customer.nric) ?? '',
-      tradeInMobileAuto:
-        (customer.vsa_trade_in_owner_not_customer
-          ? customer.vsa_trade_in_owner_mobile
-          : customer.phone) ?? '',
+      // Auto fields - use trade-in owner if filled, else fallback to customer
+      tradeInNameAuto: customer.vsa_trade_in_owner_name || customer.name || '',
+      tradeInNricAuto: customer.vsa_trade_in_owner_nric || customer.nric || '',
+      tradeInMobileAuto: customer.vsa_trade_in_owner_mobile || customer.phone || '',
 
       // Delivery
       dateOfRegistration: formatDate(customer.vsa_date_of_registration),

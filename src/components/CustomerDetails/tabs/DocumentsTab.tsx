@@ -66,9 +66,22 @@ interface DocumentsTabProps {
   customer: Customer
 }
 
+// Document item type with optional alternateIds for AI classification matching
+interface DocumentItem {
+  id: string
+  label: string
+  alternateIds?: string[]
+}
+
+interface DocumentCategory {
+  id: string
+  label: string
+  documents: DocumentItem[]
+}
+
 // Document categories and their requirements
 // Note: 'alternateIds' allows matching uploads from AI classification that use different IDs
-const DOCUMENT_CATEGORIES = [
+const DOCUMENT_CATEGORIES: DocumentCategory[] = [
   {
     id: 'identification',
     label: 'Identification',
@@ -297,7 +310,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
     if (!category) return { completed: 0, total: 0 }
 
     const completed = category.documents.filter((doc) =>
-      getDocumentStatus(doc.id, (doc as { alternateIds?: string[] }).alternateIds)
+      getDocumentStatus(doc.id, doc.alternateIds)
     ).length
     return { completed, total: category.documents.length }
   }
