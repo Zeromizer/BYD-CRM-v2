@@ -7,6 +7,15 @@
   background: var(--bg-primary);
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .main-content {
   flex: 1;
   padding: 1.5rem;
@@ -615,8 +624,10 @@
     left: 0;
     right: 0;
     bottom: 0;
+    width: 100%;
+    height: calc(100dvh - var(--mobile-header-height));
     background: rgba(0, 0, 0, 0.5);
-    z-index: 98;
+    z-index: 998;
     animation: fadeIn 0.2s ease-out;
   }
 
@@ -627,10 +638,15 @@
     left: 0;
     right: 0;
     bottom: 0;
+    width: 100%;
+    height: calc(100dvh - var(--mobile-header-height));
     background: var(--bg-primary);
-    z-index: 99;
+    background-color: var(--bg-primary);
+    z-index: 999;
     padding: var(--mobile-padding);
     animation: fadeIn 0.2s ease-out;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .mobile-nav-link {
