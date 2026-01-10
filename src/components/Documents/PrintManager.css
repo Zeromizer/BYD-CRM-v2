@@ -208,6 +208,7 @@
 .pm-preview-container {
   flex: 1;
   overflow: auto;
+  overscroll-behavior: contain;
   display: flex;
   justify-content: center;
   align-items: flex-start;
