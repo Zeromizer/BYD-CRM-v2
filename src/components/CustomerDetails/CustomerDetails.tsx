@@ -20,6 +20,7 @@ import { DetailsTab, ProposalTab, VsaTab, DocumentsTab } from './tabs'
 import { MobileSummaryCard } from './MobileSummaryCard'
 import { useDocumentStore } from '@/stores/useDocumentStore'
 import type { Customer, DocumentTemplate } from '@/types'
+import { getTemplatePages, getTotalFieldCount } from '@/types/document.types'
 import './CustomerDetails.css'
 
 // Lazy load heavy components (jsPDF, xlsx-populate)
@@ -402,20 +403,27 @@ export function CustomerDetails({ customer, onClose, isMobile, onBack }: Custome
                             setShowPrintManager(true)
                           }}
                         >
-                          {template.image_url ? (
-                            <img
-                              src={template.image_url}
-                              alt={template.name}
-                              className="template-thumbnail"
-                            />
-                          ) : (
-                            <div className="template-placeholder">
-                              <File size={24} className="placeholder-icon" />
-                            </div>
-                          )}
+                          {(() => {
+                            const pages = getTemplatePages(template)
+                            const firstPageUrl = pages[0]?.image_url
+                            if (firstPageUrl) {
+                              return (
+                                <img
+                                  src={firstPageUrl}
+                                  alt={template.name}
+                                  className="template-thumbnail"
+                                />
+                              )
+                            }
+                            return (
+                              <div className="template-placeholder">
+                                <File size={24} className="placeholder-icon" />
+                              </div>
+                            )
+                          })()}
                           <span className="template-name">{template.name}</span>
                           <span className="template-fields">
-                            {Object.keys(template.fields ?? {}).length} fields
+                            {getTotalFieldCount(template)} fields
                           </span>
                         </button>
                       ))}
