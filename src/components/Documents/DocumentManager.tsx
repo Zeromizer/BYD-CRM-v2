@@ -4,12 +4,13 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { CircleNotch, Cloud, Plus, MagnifyingGlass, File, Image, DotsThreeVertical, PencilSimple, Printer, Copy, Trash, UploadSimple, X } from '@phosphor-icons/react';
+import { CircleNotch, Cloud, Plus, MagnifyingGlass, File, Image, DotsThreeVertical, PencilSimple, Printer, Copy, Trash, UploadSimple, X, DotsSixVertical } from '@phosphor-icons/react';
 import { Button, Modal } from '@/components/common';
 import { useToast } from '@/components/common';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { getSupabase } from '@/lib/supabase';
-import type { DocumentTemplate, DocumentCategory } from '@/types';
+import type { DocumentTemplate, DocumentCategory, TemplatePage } from '@/types';
+import { getTotalFieldCount, getPageCount, isMultiPageTemplate, getTemplatePages } from '@/types';
 import './DocumentManager.css';
 
 interface DocumentManagerProps {
@@ -37,6 +38,7 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
     createTemplate,
     deleteTemplate,
     uploadTemplateImage,
+    uploadTemplateImages,
     subscribeToChanges,
     clearError,
   } = useDocumentStore();
@@ -62,8 +64,9 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
   // New template form state
   const [newTemplateName, setNewTemplateName] = useState('');
   const [newTemplateCategory, setNewTemplateCategory] = useState<DocumentCategory>('other');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -91,33 +94,86 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
   });
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+    const files = Array.from(event.target.files || []);
+    if (files.length > 0) {
+      const newUrls = files.map((file) => URL.createObjectURL(file));
+      setSelectedFiles((prev) => [...prev, ...files]);
+      setPreviewUrls((prev) => [...prev, ...newUrls]);
     }
+    // Reset input so same files can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemovePage = (index: number) => {
+    // Revoke the URL to free memory
+    URL.revokeObjectURL(previewUrls[index]);
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    // Reorder files and previews
+    const newFiles = [...selectedFiles];
+    const newUrls = [...previewUrls];
+
+    const [draggedFile] = newFiles.splice(draggedIndex, 1);
+    const [draggedUrl] = newUrls.splice(draggedIndex, 1);
+
+    newFiles.splice(index, 0, draggedFile);
+    newUrls.splice(index, 0, draggedUrl);
+
+    setSelectedFiles(newFiles);
+    setPreviewUrls(newUrls);
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
   };
 
   const handleCreateTemplate = async () => {
     if (!newTemplateName.trim()) return;
 
     try {
-      let imagePath: string | null = null;
-      let imageUrl: string | null = null;
+      let templateData: Parameters<typeof createTemplate>[0];
 
-      if (selectedFile) {
-        const result = await uploadTemplateImage(selectedFile);
-        imagePath = result.path;
-        imageUrl = result.url;
+      if (selectedFiles.length > 0) {
+        // Multi-page template: upload all images and create pages array
+        const uploadResults = await uploadTemplateImages(selectedFiles);
+
+        const pages: TemplatePage[] = uploadResults.map((result, index) => ({
+          id: `page_${Date.now()}_${index}`,
+          page_number: index + 1,
+          image_path: result.path,
+          image_url: result.url,
+          width: null,
+          height: null,
+          fields: {},
+        }));
+
+        templateData = {
+          name: newTemplateName.trim(),
+          category: newTemplateCategory,
+          pages,
+        };
+      } else {
+        // No images - create template without pages
+        templateData = {
+          name: newTemplateName.trim(),
+          category: newTemplateCategory,
+        };
       }
 
-      const newTemplate = await createTemplate({
-        name: newTemplateName.trim(),
-        category: newTemplateCategory,
-        image_path: imagePath,
-        image_url: imageUrl,
-      });
+      const newTemplate = await createTemplate(templateData);
 
       setShowCreateModal(false);
       resetCreateForm();
@@ -145,16 +201,33 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
 
   const handleDuplicateTemplate = async (template: DocumentTemplate) => {
     try {
-      await createTemplate({
-        name: `${template.name} (Copy)`,
-        category: template.category,
-        image_path: template.image_path,
-        image_url: template.image_url,
-        dpi: template.dpi,
-        width: template.width,
-        height: template.height,
-        fields: { ...template.fields },
-      });
+      if (isMultiPageTemplate(template)) {
+        // Duplicate multi-page template with all pages
+        const duplicatedPages = template.pages!.map((page) => ({
+          ...page,
+          id: `page_${Date.now()}_${page.page_number}`,
+          fields: { ...page.fields },
+        }));
+
+        await createTemplate({
+          name: `${template.name} (Copy)`,
+          category: template.category,
+          dpi: template.dpi,
+          pages: duplicatedPages,
+        });
+      } else {
+        // Duplicate legacy single-page template
+        await createTemplate({
+          name: `${template.name} (Copy)`,
+          category: template.category,
+          image_path: template.image_path,
+          image_url: template.image_url,
+          dpi: template.dpi,
+          width: template.width,
+          height: template.height,
+          fields: { ...template.fields },
+        });
+      }
       setOpenDropdownId(null);
     } catch (err) {
       console.error('Error duplicating template:', err);
@@ -164,18 +237,24 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
   const resetCreateForm = () => {
     setNewTemplateName('');
     setNewTemplateCategory('other');
-    setSelectedFile(null);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-    }
+    // Revoke all preview URLs to free memory
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    setSelectedFiles([]);
+    setPreviewUrls([]);
+    setDraggedIndex(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  const getFieldCount = (template: DocumentTemplate): number => {
-    return Object.keys(template.fields || {}).length;
+  // Use the helper from types that handles multi-page templates
+  const getFieldCountDisplay = (template: DocumentTemplate): string => {
+    const fieldCount = getTotalFieldCount(template);
+    const pageCount = getPageCount(template);
+    if (pageCount > 1) {
+      return `${fieldCount} fields (${pageCount} pages)`;
+    }
+    return `${fieldCount} fields`;
   };
 
   const getCategoryColor = (category: DocumentCategory): string => {
@@ -303,14 +382,29 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
             <div key={template.id} className="template-card">
               {/* Template Preview */}
               <div className="template-preview" onClick={() => onEditTemplate?.(template)}>
-                {template.image_url ? (
-                  <img src={template.image_url} alt={template.name} />
-                ) : (
-                  <div className="template-preview-placeholder">
-                    <Image size={32} className="placeholder-icon" />
-                    <span>No image</span>
-                  </div>
-                )}
+                {(() => {
+                  // Get first page image URL (handles both multi-page and legacy templates)
+                  const pages = getTemplatePages(template);
+                  const firstPageUrl = pages[0]?.image_url;
+                  const pageCount = pages.length;
+
+                  if (firstPageUrl) {
+                    return (
+                      <>
+                        <img src={firstPageUrl} alt={template.name} />
+                        {pageCount > 1 && (
+                          <div className="page-count-badge">{pageCount} pages</div>
+                        )}
+                      </>
+                    );
+                  }
+                  return (
+                    <div className="template-preview-placeholder">
+                      <Image size={32} className="placeholder-icon" />
+                      <span>No image</span>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Template Info */}
@@ -362,7 +456,7 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
                   >
                     {template.category}
                   </span>
-                  <span className="field-count">{getFieldCount(template)} fields</span>
+                  <span className="field-count">{getFieldCountDisplay(template)}</span>
                 </div>
               </div>
             </div>
@@ -409,34 +503,47 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
           </div>
 
           <div className="form-group">
-            <label>Template Image (optional)</label>
-            <div className="file-upload-area">
-              {previewUrl ? (
-                <div className="file-preview">
-                  <img src={previewUrl} alt="Preview" />
-                  <button
-                    className="remove-file"
-                    onClick={() => {
-                      setSelectedFile(null);
-                      if (previewUrl) URL.revokeObjectURL(previewUrl);
-                      setPreviewUrl(null);
-                      if (fileInputRef.current) fileInputRef.current.value = '';
-                    }}
+            <label>Template Pages (optional)</label>
+            <p className="form-help">Upload one or more images. Drag to reorder pages.</p>
+            <div className="multi-page-upload">
+              <div className="page-thumbnails">
+                {previewUrls.map((url, index) => (
+                  <div
+                    key={index}
+                    className={`page-thumbnail ${draggedIndex === index ? 'dragging' : ''}`}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
                   >
-                    &times;
-                  </button>
-                </div>
-              ) : (
-                <div className="upload-placeholder" onClick={() => fileInputRef.current?.click()}>
-                  <UploadSimple size={24} className="upload-icon" />
-                  <span>Click to upload image</span>
-                  <small>PNG, JPG up to 10MB</small>
-                </div>
-              )}
+                    <div className="drag-handle">
+                      <DotsSixVertical size={12} />
+                    </div>
+                    <img src={url} alt={`Page ${index + 1}`} />
+                    <span className="page-number">{index + 1}</span>
+                    <button
+                      className="remove-page"
+                      onClick={() => handleRemovePage(index)}
+                      type="button"
+                    >
+                      <X size={10} weight="bold" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="add-page-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Plus size={20} />
+                  <span>Add Page</span>
+                </button>
+              </div>
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleFileSelect}
                 hidden
               />

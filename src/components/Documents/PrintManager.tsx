@@ -12,7 +12,8 @@ import { useCustomerStore } from '@/stores/useCustomerStore';
 import { getAllCustomerDocuments, type CustomerDocument } from '@/services/customerDocumentService';
 import { formatCurrencySGD as formatCurrency } from '@/utils/formatting';
 import { debug } from '@/utils/debug';
-import type { DocumentTemplate, Customer, Guarantor } from '@/types';
+import type { DocumentTemplate, Customer, Guarantor, TemplatePage } from '@/types';
+import { getTemplatePages, isMultiPageTemplate } from '@/types';
 import './PrintManager.css';
 
 interface PrintManagerProps {
@@ -28,6 +29,7 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(initialCustomer || null);
   const [selectedTemplates, setSelectedTemplates] = useState<DocumentTemplate[]>([template]);
   const [currentTemplateIndex, setCurrentTemplateIndex] = useState(0);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [showCustomerSelect, setShowCustomerSelect] = useState(!initialCustomer);
   const [showTemplateSelect, setShowTemplateSelect] = useState(false);
@@ -46,6 +48,9 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
   const containerRef = useRef<HTMLDivElement>(null);
 
   const currentTemplate = selectedTemplates[currentTemplateIndex];
+  const currentTemplatePages = currentTemplate ? getTemplatePages(currentTemplate) : [];
+  const currentPage = currentTemplatePages[currentPageIndex];
+  const totalPages = currentTemplatePages.length;
 
   useEffect(() => {
     fetchTemplates();
@@ -95,10 +100,10 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
     setBackPagePhotos([]);
   }, [selectedCustomer?.id]);
 
-  // Draw canvas with template image and customer data
+  // Draw canvas with template page image and customer data
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !currentTemplate) return;
+    if (!canvas || !currentPage) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -116,11 +121,11 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
       // Draw template image
       ctx.drawImage(img, 0, 0);
 
-      // Overlay customer data
+      // Overlay customer data using current page's fields
       if (selectedCustomer) {
         const customerData = getCustomerDataMapping(selectedCustomer);
 
-        Object.entries(currentTemplate.fields || {}).forEach(([, field]) => {
+        Object.entries(currentPage.fields || {}).forEach(([, field]) => {
           const value = field.type === 'custom'
             ? field.customValue
             : customerData[field.type] || '';
@@ -166,10 +171,10 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
       }
     };
 
-    if (currentTemplate.image_url) {
-      img.src = currentTemplate.image_url;
+    if (currentPage.image_url) {
+      img.src = currentPage.image_url;
     }
-  }, [currentTemplate, selectedCustomer]);
+  }, [currentPage, selectedCustomer]);
 
   useEffect(() => {
     drawCanvas();
@@ -391,71 +396,80 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
         unit: 'px',
       });
 
+      let isFirstPage = true;
+
       for (let i = 0; i < selectedTemplates.length; i++) {
         const template = selectedTemplates[i];
+        const templatePages = getTemplatePages(template);
 
-        // Create temporary canvas for each template
-        const tempCanvas = document.createElement('canvas');
-        const ctx = tempCanvas.getContext('2d');
-        if (!ctx) continue;
+        // Process each page of the template
+        for (let p = 0; p < templatePages.length; p++) {
+          const page = templatePages[p];
 
-        await new Promise<void>((resolve) => {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
+          // Create temporary canvas for each page
+          const tempCanvas = document.createElement('canvas');
+          const ctx = tempCanvas.getContext('2d');
+          if (!ctx) continue;
 
-          img.onload = () => {
-            tempCanvas.width = img.naturalWidth;
-            tempCanvas.height = img.naturalHeight;
-            ctx.drawImage(img, 0, 0);
+          await new Promise<void>((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
 
-            // Overlay customer data
-            const customerData = getCustomerDataMapping(selectedCustomer);
-            Object.entries(template.fields || {}).forEach(([, field]) => {
-              const value = field.type === 'custom'
-                ? field.customValue
-                : customerData[field.type] || '';
+            img.onload = () => {
+              tempCanvas.width = img.naturalWidth;
+              tempCanvas.height = img.naturalHeight;
+              ctx.drawImage(img, 0, 0);
 
-              if (value) {
-                ctx.font = `${field.fontSize}px ${field.fontFamily}`;
-                ctx.fillStyle = field.color;
-                ctx.textAlign = field.textAlign as CanvasTextAlign;
-                ctx.textBaseline = 'top';
+              // Overlay customer data using page's fields
+              const customerData = getCustomerDataMapping(selectedCustomer);
+              Object.entries(page.fields || {}).forEach(([, field]) => {
+                const value = field.type === 'custom'
+                  ? field.customValue
+                  : customerData[field.type] || '';
 
-                // Match FormEditor's field-preview padding: 4px 8px
-                const paddingX = 8;
-                const paddingY = 4;
+                if (value) {
+                  ctx.font = `${field.fontSize}px ${field.fontFamily}`;
+                  ctx.fillStyle = field.color;
+                  ctx.textAlign = field.textAlign as CanvasTextAlign;
+                  ctx.textBaseline = 'top';
 
-                let x = field.x + paddingX;
-                if (field.textAlign === 'center') {
-                  x = field.x + field.width / 2;
-                } else if (field.textAlign === 'right') {
-                  x = field.x + field.width - paddingX;
+                  // Match FormEditor's field-preview padding: 4px 8px
+                  const paddingX = 8;
+                  const paddingY = 4;
+
+                  let x = field.x + paddingX;
+                  if (field.textAlign === 'center') {
+                    x = field.x + field.width / 2;
+                  } else if (field.textAlign === 'right') {
+                    x = field.x + field.width - paddingX;
+                  }
+
+                  ctx.fillText(String(value), x, field.y + paddingY);
                 }
+              });
 
-                ctx.fillText(String(value), x, field.y + paddingY);
-              }
-            });
+              resolve();
+            };
 
-            resolve();
-          };
+            if (page.image_url) {
+              img.src = page.image_url;
+            } else {
+              resolve();
+            }
+          });
 
-          if (template.image_url) {
-            img.src = template.image_url;
-          } else {
-            resolve();
+          // Add page to PDF
+          if (!isFirstPage) {
+            pdf.addPage();
           }
-        });
+          isFirstPage = false;
 
-        // Add page to PDF
-        if (i > 0) {
-          pdf.addPage();
+          const imgData = tempCanvas.toDataURL('image/jpeg', 0.95);
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = (tempCanvas.height * pdfWidth) / tempCanvas.width;
+
+          pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
         }
-
-        const imgData = tempCanvas.toDataURL('image/jpeg', 0.95);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (tempCanvas.height * pdfWidth) / tempCanvas.width;
-
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
 
         // Add back page with photos after each template (for double-sided printing)
         if (backPagePhotos.length > 0) {
@@ -687,6 +701,11 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
     });
   };
 
+  // Reset page index when template changes
+  useEffect(() => {
+    setCurrentPageIndex(0);
+  }, [currentTemplateIndex]);
+
   return (
     <div className="print-manager">
       {/* Toolbar */}
@@ -734,6 +753,27 @@ export function PrintManager({ template, customer: initialCustomer, onClose }: P
                   setCurrentTemplateIndex((i) => Math.min(selectedTemplates.length - 1, i + 1))
                 }
                 disabled={currentTemplateIndex === selectedTemplates.length - 1}
+              >
+                <CaretRight size={16} className="nav-icon" />
+              </button>
+            </div>
+          )}
+
+          {/* Page navigation (for multi-page templates) */}
+          {totalPages > 1 && (
+            <div className="page-navigation">
+              <button
+                onClick={() => setCurrentPageIndex((i) => Math.max(0, i - 1))}
+                disabled={currentPageIndex === 0}
+              >
+                <CaretLeft size={16} className="nav-icon" />
+              </button>
+              <span className="page-label">
+                Page {currentPageIndex + 1} / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPageIndex((i) => Math.min(totalPages - 1, i + 1))}
+                disabled={currentPageIndex === totalPages - 1}
               >
                 <CaretRight size={16} className="nav-icon" />
               </button>

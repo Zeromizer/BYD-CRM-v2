@@ -109,6 +109,47 @@
   text-align: center;
 }
 
+/* Page Navigation (for multi-page templates) */
+.page-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.page-navigation button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+}
+
+.page-navigation button:hover:not(:disabled) {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.page-navigation button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-navigation .page-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
 /* Zoom Controls */
 .zoom-controls {
   display: flex;

@@ -4,7 +4,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react'
-import { ArrowLeft, UploadSimple, FloppyDisk, Trash, TextT } from '@phosphor-icons/react'
+import { ArrowLeft, UploadSimple, FloppyDisk, Trash, TextT, CaretLeft, CaretRight } from '@phosphor-icons/react'
 import { Button, Modal } from '@/components/common'
 import { useDocumentStore } from '@/stores/useDocumentStore'
 import {
@@ -16,7 +16,8 @@ import {
   getFieldExampleData,
   getFieldDefaultSize,
 } from '@/constants/fieldTypes'
-import type { DocumentTemplate, FieldConfig, FieldMappings, TextAlign } from '@/types'
+import type { DocumentTemplate, FieldConfig, FieldMappings, TextAlign, TemplatePage } from '@/types'
+import { isMultiPageTemplate, getTemplatePages } from '@/types'
 import './FormEditor.css'
 
 interface FormEditorProps {
@@ -60,10 +61,16 @@ const DEFAULT_FIELD: Omit<FieldConfig, 'type'> = {
 }
 
 export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
-  const { updateFieldMappings, uploadTemplateImage, updateTemplate, isSaving } = useDocumentStore()
+  const { updateFieldMappings, uploadTemplateImage, updateTemplate, updatePageFields, addPageToTemplate, isSaving } = useDocumentStore()
 
-  // Field state
-  const [fields, setFields] = useState<FieldMappings>(template.fields || {})
+  // Multi-page state
+  const [pages, setPages] = useState<TemplatePage[]>(() => getTemplatePages(template))
+  const [currentPageIndex, setCurrentPageIndex] = useState(0)
+  const isMultiPage = isMultiPageTemplate(template)
+
+  // Field state - initialized from current page
+  const currentPage = pages[currentPageIndex]
+  const [fields, setFields] = useState<FieldMappings>(currentPage?.fields || {})
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
@@ -114,6 +121,28 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const selectedField = selectedFieldId ? fields[selectedFieldId] : null
+
+  // Sync fields when page changes
+  useEffect(() => {
+    if (currentPage) {
+      setFields(currentPage.fields || {})
+      setSelectedFieldId(null)
+    }
+  }, [currentPageIndex])
+
+  // Save current page fields to pages array before switching
+  const saveCurrentPageFields = () => {
+    setPages((prev) =>
+      prev.map((p, i) => (i === currentPageIndex ? { ...p, fields } : p))
+    )
+  }
+
+  // Handle page change - save current fields first
+  const handlePageChange = (newIndex: number) => {
+    if (newIndex === currentPageIndex) return
+    saveCurrentPageFields()
+    setCurrentPageIndex(newIndex)
+  }
 
   // Handle image load - auto fit to screen
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -402,7 +431,17 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
 
   const handleSave = async () => {
     try {
-      await updateFieldMappings(template.id, fields)
+      if (isMultiPage || pages.length > 1) {
+        // Multi-page: update the current page fields first, then save all pages
+        const updatedPages = pages.map((p, i) =>
+          i === currentPageIndex ? { ...p, fields } : p
+        )
+        await updateTemplate(template.id, { pages: updatedPages })
+        setPages(updatedPages)
+      } else {
+        // Legacy single-page: use the old method
+        await updateFieldMappings(template.id, fields)
+      }
       setHasUnsavedChanges(false)
       onSave?.()
     } catch (err) {
@@ -413,10 +452,23 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
   const handleImageUpload = async (file: File) => {
     try {
       const result = await uploadTemplateImage(file)
-      await updateTemplate(template.id, {
-        image_path: result.path,
-        image_url: result.url,
-      })
+
+      if (isMultiPage || pages.length > 1) {
+        // Multi-page: update current page's image
+        const updatedPages = pages.map((p, i) =>
+          i === currentPageIndex
+            ? { ...p, image_path: result.path, image_url: result.url }
+            : p
+        )
+        await updateTemplate(template.id, { pages: updatedPages })
+        setPages(updatedPages)
+      } else {
+        // Legacy single-page: update template directly
+        await updateTemplate(template.id, {
+          image_path: result.path,
+          image_url: result.url,
+        })
+      }
       setShowImageUpload(false)
     } catch (err) {
       console.error('Error uploading image:', err)
@@ -469,6 +521,45 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
           </div>
 
           <div className="fe-divider" />
+
+          {/* Page Navigator (for multi-page templates) */}
+          {pages.length > 1 && (
+            <>
+              <div className="page-navigator">
+                <button
+                  className="page-nav-btn"
+                  onClick={() => handlePageChange(Math.max(0, currentPageIndex - 1))}
+                  disabled={currentPageIndex === 0}
+                  title="Previous Page"
+                >
+                  <CaretLeft size={16} />
+                </button>
+                <select
+                  className="page-select"
+                  value={currentPageIndex}
+                  onChange={(e) => handlePageChange(Number(e.target.value))}
+                >
+                  {pages.map((page, i) => (
+                    <option key={page.id} value={i}>
+                      Page {i + 1}
+                    </option>
+                  ))}
+                </select>
+                <span className="page-indicator">
+                  {currentPageIndex + 1} / {pages.length}
+                </span>
+                <button
+                  className="page-nav-btn"
+                  onClick={() => handlePageChange(Math.min(pages.length - 1, currentPageIndex + 1))}
+                  disabled={currentPageIndex === pages.length - 1}
+                  title="Next Page"
+                >
+                  <CaretRight size={16} />
+                </button>
+              </div>
+              <div className="fe-divider" />
+            </>
+          )}
 
           <div className="zoom-controls">
             <button
@@ -527,11 +618,11 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
               transformOrigin: 'center center',
             }}
           >
-            {template.image_url ? (
+            {currentPage?.image_url ? (
               <img
                 ref={imageRef}
-                src={template.image_url}
-                alt={template.name}
+                src={currentPage.image_url}
+                alt={`${template.name} - Page ${currentPageIndex + 1}`}
                 className="fe-template-image"
                 draggable={false}
                 onLoad={handleImageLoad}
@@ -543,7 +634,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 onClick={() => setShowImageUpload(true)}
               >
                 <UploadSimple size={48} className="upload-icon" />
-                <p>Click to upload template image</p>
+                <p>Click to upload template image{pages.length > 1 ? ` for Page ${currentPageIndex + 1}` : ''}</p>
               </div>
             )}
 
@@ -554,7 +645,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 <kbd>Esc</kbd> to cancel
               </div>
             )}
-            {Object.keys(fields).length === 0 && template.image_url && !pendingFieldType && (
+            {Object.keys(fields).length === 0 && currentPage?.image_url && !pendingFieldType && (
               <div className="fe-help-tip">
                 Click the <kbd>+</kbd> button in the toolbar to add fields • <kbd>Ctrl</kbd>+
                 <kbd>Scroll</kbd> to zoom

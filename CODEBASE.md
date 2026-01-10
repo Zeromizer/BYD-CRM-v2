@@ -1263,11 +1263,147 @@ interface CollapsibleSectionProps {
 
 ---
 
+## Multi-Page Document Templates
+
+### Overview
+
+Document templates support multiple pages for complex forms like VSA agreements, COE bidding forms, and delivery checklists that span multiple pages.
+
+### Database Schema
+
+**Migration:** `supabase/migrations/00008_add_multipage_support.sql`
+
+```sql
+ALTER TABLE document_templates
+ADD COLUMN pages JSONB DEFAULT NULL;
+
+COMMENT ON COLUMN document_templates.pages IS
+'Array of page objects for multi-page templates. Each page has: id, page_number, image_path, image_url, width, height, fields';
+```
+
+### Type System
+
+**TemplatePage Interface:**
+
+```typescript
+interface TemplatePage {
+  id: string                    // Unique page identifier (e.g., "page_1")
+  page_number: number           // 1-indexed page number
+  image_path: string | null     // Path in Supabase Storage
+  image_url: string | null      // Cached signed URL
+  width: number | null          // Image width in pixels
+  height: number | null         // Image height in pixels
+  fields: FieldMappings         // Fields mapped on this page
+}
+```
+
+**DocumentTemplate Updates:**
+
+```typescript
+interface DocumentTemplate {
+  // ... existing fields ...
+
+  // Legacy single-page support (null for multi-page)
+  image_path: string | null
+  image_url: string | null
+  fields: FieldMappings
+
+  // Multi-page support (null for legacy single-page)
+  pages: TemplatePage[] | null
+}
+```
+
+### Helper Functions (`src/types/document.types.ts`)
+
+```typescript
+// Check if template uses multi-page structure
+isMultiPageTemplate(template: DocumentTemplate): boolean
+
+// Get all pages (normalizes single/multi-page templates)
+// Returns legacy template as single-page array for compatibility
+getTemplatePages(template: DocumentTemplate): TemplatePage[]
+
+// Get total field count across all pages
+getTotalFieldCount(template: DocumentTemplate): number
+
+// Get page count for display
+getPageCount(template: DocumentTemplate): number
+```
+
+**Backward Compatibility:**
+- Legacy single-page templates (with `image_path` and `fields`) continue to work
+- `getTemplatePages()` converts legacy templates to a single-page array
+- New templates use the `pages` array exclusively
+
+### Store Actions (`useDocumentStore`)
+
+```typescript
+// Multi-page management
+addPageToTemplate(templateId: string, file: File, position?: number): Promise<TemplatePage>
+removePageFromTemplate(templateId: string, pageId: string): Promise<void>
+reorderTemplatePages(templateId: string, pageIds: string[]): Promise<void>
+updatePageFields(templateId: string, pageId: string, fields: FieldMappings): Promise<void>
+
+// Batch upload
+uploadTemplateImages(files: File[]): Promise<Array<{ path: string; url: string }>>
+```
+
+### UI Components
+
+**DocumentManager (`src/components/Documents/DocumentManager.tsx`):**
+- Multi-file upload modal with drag-and-drop
+- Page thumbnail grid with reorder support
+- Add/remove page buttons
+- Field count shows total across all pages: "8 fields (2 pages)"
+
+**FormEditor (`src/components/Documents/FormEditor.tsx`):**
+- Page selector tabs for navigating between pages
+- Current page indicator
+- Page-specific field editing
+- Field mappings saved per-page
+
+**PrintManager (`src/components/Documents/PrintManager.tsx`):**
+- Multi-page document preview
+- All pages rendered sequentially for print
+- Back page photo attachment works with multi-page templates
+
+### Signed URL Refresh
+
+The store automatically refreshes signed URLs for all pages when fetching templates:
+
+```typescript
+// In fetchTemplates()
+if (template.pages && Array.isArray(template.pages)) {
+  const refreshedPages = await Promise.all(
+    template.pages.map(async (page) => {
+      if (page.image_path) {
+        const { data } = await supabase.storage
+          .from('document-templates')
+          .createSignedUrl(page.image_path, 3600)
+        return { ...page, image_url: data?.signedUrl || page.image_url }
+      }
+      return page
+    })
+  )
+  return { ...template, pages: refreshedPages }
+}
+```
+
+### Template Selection Modal
+
+When selecting templates from CustomerDetails → Documents tab → Generate Document:
+- Shows first page thumbnail for multi-page templates
+- Displays total field count: "8 fields"
+- Uses `getTemplatePages()` and `getTotalFieldCount()` helpers
+
+---
+
 ## Recent Changes (Reference)
 
 | Commit   | Description                                                                                                                 |
 | -------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Latest   | PWA Support: vite-plugin-pwa integration, iOS PNG icons, mobile scroll fixes, installable app with offline caching          |
+| Latest   | Multi-page document templates: database migration, type system, store actions, UI for multi-page template management        |
+| Previous | PWA Support: vite-plugin-pwa integration, iOS PNG icons, mobile scroll fixes, installable app with offline caching          |
 | Previous | UI/UX Rework: Three-theme system (Light/Dark/Cool), CollapsibleSection component, form reorganization, design token updates |
 | Previous | Codebase modernization: Zustand middleware stack, React 19 features (useTransition, useOptimistic), shared utilities        |
 | Previous | Sales Pack Upload: AI-powered multi-page PDF splitting with Claude Vision analysis                                          |

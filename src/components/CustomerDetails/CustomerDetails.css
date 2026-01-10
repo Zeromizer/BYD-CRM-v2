@@ -22,10 +22,11 @@
 }
 
 .customer-details-name {
-  font-size: var(--text-xl);
-  font-weight: var(--font-semibold);
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
   color: var(--text-primary);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-tighter);
   margin: 0;
 }
 
@@ -142,7 +143,7 @@
   font-weight: 500;
 }
 
-/* Tabs */
+/* Tabs - Editorial */
 .customer-details-tabs {
   display: flex;
   gap: var(--space-1);
@@ -153,6 +154,7 @@
 }
 
 .tab-button {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -162,22 +164,33 @@
   color: var(--text-tertiary);
   background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  margin-bottom: -1px;
+  transition: color var(--transition-fast) var(--ease-out-quint);
+}
+
+.tab-button::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: var(--space-4);
+  right: var(--space-4);
+  height: 2px;
+  background: var(--primary);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--transition-normal) var(--ease-out-expo);
 }
 
 .tab-button:hover {
   color: var(--text-secondary);
-  background-color: var(--bg-secondary);
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
 .tab-button.active {
   color: var(--primary);
-  border-bottom-color: var(--primary);
-  background: transparent;
+}
+
+.tab-button.active::after {
+  transform: scaleX(1);
 }
 
 .tab-button svg {
