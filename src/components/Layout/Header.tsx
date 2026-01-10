@@ -164,22 +164,25 @@ export function Header({ theme, onSetTheme }: HeaderProps) {
 
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
-        <nav className="mobile-nav">
-          {navItems.map((item) => {
-            const Icon = NAV_ICONS[item.path]
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`mobile-nav-link ${location.pathname === item.path ? 'active' : ''}`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Icon size={18} className="nav-icon" />
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
-        </nav>
+        <>
+          <div className="mobile-nav-overlay" onClick={() => setMobileMenuOpen(false)} />
+          <nav className="mobile-nav">
+            {navItems.map((item) => {
+              const Icon = NAV_ICONS[item.path]
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`mobile-nav-link ${location.pathname === item.path ? 'active' : ''}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Icon size={18} className="nav-icon" />
+                  <span>{item.label}</span>
+                </Link>
+              )
+            })}
+          </nav>
+        </>
       )}
     </header>
   )
