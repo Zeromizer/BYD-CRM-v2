@@ -1,59 +1,43 @@
-import { useEffect, useCallback } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useRef } from 'react'
 
 /**
- * Hook to handle PWA back gesture on mobile
- * Prevents the app from exiting when using swipe-back gesture
- * Instead navigates within the app or stays on home
+ * Hook to prevent PWA from exiting on back gesture
+ * Uses a counter in history state to track position
  */
 export function usePWABackHandler() {
-  const location = useLocation()
-  const navigate = useNavigate()
-
-  // Check if running as installed PWA
-  const isPWA = useCallback(() => {
-    return (
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as Navigator & { standalone?: boolean }).standalone === true
-    )
-  }, [])
+  const counterRef = useRef(0)
 
   useEffect(() => {
-    if (!isPWA()) return
+    // Check if running as installed PWA
+    const isPWA =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true
 
-    // Push initial history entry to prevent immediate exit
-    const initialState = { pwaBackHandler: true, path: location.pathname }
+    if (!isPWA) return
 
-    // Only push if we don't already have our marker
-    if (!window.history.state?.pwaBackHandler) {
-      window.history.pushState(initialState, '', location.pathname + location.search)
+    // Initialize counter from current state or start fresh
+    const currentState = window.history.state
+    if (currentState?.pwaCounter !== undefined) {
+      counterRef.current = currentState.pwaCounter
+    } else {
+      // First load - push initial state with counter
+      counterRef.current = 1
+      window.history.replaceState({ pwaCounter: 0 }, '', window.location.href)
+      window.history.pushState({ pwaCounter: 1 }, '', window.location.href)
     }
 
     const handlePopState = (event: PopStateEvent) => {
-      // Check if this is our marker state or an actual navigation
-      const isAtRoot = location.pathname === '/' || location.pathname === ''
+      const state = event.state
+      const counter = state?.pwaCounter ?? 0
 
-      if (isAtRoot) {
-        // At root - prevent exit by pushing state back
-        event.preventDefault()
-        window.history.pushState(
-          { pwaBackHandler: true, path: '/' },
-          '',
-          location.pathname + location.search
-        )
+      if (counter === 0) {
+        // We're at the guard entry (first entry) - prevent exit
+        // Push a new entry to go "forward" again
+        counterRef.current = 1
+        window.history.pushState({ pwaCounter: 1 }, '', window.location.href)
       } else {
-        // Not at root - navigate back within the app
-        // The browser has already popped, so we just let React Router handle it
-        // But we need to push a new state to maintain our buffer
-        setTimeout(() => {
-          if (!window.history.state?.pwaBackHandler) {
-            window.history.pushState(
-              { pwaBackHandler: true, path: window.location.pathname },
-              '',
-              window.location.pathname + window.location.search
-            )
-          }
-        }, 0)
+        // Normal back navigation within app
+        counterRef.current = counter
       }
     }
 
@@ -62,5 +46,26 @@ export function usePWABackHandler() {
     return () => {
       window.removeEventListener('popstate', handlePopState)
     }
-  }, [isPWA, location.pathname, location.search, navigate])
+  }, [])
+
+  // Also update counter when navigating forward
+  useEffect(() => {
+    const isPWA =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+
+    if (!isPWA) return
+
+    // When a new page is pushed (React Router navigation), update the counter
+    const currentState = window.history.state
+    if (currentState && currentState.pwaCounter === undefined) {
+      // React Router pushed a state without our counter - add it
+      counterRef.current += 1
+      window.history.replaceState(
+        { ...currentState, pwaCounter: counterRef.current },
+        '',
+        window.location.href
+      )
+    }
+  })
 }
