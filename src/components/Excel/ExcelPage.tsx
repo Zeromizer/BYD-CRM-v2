@@ -50,7 +50,6 @@ export function ExcelPage() {
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<ExcelTemplate | null>(null)
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Create template form state
   const [newTemplateName, setNewTemplateName] = useState('')
@@ -90,7 +89,9 @@ export function ExcelPage() {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as HTMLElement
+      // Close if clicking outside any template-actions container
+      if (!target.closest('.template-actions')) {
         setOpenDropdownId(null)
       }
     }
@@ -520,11 +521,7 @@ export function ExcelPage() {
               <div className="excel-card-info">
                 <div className="excel-card-header">
                   <h4 className="excel-card-name">{template.name}</h4>
-                  <div
-                    className="template-actions"
-                    ref={dropdownRef}
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <div className="template-actions" onClick={(e) => e.stopPropagation()}>
                     <button
                       className="action-trigger"
                       onClick={() =>
