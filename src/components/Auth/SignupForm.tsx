@@ -74,7 +74,7 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
         <form onSubmit={handleSubmit} className="auth-form">
           {(error ?? localError) && <div className="auth-error">{error ?? localError}</div>}
 
-          <div className="form-group">
+          <div className={`form-group ${displayName ? 'has-value' : ''}`}>
             <label htmlFor="displayName" className="form-label">
               Name
             </label>
@@ -85,14 +85,13 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Your name"
                 className="form-input"
                 required
               />
             </div>
           </div>
 
-          <div className="form-group">
+          <div className={`form-group ${email ? 'has-value' : ''}`}>
             <label htmlFor="email" className="form-label">
               Email
             </label>
@@ -103,7 +102,6 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
                 className="form-input"
                 required
                 autoComplete="email"
@@ -111,7 +109,7 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
             </div>
           </div>
 
-          <div className="form-group">
+          <div className={`form-group ${password ? 'has-value' : ''}`}>
             <label htmlFor="password" className="form-label">
               Password
             </label>
@@ -122,7 +120,6 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
                 className="form-input"
                 required
                 autoComplete="new-password"
@@ -131,13 +128,14 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="password-toggle"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
 
-          <div className="form-group">
+          <div className={`form-group ${confirmPassword ? 'has-value' : ''}`}>
             <label htmlFor="confirmPassword" className="form-label">
               Confirm Password
             </label>
@@ -148,7 +146,6 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
                 type={showPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm your password"
                 className="form-input"
                 required
                 autoComplete="new-password"

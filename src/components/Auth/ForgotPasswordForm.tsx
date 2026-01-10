@@ -1,27 +1,27 @@
-import { useState } from 'react';
-import { Envelope, ArrowLeft, CircleNotch } from '@phosphor-icons/react';
-import { useAuthStore } from '@/stores';
-import './Auth.css';
+import { useState } from 'react'
+import { Envelope, ArrowLeft, CircleNotch } from '@phosphor-icons/react'
+import { useAuthStore } from '@/stores'
+import './Auth.css'
 
 interface ForgotPasswordFormProps {
-  onBack: () => void;
+  onBack: () => void
 }
 
 export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
-  const [email, setEmail] = useState('');
-  const [success, setSuccess] = useState(false);
-  const { resetPassword, isLoading, error, clearError } = useAuthStore();
+  const [email, setEmail] = useState('')
+  const [success, setSuccess] = useState(false)
+  const { resetPassword, isLoading, error, clearError } = useAuthStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    clearError();
+    e.preventDefault()
+    clearError()
     try {
-      await resetPassword(email);
-      setSuccess(true);
+      await resetPassword(email)
+      setSuccess(true)
     } catch {
       // Error is handled by the store
     }
-  };
+  }
 
   if (success) {
     return (
@@ -38,13 +38,13 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
           </div>
           <div className="auth-footer">
             <button type="button" onClick={onBack} className="auth-link">
-              <ArrowLeft size={16} className="back-icon" />
+              <ArrowLeft size={16} />
               Back to Sign In
             </button>
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -56,14 +56,12 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
-          {error && (
-            <div className="auth-error">
-              {error}
-            </div>
-          )}
+          {error && <div className="auth-error">{error}</div>}
 
-          <div className="form-group">
-            <label htmlFor="email" className="form-label">Email</label>
+          <div className={`form-group ${email ? 'has-value' : ''}`}>
+            <label htmlFor="email" className="form-label">
+              Email
+            </label>
             <div className="input-wrapper">
               <Envelope size={18} className="input-icon" />
               <input
@@ -71,7 +69,6 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
                 className="form-input"
                 required
                 autoComplete="email"
@@ -79,11 +76,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="auth-button"
-          >
+          <button type="submit" disabled={isLoading} className="auth-button">
             {isLoading ? (
               <>
                 <CircleNotch size={18} className="spinner" />
@@ -97,11 +90,11 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
 
         <div className="auth-footer">
           <button type="button" onClick={onBack} className="auth-link">
-            <ArrowLeft size={16} className="back-icon" />
+            <ArrowLeft size={16} />
             Back to Sign In
           </button>
         </div>
       </div>
     </div>
-  );
+  )
 }
