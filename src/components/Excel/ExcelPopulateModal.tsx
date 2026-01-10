@@ -3,26 +3,26 @@
  * Modal for generating populated Excel files from templates
  */
 
-import { useState, useEffect, useRef } from 'react';
-import { FileXls, UploadSimple, DownloadSimple, X } from '@phosphor-icons/react';
-import { Button, Modal } from '@/components/common';
-import { useToast } from '@/components/common';
-import { useExcelStore } from '@/stores/useExcelStore';
+import { useState, useEffect, useRef } from 'react'
+import { FileXls, UploadSimple, DownloadSimple, X } from '@phosphor-icons/react'
+import { Button, Modal } from '@/components/common'
+import { useToast } from '@/components/common'
+import { useExcelStore } from '@/stores/useExcelStore'
 import {
   populateExcelTemplate,
   downloadExcelFile,
   generateFileName,
   getCustomerDataMapping,
-} from '@/services/excelService';
-import { getFieldLabel } from '@/constants/excelFields';
-import type { Customer, Guarantor, ExcelTemplate } from '@/types';
-import './ExcelPopulateModal.css';
+} from '@/services/excelService'
+import { getFieldLabel } from '@/constants/excelFields'
+import type { Customer, Guarantor, ExcelTemplate } from '@/types'
+import './ExcelPopulateModal.css'
 
 interface ExcelPopulateModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  customer: Customer;
-  guarantors?: Guarantor[];
+  isOpen: boolean
+  onClose: () => void
+  customer: Customer
+  guarantors?: Guarantor[]
 }
 
 export function ExcelPopulateModal({
@@ -31,96 +31,91 @@ export function ExcelPopulateModal({
   customer,
   guarantors,
 }: ExcelPopulateModalProps) {
-  const { templates, fetchTemplates, downloadExcelFile: downloadTemplateFile } = useExcelStore();
-  const { success, error: toastError } = useToast();
+  const { templates, fetchTemplates, downloadExcelFile: downloadTemplateFile } = useExcelStore()
+  const { success, error: toastError } = useToast()
 
-  const [selectedTemplateId, setSelectedTemplateId] = useState('');
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('')
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (isOpen) {
-      fetchTemplates();
-      setSelectedTemplateId('');
-      setUploadedFile(null);
+      void fetchTemplates()
+      setSelectedTemplateId('')
+      setUploadedFile(null)
     }
-  }, [isOpen, fetchTemplates]);
+  }, [isOpen, fetchTemplates])
 
-  const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
-  const hasMasterFile = selectedTemplate?.file_path;
-  const canGenerate = selectedTemplateId && (hasMasterFile || uploadedFile);
+  const selectedTemplate = templates.find((t) => t.id === selectedTemplateId)
+  const hasMasterFile = selectedTemplate?.file_path
+  const canGenerate = selectedTemplateId && (hasMasterFile || uploadedFile)
 
   // Get mapping count
   const getMappingCount = (template: ExcelTemplate): number => {
-    let count = 0;
-    for (const sheetMappings of Object.values(template.field_mappings || {})) {
-      count += Object.keys(sheetMappings).length;
+    let count = 0
+    for (const sheetMappings of Object.values(template.field_mappings ?? {})) {
+      count += Object.keys(sheetMappings).length
     }
-    return count;
-  };
+    return count
+  }
 
   // Get preview of mappings with actual values
   const getPreviewMappings = () => {
-    if (!selectedTemplate) return [];
+    if (!selectedTemplate) return []
 
-    const dataMapping = getCustomerDataMapping(customer, guarantors);
-    const preview: { cell: string; field: string; value: string }[] = [];
+    const dataMapping = getCustomerDataMapping(customer, guarantors)
+    const preview: { cell: string; field: string; value: string }[] = []
 
-    for (const [sheetName, cellMappings] of Object.entries(
-      selectedTemplate.field_mappings || {}
-    )) {
+    for (const [sheetName, cellMappings] of Object.entries(selectedTemplate.field_mappings ?? {})) {
       for (const [cell, fieldType] of Object.entries(cellMappings)) {
-        let fieldLabel: string;
-        let value: string;
+        let fieldLabel: string
+        let value: string
 
         if (fieldType.startsWith('_custom:')) {
-          fieldLabel = 'Custom Value';
-          value = fieldType.substring(8);
+          fieldLabel = 'Custom Value'
+          value = fieldType.substring(8)
         } else {
-          fieldLabel = getFieldLabel(fieldType);
-          const rawValue = dataMapping[fieldType];
-          value =
-            rawValue instanceof Date
-              ? rawValue.toLocaleDateString()
-              : String(rawValue || '');
+          fieldLabel = getFieldLabel(fieldType)
+          const rawValue = dataMapping[fieldType]
+          value = rawValue instanceof Date ? rawValue.toLocaleDateString() : String(rawValue ?? '')
         }
 
         preview.push({
           cell: `${sheetName}!${cell}`,
           field: fieldLabel,
           value: value || '(empty)',
-        });
+        })
       }
     }
 
-    return preview.slice(0, 10); // Show first 10 mappings
-  };
+    return preview.slice(0, 10) // Show first 10 mappings
+  }
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const file = event.target.files?.[0]
     if (file) {
-      setUploadedFile(file);
+      setUploadedFile(file)
     }
-  };
+  }
 
   const handleGenerate = async () => {
     if (!selectedTemplate || !canGenerate) {
-      toastError('Please select a template and ensure a file is available');
-      return;
+      toastError('Please select a template and ensure a file is available')
+      return
     }
 
-    setIsGenerating(true);
+    setIsGenerating(true)
     try {
       // Get the Excel file (either from storage or uploaded)
-      let fileBlob: Blob;
+      let fileBlob: Blob
 
       if (uploadedFile) {
-        fileBlob = uploadedFile;
+        fileBlob = uploadedFile
       } else if (selectedTemplate.file_path) {
-        fileBlob = await downloadTemplateFile(selectedTemplate.file_path);
+        fileBlob = await downloadTemplateFile(selectedTemplate.file_path)
       } else {
-        throw new Error('No Excel file available');
+        throw new Error('No Excel file available')
       }
 
       // Populate the template
@@ -129,21 +124,21 @@ export function ExcelPopulateModal({
         customer,
         guarantors,
         fileBlob
-      );
+      )
 
       // Generate filename and download
-      const fileName = generateFileName(selectedTemplate.name, customer.name);
-      downloadExcelFile(populatedBlob, fileName);
+      const fileName = generateFileName(selectedTemplate.name, customer.name)
+      downloadExcelFile(populatedBlob, fileName)
 
-      success('Excel file generated successfully');
-      onClose();
+      success('Excel file generated successfully')
+      onClose()
     } catch (err) {
-      console.error('Error generating Excel file:', err);
-      toastError('Failed to generate Excel file');
+      console.error('Error generating Excel file:', err)
+      toastError('Failed to generate Excel file')
     } finally {
-      setIsGenerating(false);
+      setIsGenerating(false)
     }
-  };
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Generate Excel Document">
@@ -154,9 +149,9 @@ export function ExcelPopulateModal({
           <select
             value={selectedTemplateId}
             onChange={(e) => {
-              setSelectedTemplateId(e.target.value);
-              setUploadedFile(null);
-              if (fileInputRef.current) fileInputRef.current.value = '';
+              setSelectedTemplateId(e.target.value)
+              setUploadedFile(null)
+              if (fileInputRef.current) fileInputRef.current.value = ''
             }}
           >
             <option value="">-- Select a template --</option>
@@ -194,10 +189,7 @@ export function ExcelPopulateModal({
                 style={{ display: 'none' }}
               />
               {!uploadedFile ? (
-                <div
-                  className="upload-placeholder"
-                  onClick={() => fileInputRef.current?.click()}
-                >
+                <div className="upload-placeholder" onClick={() => fileInputRef.current?.click()}>
                   <UploadSimple size={24} className="upload-icon" />
                   <span>Click to upload Excel file</span>
                   <small>.xlsx or .xls</small>
@@ -209,8 +201,8 @@ export function ExcelPopulateModal({
                   <button
                     className="remove-file"
                     onClick={() => {
-                      setUploadedFile(null);
-                      if (fileInputRef.current) fileInputRef.current.value = '';
+                      setUploadedFile(null)
+                      if (fileInputRef.current) fileInputRef.current.value = ''
                     }}
                   >
                     <X size={14} className="remove-icon" />
@@ -260,5 +252,5 @@ export function ExcelPopulateModal({
         </div>
       </div>
     </Modal>
-  );
+  )
 }

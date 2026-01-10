@@ -3,22 +3,22 @@
  * Compact inline form for adding tasks with priority, due date, customer, and milestone selection
  */
 
-import { useState, useRef, useEffect, useTransition } from 'react';
-import { CaretDown, Check, X, Flag, Calendar, User, Crosshair } from '@phosphor-icons/react';
-import { useTodoStore } from '@/stores/useTodoStore';
-import { useCustomerStore } from '@/stores';
-import { MILESTONES } from '@/constants/milestones';
-import type { Priority, MilestoneId, Customer } from '@/types';
-import './InlineTaskForm.css';
+import { useState, useRef, useEffect, useTransition } from 'react'
+import { CaretDown, Check, X, Flag, Calendar, User, Crosshair } from '@phosphor-icons/react'
+import { useTodoStore } from '@/stores/useTodoStore'
+import { useCustomerStore } from '@/stores'
+import { MILESTONES } from '@/constants/milestones'
+import type { Priority, MilestoneId, Customer } from '@/types'
+import './InlineTaskForm.css'
 
 interface InlineTaskFormProps {
-  onClose: () => void;
+  onClose: () => void
   /** Pre-selected customer (if adding from customer context) */
-  customer?: Customer;
+  customer?: Customer
   /** Pre-selected milestone */
-  defaultMilestone?: MilestoneId;
+  defaultMilestone?: MilestoneId
   /** Compact mode - fewer fields visible by default */
-  compact?: boolean;
+  compact?: boolean
 }
 
 const PRIORITY_OPTIONS: { value: Priority; label: string; color: string; shortLabel: string }[] = [
@@ -26,105 +26,105 @@ const PRIORITY_OPTIONS: { value: Priority; label: string; color: string; shortLa
   { value: 'medium', label: 'Medium', shortLabel: 'M', color: '#3b82f6' },
   { value: 'high', label: 'High', shortLabel: 'H', color: '#f59e0b' },
   { value: 'urgent', label: 'Urgent', shortLabel: '!', color: '#ef4444' },
-];
+]
 
 export function InlineTaskForm({
   onClose,
   customer,
   defaultMilestone,
-  compact = false
+  compact = false,
 }: InlineTaskFormProps) {
-  const { createTodo } = useTodoStore();
-  const { customers } = useCustomerStore();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const formRef = useRef<HTMLFormElement>(null);
-  const [isPending, startTransition] = useTransition();
+  const { createTodo } = useTodoStore()
+  const { customers } = useCustomerStore()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const formRef = useRef<HTMLFormElement>(null)
+  const [isPending, startTransition] = useTransition()
 
-  const [text, setText] = useState('');
-  const [priority, setPriority] = useState<Priority>('medium');
-  const [dueDate, setDueDate] = useState('');
-  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(customer?.id ?? null);
-  const [milestoneId, setMilestoneId] = useState<MilestoneId | ''>(defaultMilestone || '');
-  const [showOptions, setShowOptions] = useState(!compact);
-  const [error, setError] = useState<string | null>(null);
+  const [text, setText] = useState('')
+  const [priority, setPriority] = useState<Priority>('medium')
+  const [dueDate, setDueDate] = useState('')
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(customer?.id ?? null)
+  const [milestoneId, setMilestoneId] = useState<MilestoneId | ''>(defaultMilestone ?? '')
+  const [showOptions, setShowOptions] = useState(!compact)
+  const [error, setError] = useState<string | null>(null)
 
   // Focus input on mount
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    inputRef.current?.focus()
+  }, [])
 
   // Handle click outside to close
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (formRef.current && !formRef.current.contains(event.target as Node)) {
         if (!text.trim()) {
-          onClose();
+          onClose()
         }
       }
-    };
+    }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [text, onClose]);
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [text, onClose])
 
   // Handle escape key
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        onClose()
       }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!text.trim()) {
-      setError('Please enter a task');
-      inputRef.current?.focus();
-      return;
     }
 
-    const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [onClose])
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    if (!text.trim()) {
+      setError('Please enter a task')
+      inputRef.current?.focus()
+      return
+    }
+
+    const selectedCustomer = customers.find((c) => c.id === selectedCustomerId)
 
     startTransition(async () => {
       try {
         await createTodo({
           text: text.trim(),
           priority,
-          due_date: dueDate || null,
+          due_date: dueDate ?? null,
           customer_id: selectedCustomerId,
-          customer_name: selectedCustomer?.name || null,
-          milestone_id: milestoneId || null,
-        });
+          customer_name: selectedCustomer?.name ?? null,
+          milestone_id: milestoneId ?? null,
+        })
 
         // Reset and close
-        setText('');
-        setPriority('medium');
-        setDueDate('');
-        if (!customer) setSelectedCustomerId(null);
-        setMilestoneId(defaultMilestone || '');
-        onClose();
+        setText('')
+        setPriority('medium')
+        setDueDate('')
+        if (!customer) setSelectedCustomerId(null)
+        setMilestoneId(defaultMilestone ?? '')
+        onClose()
       } catch (err) {
-        setError('Failed to create task');
-        console.error('Failed to create task:', err);
+        setError('Failed to create task')
+        console.error('Failed to create task:', err)
       }
-    });
-  };
+    })
+  }
 
   // Get today's date for min date
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]
 
   // Quick date buttons
   const setQuickDate = (days: number) => {
-    const date = new Date();
-    date.setDate(date.getDate() + days);
-    setDueDate(date.toISOString().split('T')[0]);
-  };
+    const date = new Date()
+    date.setDate(date.getDate() + days)
+    setDueDate(date.toISOString().split('T')[0])
+  }
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="inline-task-form">
@@ -158,12 +158,7 @@ export function InlineTaskForm({
           >
             <Check size={14} weight="bold" />
           </button>
-          <button
-            type="button"
-            className="cancel-task-btn"
-            onClick={onClose}
-            title="Cancel (Esc)"
-          >
+          <button type="button" className="cancel-task-btn" onClick={onClose} title="Cancel (Esc)">
             <X size={14} />
           </button>
         </div>
@@ -183,9 +178,11 @@ export function InlineTaskForm({
                   className={`priority-pill ${priority === option.value ? 'active' : ''}`}
                   onClick={() => setPriority(option.value)}
                   title={option.label}
-                  style={{
-                    '--pill-color': option.color,
-                  } as React.CSSProperties}
+                  style={
+                    {
+                      '--pill-color': option.color,
+                    } as React.CSSProperties
+                  }
                 >
                   {option.shortLabel}
                 </button>
@@ -237,7 +234,9 @@ export function InlineTaskForm({
               <User size={14} className="option-icon" />
               <select
                 value={selectedCustomerId ?? ''}
-                onChange={(e) => setSelectedCustomerId(e.target.value ? Number(e.target.value) : null)}
+                onChange={(e) =>
+                  setSelectedCustomerId(e.target.value ? Number(e.target.value) : null)
+                }
                 className="option-select"
               >
                 <option value="">No customer</option>
@@ -272,5 +271,5 @@ export function InlineTaskForm({
       {/* Error */}
       {error && <div className="task-form-error">{error}</div>}
     </form>
-  );
+  )
 }

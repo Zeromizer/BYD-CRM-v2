@@ -4,46 +4,58 @@
  * No fallback - if AI fails, user can retry or enter manually
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Warning, Camera, ArrowCounterClockwise, ArrowRight, Check, Car, IdentificationCard, Sparkle, DeviceMobileCamera, Image } from '@phosphor-icons/react';
-import { Button } from '@/components/common';
-import { getSupabase } from '@/lib/supabase';
+import { useState, useRef, useEffect, useCallback } from 'react'
+import {
+  X,
+  Warning,
+  Camera,
+  ArrowCounterClockwise,
+  ArrowRight,
+  Check,
+  Car,
+  IdentificationCard,
+  Sparkle,
+  DeviceMobileCamera,
+  Image,
+} from '@phosphor-icons/react'
+import { Button } from '@/components/common'
+import { getSupabase } from '@/lib/supabase'
 import {
   extractIDWithGemini,
   extractLicenseWithGemini,
   loadGeminiApiKey,
   isGeminiAvailable,
   type ProcessingProgress,
-} from '@/services/geminiService';
-import './IDScanner.css';
+} from '@/services/geminiService'
+import './IDScanner.css'
 
 // Guide frame dimensions (must match CSS)
-const GUIDE_FRAME_WIDTH_PERCENT = 0.85; // 85% of container
-const GUIDE_FRAME_ASPECT_RATIO = 1.586; // Credit card ratio (landscape)
-const GUIDE_FRAME_WIDTH_PERCENT_PORTRAIT = 0.75; // 75% for portrait
-const GUIDE_FRAME_ASPECT_RATIO_PORTRAIT = 0.65; // Portrait ratio
+const GUIDE_FRAME_WIDTH_PERCENT = 0.85 // 85% of container
+const GUIDE_FRAME_ASPECT_RATIO = 1.586 // Credit card ratio (landscape)
+const GUIDE_FRAME_WIDTH_PERCENT_PORTRAIT = 0.75 // 75% for portrait
+const GUIDE_FRAME_ASPECT_RATIO_PORTRAIT = 0.65 // Portrait ratio
 
 // AI image settings (reduced for faster processing)
-const AI_IMAGE_MAX_WIDTH = 1280;
-const AI_IMAGE_QUALITY = 0.85;
+const AI_IMAGE_MAX_WIDTH = 1280
+const AI_IMAGE_QUALITY = 0.85
 
 export interface ScannedData {
-  name: string;
-  nric: string;
-  dob: string;
-  address: string;
-  addressContinue: string;
-  licenseStartDate: string;
-  frontImage: string | null;
-  backImage: string | null;
-  licenseFrontImage: string | null;
-  licenseBackImage: string | null;
+  name: string
+  nric: string
+  dob: string
+  address: string
+  addressContinue: string
+  licenseStartDate: string
+  frontImage: string | null
+  backImage: string | null
+  licenseFrontImage: string | null
+  licenseBackImage: string | null
 }
 
 interface IDScannerProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onDataExtracted: (data: ScannedData) => void;
+  isOpen: boolean
+  onClose: () => void
+  onDataExtracted: (data: ScannedData) => void
 }
 
 type Step =
@@ -55,24 +67,27 @@ type Step =
   | 'license-front'
   | 'license-back'
   | 'license-processing'
-  | 'final-review';
+  | 'final-review'
 
 export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) {
-  const [step, setStep] = useState<Step>('front');
+  const [step, setStep] = useState<Step>('front')
   // Full resolution images for saving
-  const [frontImage, setFrontImage] = useState<string | null>(null);
-  const [backImage, setBackImage] = useState<string | null>(null);
-  const [licenseFrontImage, setLicenseFrontImage] = useState<string | null>(null);
-  const [licenseBackImage, setLicenseBackImage] = useState<string | null>(null);
+  const [frontImage, setFrontImage] = useState<string | null>(null)
+  const [backImage, setBackImage] = useState<string | null>(null)
+  const [licenseFrontImage, setLicenseFrontImage] = useState<string | null>(null)
+  const [licenseBackImage, setLicenseBackImage] = useState<string | null>(null)
   // Optimized images for AI processing (smaller, lower quality)
-  const [frontImageAI, setFrontImageAI] = useState<string | null>(null);
-  const [backImageAI, setBackImageAI] = useState<string | null>(null);
-  const [licenseFrontImageAI, setLicenseFrontImageAI] = useState<string | null>(null);
-  const [cameraActive, setCameraActive] = useState(false);
-  const [cameraLoading, setCameraLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [processingStatus, setProcessingStatus] = useState<ProcessingProgress>({ stage: '', progress: 0 });
-  const [confidence, setConfidence] = useState(0);
+  const [frontImageAI, setFrontImageAI] = useState<string | null>(null)
+  const [backImageAI, setBackImageAI] = useState<string | null>(null)
+  const [licenseFrontImageAI, setLicenseFrontImageAI] = useState<string | null>(null)
+  const [cameraActive, setCameraActive] = useState(false)
+  const [cameraLoading, setCameraLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [processingStatus, setProcessingStatus] = useState<ProcessingProgress>({
+    stage: '',
+    progress: 0,
+  })
+  const [confidence, setConfidence] = useState(0)
   const [editableData, setEditableData] = useState({
     name: '',
     nric: '',
@@ -80,53 +95,56 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
     address: '',
     addressContinue: '',
     licenseStartDate: '',
-  });
-  const [isPortraitMode, setIsPortraitMode] = useState(false);
+  })
+  const [isPortraitMode, setIsPortraitMode] = useState(false)
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const aiCanvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const aiCanvasRef = useRef<HTMLCanvasElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
 
   // Pre-warm auth check when modal opens (warms Supabase auth cache)
   const preWarmAuth = useCallback(async () => {
     try {
-      await getSupabase().auth.getUser();
+      await getSupabase().auth.getUser()
     } catch {
       // Ignore errors - this is just pre-warming
     }
-  }, []);
+  }, [])
 
   // Reset state and pre-warm auth when modal opens
   useEffect(() => {
     if (isOpen) {
-      resetScanner();
-      preWarmAuth(); // Pre-warm auth while user positions camera
+      resetScanner()
+      void preWarmAuth() // Pre-warm auth while user positions camera
     }
-  }, [isOpen, preWarmAuth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, preWarmAuth])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      stopCamera();
-    };
-  }, []);
+      stopCamera()
+    }
+  }, [])
 
   // Ref to store pending front image processing result (declared early for use in resetScanner)
-  const pendingFrontProcessingRef = useRef<Promise<import('@/services/geminiService').ExtractedIDData> | null>(null);
+  const pendingFrontProcessingRef = useRef<Promise<
+    import('@/services/geminiService').ExtractedIDData
+  > | null>(null)
 
   const resetScanner = () => {
-    setStep('front');
-    setFrontImage(null);
-    setBackImage(null);
-    setLicenseFrontImage(null);
-    setLicenseBackImage(null);
-    setFrontImageAI(null);
-    setBackImageAI(null);
-    setLicenseFrontImageAI(null);
-    setError(null);
-    setProcessingStatus({ stage: '', progress: 0 });
-    setConfidence(0);
+    setStep('front')
+    setFrontImage(null)
+    setBackImage(null)
+    setLicenseFrontImage(null)
+    setLicenseBackImage(null)
+    setFrontImageAI(null)
+    setBackImageAI(null)
+    setLicenseFrontImageAI(null)
+    setError(null)
+    setProcessingStatus({ stage: '', progress: 0 })
+    setConfidence(0)
     setEditableData({
       name: '',
       nric: '',
@@ -134,16 +152,16 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
       address: '',
       addressContinue: '',
       licenseStartDate: '',
-    });
-    setIsPortraitMode(false);
-    pendingFrontProcessingRef.current = null;
-    stopCamera();
-  };
+    })
+    setIsPortraitMode(false)
+    pendingFrontProcessingRef.current = null
+    stopCamera()
+  }
 
   const startCamera = async () => {
     try {
-      setError(null);
-      setCameraLoading(true);
+      setError(null)
+      setCameraLoading(true)
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -151,289 +169,295 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         },
-      });
+      })
 
-      setCameraActive(true);
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      setCameraActive(true)
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       if (!videoRef.current) {
-        setCameraLoading(false);
-        setCameraActive(false);
-        setError('Video element not ready. Please try again.');
-        stream.getTracks().forEach((track) => track.stop());
-        return;
+        setCameraLoading(false)
+        setCameraActive(false)
+        setError('Video element not ready. Please try again.')
+        stream.getTracks().forEach((track) => track.stop())
+        return
       }
 
-      videoRef.current.srcObject = stream;
-      streamRef.current = stream;
+      videoRef.current.srcObject = stream
+      streamRef.current = stream
 
       await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => resolve(), 3000);
+        const timeout = setTimeout(() => resolve(), 3000)
         if (videoRef.current && videoRef.current.readyState >= 1) {
-          clearTimeout(timeout);
-          resolve();
-          return;
+          clearTimeout(timeout)
+          resolve()
+          return
         }
         if (videoRef.current) {
           videoRef.current.onloadedmetadata = () => {
-            clearTimeout(timeout);
-            resolve();
-          };
+            clearTimeout(timeout)
+            resolve()
+          }
           videoRef.current.onerror = () => {
-            clearTimeout(timeout);
-            reject(new Error('Video element error'));
-          };
+            clearTimeout(timeout)
+            reject(new Error('Video element error'))
+          }
         }
-      });
+      })
 
-      await videoRef.current?.play();
-      setCameraLoading(false);
+      await videoRef.current?.play()
+      setCameraLoading(false)
     } catch (err) {
-      console.error('Error accessing camera:', err);
-      setCameraLoading(false);
-      setCameraActive(false);
-      setError(`Unable to access camera: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      console.error('Error accessing camera:', err)
+      setCameraLoading(false)
+      setCameraActive(false)
+      setError(`Unable to access camera: ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
-  };
+  }
 
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
+      streamRef.current.getTracks().forEach((track) => track.stop())
+      streamRef.current = null
     }
     if (videoRef.current) {
-      videoRef.current.srcObject = null;
+      videoRef.current.srcObject = null
     }
-    setCameraActive(false);
-    setCameraLoading(false);
-  };
+    setCameraActive(false)
+    setCameraLoading(false)
+  }
 
   const capturePhoto = () => {
-    if (!videoRef.current || !canvasRef.current || !aiCanvasRef.current) return;
+    if (!videoRef.current || !canvasRef.current || !aiCanvasRef.current) return
 
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const aiCanvas = aiCanvasRef.current;
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    const aiCanvas = aiCanvasRef.current
 
-    const videoWidth = video.videoWidth;
-    const videoHeight = video.videoHeight;
+    const videoWidth = video.videoWidth
+    const videoHeight = video.videoHeight
 
     // Calculate the visible container area (what's shown on screen)
-    const containerAspect = isPortraitMode ? 3 / 4 : 4 / 3;
-    const videoAspect = videoWidth / videoHeight;
+    const containerAspect = isPortraitMode ? 3 / 4 : 4 / 3
+    const videoAspect = videoWidth / videoHeight
 
-    let containerCropX = 0;
-    let containerCropY = 0;
-    let containerCropWidth = videoWidth;
-    let containerCropHeight = videoHeight;
+    let containerCropX = 0
+    let containerCropY = 0
+    let containerCropWidth = videoWidth
+    let containerCropHeight = videoHeight
 
     // First, crop to the container's visible area (object-fit: cover)
     if (videoAspect > containerAspect) {
-      containerCropWidth = videoHeight * containerAspect;
-      containerCropX = (videoWidth - containerCropWidth) / 2;
+      containerCropWidth = videoHeight * containerAspect
+      containerCropX = (videoWidth - containerCropWidth) / 2
     } else if (videoAspect < containerAspect) {
-      containerCropHeight = videoWidth / containerAspect;
-      containerCropY = (videoHeight - containerCropHeight) / 2;
+      containerCropHeight = videoWidth / containerAspect
+      containerCropY = (videoHeight - containerCropHeight) / 2
     }
 
     // Now calculate the guide frame area within the container
-    const guideWidthPercent = isPortraitMode ? GUIDE_FRAME_WIDTH_PERCENT_PORTRAIT : GUIDE_FRAME_WIDTH_PERCENT;
-    const guideAspectRatio = isPortraitMode ? GUIDE_FRAME_ASPECT_RATIO_PORTRAIT : GUIDE_FRAME_ASPECT_RATIO;
+    const guideWidthPercent = isPortraitMode
+      ? GUIDE_FRAME_WIDTH_PERCENT_PORTRAIT
+      : GUIDE_FRAME_WIDTH_PERCENT
+    const guideAspectRatio = isPortraitMode
+      ? GUIDE_FRAME_ASPECT_RATIO_PORTRAIT
+      : GUIDE_FRAME_ASPECT_RATIO
 
     // Guide frame dimensions relative to container
-    const guideWidth = containerCropWidth * guideWidthPercent;
-    const guideHeight = guideWidth / guideAspectRatio;
+    const guideWidth = containerCropWidth * guideWidthPercent
+    const guideHeight = guideWidth / guideAspectRatio
 
     // Center the guide frame within the container
-    const guideX = containerCropX + (containerCropWidth - guideWidth) / 2;
-    const guideY = containerCropY + (containerCropHeight - guideHeight) / 2;
+    const guideX = containerCropX + (containerCropWidth - guideWidth) / 2
+    const guideY = containerCropY + (containerCropHeight - guideHeight) / 2
 
     // Full resolution image (cropped to guide frame)
-    canvas.width = guideWidth;
-    canvas.height = guideHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.drawImage(video, guideX, guideY, guideWidth, guideHeight, 0, 0, guideWidth, guideHeight);
-    const fullResImage = canvas.toDataURL('image/jpeg', 0.95);
+    canvas.width = guideWidth
+    canvas.height = guideHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.drawImage(video, guideX, guideY, guideWidth, guideHeight, 0, 0, guideWidth, guideHeight)
+    const fullResImage = canvas.toDataURL('image/jpeg', 0.95)
 
     // AI-optimized image (smaller, lower quality for faster processing)
-    const scale = Math.min(1, AI_IMAGE_MAX_WIDTH / guideWidth);
-    const aiWidth = Math.round(guideWidth * scale);
-    const aiHeight = Math.round(guideHeight * scale);
-    aiCanvas.width = aiWidth;
-    aiCanvas.height = aiHeight;
-    const aiCtx = aiCanvas.getContext('2d');
-    if (!aiCtx) return;
-    aiCtx.drawImage(video, guideX, guideY, guideWidth, guideHeight, 0, 0, aiWidth, aiHeight);
-    const aiImage = aiCanvas.toDataURL('image/jpeg', AI_IMAGE_QUALITY);
+    const scale = Math.min(1, AI_IMAGE_MAX_WIDTH / guideWidth)
+    const aiWidth = Math.round(guideWidth * scale)
+    const aiHeight = Math.round(guideHeight * scale)
+    aiCanvas.width = aiWidth
+    aiCanvas.height = aiHeight
+    const aiCtx = aiCanvas.getContext('2d')
+    if (!aiCtx) return
+    aiCtx.drawImage(video, guideX, guideY, guideWidth, guideHeight, 0, 0, aiWidth, aiHeight)
+    const aiImage = aiCanvas.toDataURL('image/jpeg', AI_IMAGE_QUALITY)
 
     if (step === 'front') {
-      setFrontImage(fullResImage);
-      setFrontImageAI(aiImage);
-      stopCamera();
+      setFrontImage(fullResImage)
+      setFrontImageAI(aiImage)
+      stopCamera()
     } else if (step === 'back') {
-      setBackImage(fullResImage);
-      setBackImageAI(aiImage);
-      stopCamera();
+      setBackImage(fullResImage)
+      setBackImageAI(aiImage)
+      stopCamera()
     } else if (step === 'license-front') {
-      setLicenseFrontImage(fullResImage);
-      setLicenseFrontImageAI(aiImage);
-      stopCamera();
+      setLicenseFrontImage(fullResImage)
+      setLicenseFrontImageAI(aiImage)
+      stopCamera()
     } else if (step === 'license-back') {
-      setLicenseBackImage(fullResImage);
+      setLicenseBackImage(fullResImage)
       // No AI image needed for license back (not used for extraction)
-      stopCamera();
+      stopCamera()
     }
-  };
+  }
 
   const handleRetake = () => {
     if (step === 'front') {
-      setFrontImage(null);
-      setFrontImageAI(null);
+      setFrontImage(null)
+      setFrontImageAI(null)
     } else if (step === 'back') {
-      setBackImage(null);
-      setBackImageAI(null);
+      setBackImage(null)
+      setBackImageAI(null)
     } else if (step === 'license-front') {
-      setLicenseFrontImage(null);
-      setLicenseFrontImageAI(null);
+      setLicenseFrontImage(null)
+      setLicenseFrontImageAI(null)
     } else if (step === 'license-back') {
-      setLicenseBackImage(null);
+      setLicenseBackImage(null)
     }
-    startCamera();
-  };
+    void startCamera()
+  }
 
-  const handleNextStep = async () => {
+  const handleNextStep = () => {
     if (step === 'front' && frontImage) {
-      setStep('back');
+      setStep('back')
     } else if (step === 'back') {
-      processIDImages();
+      void processIDImages()
     } else if (step === 'license-front' && licenseFrontImage) {
-      setStep('license-back');
+      setStep('license-back')
     } else if (step === 'license-back') {
-      processLicenseImages();
+      void processLicenseImages()
     }
-  };
+  }
 
   const handleSkipBack = () => {
-    setBackImage(null);
-    setBackImageAI(null);
-    processIDImages();
-  };
+    setBackImage(null)
+    setBackImageAI(null)
+    void processIDImages()
+  }
 
   const handleSkipLicenseBack = () => {
-    setLicenseBackImage(null);
-    processLicenseImages();
-  };
+    setLicenseBackImage(null)
+    void processLicenseImages()
+  }
 
   const handleScanLicense = () => {
-    setStep('license-front');
-  };
+    setStep('license-front')
+  }
 
   const handleSkipLicense = () => {
-    setStep('final-review');
-  };
+    setStep('final-review')
+  }
 
   // Start processing front image immediately after capture (parallel with back scan)
   useEffect(() => {
     if (frontImageAI && step === 'back' && !pendingFrontProcessingRef.current) {
       // Start processing front image in background while user scans back
-      console.log('Starting parallel front image processing...');
-      pendingFrontProcessingRef.current = extractIDWithGemini(frontImageAI, null, () => {});
+      console.log('Starting parallel front image processing...')
+      pendingFrontProcessingRef.current = extractIDWithGemini(frontImageAI, null, () => {})
     }
-  }, [frontImageAI, step]);
+  }, [frontImageAI, step])
 
   const processIDImages = async () => {
-    if (!frontImageAI) return;
+    if (!frontImageAI) return
 
-    setStep('processing');
-    setError(null);
+    setStep('processing')
+    setError(null)
 
     try {
       // Load API key from Supabase first (should be quick if pre-warmed)
-      await loadGeminiApiKey();
+      await loadGeminiApiKey()
 
       // Check if Gemini is available
       if (!isGeminiAvailable()) {
-        setError('AI service is not available. Please check your API key in Settings or your internet connection.');
-        setStep('front');
-        return;
+        setError(
+          'AI service is not available. Please check your API key in Settings or your internet connection.'
+        )
+        setStep('front')
+        return
       }
 
-      let result;
+      let result
 
       if (backImageAI) {
         // If we have back image, process both together for best accuracy
-        setProcessingStatus({ stage: 'Analyzing ID with AI...', progress: 10 });
-        result = await extractIDWithGemini(frontImageAI, backImageAI, setProcessingStatus);
+        setProcessingStatus({ stage: 'Analyzing ID with AI...', progress: 10 })
+        result = await extractIDWithGemini(frontImageAI, backImageAI, setProcessingStatus)
       } else if (pendingFrontProcessingRef.current) {
         // Use the parallel-processed front result if available
-        setProcessingStatus({ stage: 'Finalizing analysis...', progress: 50 });
+        setProcessingStatus({ stage: 'Finalizing analysis...', progress: 50 })
         try {
-          result = await pendingFrontProcessingRef.current;
-          setProcessingStatus({ stage: 'Complete', progress: 100 });
+          result = await pendingFrontProcessingRef.current
+          setProcessingStatus({ stage: 'Complete', progress: 100 })
         } catch {
           // If parallel processing failed, try again
-          result = await extractIDWithGemini(frontImageAI, null, setProcessingStatus);
+          result = await extractIDWithGemini(frontImageAI, null, setProcessingStatus)
         }
       } else {
         // Process front only
-        result = await extractIDWithGemini(frontImageAI, null, setProcessingStatus);
+        result = await extractIDWithGemini(frontImageAI, null, setProcessingStatus)
       }
 
       // Clear pending processing ref
-      pendingFrontProcessingRef.current = null;
+      pendingFrontProcessingRef.current = null
 
-      setConfidence(result.confidence);
+      setConfidence(result.confidence)
       setEditableData({
-        name: result.name || '',
-        nric: result.nric || '',
-        dob: result.dob || '',
-        address: result.address || '',
-        addressContinue: result.addressContinue || '',
+        name: result.name ?? '',
+        nric: result.nric ?? '',
+        dob: result.dob ?? '',
+        address: result.address ?? '',
+        addressContinue: result.addressContinue ?? '',
         licenseStartDate: '',
-      });
-      setStep('review');
+      })
+      setStep('review')
     } catch (err) {
-      console.error('Processing error:', err);
-      pendingFrontProcessingRef.current = null;
-      setError(err instanceof Error ? err.message : 'Failed to process ID. Please try again.');
-      setStep('front');
+      console.error('Processing error:', err)
+      pendingFrontProcessingRef.current = null
+      setError(err instanceof Error ? err.message : 'Failed to process ID. Please try again.')
+      setStep('front')
     }
-  };
+  }
 
   const processLicenseImages = async () => {
     if (!licenseFrontImageAI) {
-      setStep('final-review');
-      return;
+      setStep('final-review')
+      return
     }
 
-    setStep('license-processing');
-    setError(null);
+    setStep('license-processing')
+    setError(null)
 
     try {
-      const licenseData = await extractLicenseWithGemini(licenseFrontImageAI, setProcessingStatus);
+      const licenseData = await extractLicenseWithGemini(licenseFrontImageAI, setProcessingStatus)
       if (licenseData.licenseStartDate) {
         setEditableData((prev) => ({
           ...prev,
           licenseStartDate: licenseData.licenseStartDate,
-        }));
+        }))
       }
-      setStep('final-review');
+      setStep('final-review')
     } catch (err) {
-      console.warn('Failed to extract license data:', err);
+      console.warn('Failed to extract license data:', err)
       // Continue to final review even if extraction fails
-      setStep('final-review');
+      setStep('final-review')
     }
-  };
+  }
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setEditableData((prev) => ({ ...prev, [name]: value }));
-  };
+    const { name, value } = e.target
+    setEditableData((prev) => ({ ...prev, [name]: value }))
+  }
 
   const handleConfirmReview = () => {
-    setStep('ask-license');
-  };
+    setStep('ask-license')
+  }
 
   const handleConfirm = () => {
     onDataExtracted({
@@ -442,21 +466,21 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
       backImage,
       licenseFrontImage,
       licenseBackImage,
-    });
-    onClose();
-  };
+    })
+    onClose()
+  }
 
   const handleClose = () => {
-    stopCamera();
-    onClose();
-  };
+    stopCamera()
+    onClose()
+  }
 
   const handleManualEntry = () => {
     // Close scanner and let user enter manually
-    onClose();
-  };
+    onClose()
+  }
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   const currentImage =
     step === 'front'
@@ -467,10 +491,10 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
           ? licenseFrontImage
           : step === 'license-back'
             ? licenseBackImage
-            : null;
+            : null
 
-  const isLicenseStep = step === 'license-front' || step === 'license-back';
-  const isProcessingStep = step === 'processing' || step === 'license-processing';
+  const isLicenseStep = step === 'license-front' || step === 'license-back'
+  const isProcessingStep = step === 'processing' || step === 'license-processing'
 
   return (
     <div className="id-scanner-overlay">
@@ -495,7 +519,12 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
 
         {/* Progress Indicator */}
         <div className="id-scanner-progress">
-          <ProgressStep number={1} label="ID Front" isActive={step === 'front'} isComplete={!!frontImage} />
+          <ProgressStep
+            number={1}
+            label="ID Front"
+            isActive={step === 'front'}
+            isComplete={!!frontImage}
+          />
           <div className="progress-line" />
           <ProgressStep
             number={2}
@@ -508,7 +537,12 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
             number={3}
             label="Review"
             isActive={step === 'processing' || step === 'review'}
-            isComplete={step === 'ask-license' || isLicenseStep || step === 'license-processing' || step === 'final-review'}
+            isComplete={
+              step === 'ask-license' ||
+              isLicenseStep ||
+              step === 'license-processing' ||
+              step === 'final-review'
+            }
           />
           <div className="progress-line" />
           <ProgressStep
@@ -518,7 +552,12 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
             isComplete={!!licenseFrontImage && step === 'final-review'}
           />
           <div className="progress-line" />
-          <ProgressStep number={5} label="Done" isActive={step === 'final-review'} isComplete={false} />
+          <ProgressStep
+            number={5}
+            label="Done"
+            isActive={step === 'final-review'}
+            isComplete={false}
+          />
         </div>
 
         {/* Content Area */}
@@ -539,13 +578,21 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
               {!cameraActive && !currentImage && !cameraLoading && (
                 <div className="capture-start">
                   <div className="id-icon">
-                    {isLicenseStep ? <Car size={48} /> : step === 'front' ? <IdentificationCard size={48} /> : <ArrowCounterClockwise size={48} />}
+                    {isLicenseStep ? (
+                      <Car size={48} />
+                    ) : step === 'front' ? (
+                      <IdentificationCard size={48} />
+                    ) : (
+                      <ArrowCounterClockwise size={48} />
+                    )}
                   </div>
                   <p className="capture-instruction">
                     {step === 'front' && 'Position the front of the ID card within the frame'}
                     {step === 'back' && 'Position the back of the ID card within the frame'}
-                    {step === 'license-front' && 'Position the front of the driving license within the frame'}
-                    {step === 'license-back' && 'Position the back of the driving license within the frame'}
+                    {step === 'license-front' &&
+                      'Position the front of the driving license within the frame'}
+                    {step === 'license-back' &&
+                      'Position the back of the driving license within the frame'}
                   </p>
                   <Button onClick={startCamera} leftIcon={<Camera size={16} />}>
                     Start Camera
@@ -606,7 +653,11 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
                     <img src={currentImage} alt="Captured" className="preview-image" />
                   </div>
                   <div className="preview-actions">
-                    <Button variant="outline" onClick={handleRetake} leftIcon={<ArrowCounterClockwise size={16} />}>
+                    <Button
+                      variant="outline"
+                      onClick={handleRetake}
+                      leftIcon={<ArrowCounterClockwise size={16} />}
+                    >
                       Retake
                     </Button>
                     <Button onClick={handleNextStep} rightIcon={<ArrowRight size={16} />}>
@@ -654,7 +705,10 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
               </div>
               <p className="processing-status">{processingStatus.stage}</p>
               <div className="processing-bar">
-                <div className="processing-bar-fill" style={{ width: `${processingStatus.progress}%` }} />
+                <div
+                  className="processing-bar-fill"
+                  style={{ width: `${processingStatus.progress}%` }}
+                />
               </div>
               <p className="processing-percent">{processingStatus.progress}%</p>
             </div>
@@ -664,8 +718,12 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
           {step === 'review' && (
             <div className="review-section">
               <div className="confidence-badge">
-                <span className="scanner-method ai"><Sparkle size={14} /> AI Scanner</span>
-                <span className={`confidence ${confidence >= 75 ? 'high' : confidence >= 50 ? 'medium' : 'low'}`}>
+                <span className="scanner-method ai">
+                  <Sparkle size={14} /> AI Scanner
+                </span>
+                <span
+                  className={`confidence ${confidence >= 75 ? 'high' : confidence >= 50 ? 'medium' : 'low'}`}
+                >
                   {confidence}% confidence
                 </span>
               </div>
@@ -768,7 +826,9 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
           {/* Ask License Step */}
           {step === 'ask-license' && (
             <div className="ask-license-section">
-              <div className="ask-license-icon"><Car size={48} /></div>
+              <div className="ask-license-icon">
+                <Car size={48} />
+              </div>
               <h3>Would you like to scan a driving license?</h3>
               <p className="ask-license-description">
                 Scanning the driving license will extract the license start date.
@@ -813,7 +873,12 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
                 <div className="form-row">
                   <div className="form-group">
                     <label>Date of Birth</label>
-                    <input type="date" name="dob" value={editableData.dob} onChange={handleEditChange} />
+                    <input
+                      type="date"
+                      name="dob"
+                      value={editableData.dob}
+                      onChange={handleEditChange}
+                    />
                   </div>
                   <div className="form-group">
                     <label>License Start Date</label>
@@ -901,7 +966,7 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 // Progress Step Component
@@ -911,15 +976,15 @@ function ProgressStep({
   isActive,
   isComplete,
 }: {
-  number: number;
-  label: string;
-  isActive: boolean;
-  isComplete: boolean;
+  number: number
+  label: string
+  isActive: boolean
+  isComplete: boolean
 }) {
   return (
     <div className={`progress-step ${isActive ? 'active' : ''} ${isComplete ? 'complete' : ''}`}>
       <span className="step-number">{isComplete ? <Check size={12} weight="bold" /> : number}</span>
       <span className="step-label">{label}</span>
     </div>
-  );
+  )
 }

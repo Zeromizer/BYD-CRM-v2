@@ -1,224 +1,247 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { UploadSimple, DownloadSimple, Plus, MagnifyingGlass, Package, File, X } from '@phosphor-icons/react';
-import { useCustomerStore, useCustomers, useSelectedCustomerId, useHasMoreCustomers, useIsLoadingMoreCustomers } from '@/stores';
-import { MILESTONES, getOverallProgress } from '@/constants';
-import { Modal, Button, useToast } from '@/components/common';
+import { useState, useEffect, useMemo, useRef } from 'react'
+import {
+  UploadSimple,
+  DownloadSimple,
+  Plus,
+  MagnifyingGlass,
+  Package,
+  File,
+  X,
+} from '@phosphor-icons/react'
+import {
+  useCustomerStore,
+  useCustomers,
+  useSelectedCustomerId,
+  useHasMoreCustomers,
+  useIsLoadingMoreCustomers,
+} from '@/stores'
+import { MILESTONES, getOverallProgress } from '@/constants'
+import { Modal, Button, useToast } from '@/components/common'
 import {
   importCustomersFromFile,
   exportCustomersToJSON,
   downloadJSON,
-} from '@/services/customerImportService';
-import type { Customer, MilestoneId, Guarantor } from '@/types';
-import './CustomerList.css';
+} from '@/services/customerImportService'
+import type { Customer, MilestoneId, Guarantor } from '@/types'
+import './CustomerList.css'
 
 interface CustomerListProps {
-  onAddCustomer: () => void;
-  isMobile?: boolean;
+  onAddCustomer: () => void
+  isMobile?: boolean
 }
 
-type FilterTab = 'active' | 'archived';
-type SortOption = 'recent' | 'name' | 'milestone';
+type FilterTab = 'active' | 'archived'
+type SortOption = 'recent' | 'name' | 'milestone'
 
 export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterTab, setFilterTab] = useState<FilterTab>('active');
-  const [sortBy] = useState<SortOption>('recent');
-  const [milestoneFilter, setMilestoneFilter] = useState<MilestoneId | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterTab, setFilterTab] = useState<FilterTab>('active')
+  const [sortBy] = useState<SortOption>('recent')
+  const [milestoneFilter, setMilestoneFilter] = useState<MilestoneId | 'all'>('all')
 
   // Import/Export state
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [isImporting, setIsImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState('');
-  const importFileInputRef = useRef<HTMLInputElement>(null);
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [isImporting, setIsImporting] = useState(false)
+  const [importProgress, setImportProgress] = useState('')
+  const importFileInputRef = useRef<HTMLInputElement>(null)
 
-  const customers = useCustomers();
-  const selectedCustomerId = useSelectedCustomerId();
-  const hasMore = useHasMoreCustomers();
-  const isLoadingMore = useIsLoadingMoreCustomers();
-  const { selectCustomer, fetchCustomers, fetchMoreCustomers, subscribeToChanges, createCustomer, saveGuarantors } = useCustomerStore();
-  const { success, error: toastError } = useToast();
+  const customers = useCustomers()
+  const selectedCustomerId = useSelectedCustomerId()
+  const hasMore = useHasMoreCustomers()
+  const isLoadingMore = useIsLoadingMoreCustomers()
+  const {
+    selectCustomer,
+    fetchCustomers,
+    fetchMoreCustomers,
+    subscribeToChanges,
+    createCustomer,
+    saveGuarantors,
+  } = useCustomerStore()
+  const { success, error: toastError } = useToast()
 
   // Ref for infinite scroll sentinel
-  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    fetchCustomers();
-    const unsubscribe = subscribeToChanges();
-    return unsubscribe;
-  }, [fetchCustomers, subscribeToChanges]);
+    void fetchCustomers()
+    const unsubscribe = subscribeToChanges()
+    return unsubscribe
+  }, [fetchCustomers, subscribeToChanges])
 
   // Infinite scroll using Intersection Observer
   useEffect(() => {
-    const sentinel = loadMoreRef.current;
-    if (!sentinel) return;
+    const sentinel = loadMoreRef.current
+    if (!sentinel) return
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
-          fetchMoreCustomers();
+          void fetchMoreCustomers()
         }
       },
       { rootMargin: '100px' }
-    );
+    )
 
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMore, isLoadingMore, fetchMoreCustomers]);
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasMore, isLoadingMore, fetchMoreCustomers])
 
   const filteredCustomers = useMemo(() => {
-    let result = customers;
+    let result = customers
 
     // Filter by archive status
     if (filterTab === 'active') {
-      result = result.filter((c) => !c.archive_status);
+      result = result.filter((c) => !c.archive_status)
     } else {
-      result = result.filter((c) => c.archive_status);
+      result = result.filter((c) => c.archive_status)
     }
 
     // Filter by milestone
     if (milestoneFilter !== 'all') {
-      result = result.filter((c) => c.current_milestone === milestoneFilter);
+      result = result.filter((c) => c.current_milestone === milestoneFilter)
     }
 
     // Search
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+      const query = searchQuery.toLowerCase()
       result = result.filter(
         (c) =>
           c.name.toLowerCase().includes(query) ||
           c.phone?.toLowerCase().includes(query) ||
           c.email?.toLowerCase().includes(query) ||
           c.vsa_no?.toLowerCase().includes(query)
-      );
+      )
     }
 
     // Sort
     switch (sortBy) {
       case 'name':
-        result = [...result].sort((a, b) => a.name.localeCompare(b.name));
-        break;
+        result = [...result].sort((a, b) => a.name.localeCompare(b.name))
+        break
       case 'milestone':
         result = [...result].sort((a, b) => {
-          const milestoneOrder = MILESTONES.map((m) => m.id);
+          const milestoneOrder = MILESTONES.map((m) => m.id)
           return (
             milestoneOrder.indexOf(a.current_milestone) -
             milestoneOrder.indexOf(b.current_milestone)
-          );
-        });
-        break;
+          )
+        })
+        break
       case 'recent':
       default:
         result = [...result].sort(
           (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
+        )
     }
 
-    return result;
-  }, [customers, filterTab, milestoneFilter, searchQuery, sortBy]);
+    return result
+  }, [customers, filterTab, milestoneFilter, searchQuery, sortBy])
 
   // Handle import file selection
   const handleImportFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const file = event.target.files?.[0]
     if (file) {
       if (!file.name.endsWith('.json')) {
-        toastError('Please select a JSON file');
-        return;
+        toastError('Please select a JSON file')
+        return
       }
-      setImportFile(file);
+      setImportFile(file)
     }
-  };
+  }
 
   // Handle import
   const handleImport = async () => {
     if (!importFile) {
-      toastError('Please select a file to import');
-      return;
+      toastError('Please select a file to import')
+      return
     }
 
-    setIsImporting(true);
-    setImportProgress('Reading file...');
+    setIsImporting(true)
+    setImportProgress('Reading file...')
 
     try {
-      const result = await importCustomersFromFile(importFile);
+      const result = await importCustomersFromFile(importFile)
 
       if (!result.success) {
-        toastError(result.errors.join(', '));
-        setIsImporting(false);
-        return;
+        toastError(result.errors.join(', '))
+        setIsImporting(false)
+        return
       }
 
       // Import each customer
-      let imported = 0;
-      let failed = 0;
+      let imported = 0
+      let failed = 0
       for (const { customer, guarantors } of result.customers) {
-        setImportProgress(`Importing "${customer.name}" (${imported + failed + 1}/${result.customers.length})...`);
+        setImportProgress(
+          `Importing "${customer.name}" (${imported + failed + 1}/${result.customers.length})...`
+        )
 
         try {
           // Create the customer
-          const newCustomer = await createCustomer(customer);
+          const newCustomer = await createCustomer(customer)
 
           // Save guarantors if any
           if (guarantors.length > 0) {
             const guarantorsWithCustomerId = guarantors.map((g) => ({
               ...g,
               customer_id: newCustomer.id,
-            }));
-            await saveGuarantors(newCustomer.id, guarantorsWithCustomerId);
+            }))
+            await saveGuarantors(newCustomer.id, guarantorsWithCustomerId)
           }
 
-          imported++;
+          imported++
 
           // Small delay to avoid overwhelming the database
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise((resolve) => setTimeout(resolve, 100))
         } catch (err) {
-          console.error(`Failed to import "${customer.name}":`, err);
-          failed++;
+          console.error(`Failed to import "${customer.name}":`, err)
+          failed++
         }
       }
 
       if (failed > 0) {
-        success(`Imported ${imported} customer${imported !== 1 ? 's' : ''} (${failed} failed)`);
+        success(`Imported ${imported} customer${imported !== 1 ? 's' : ''} (${failed} failed)`)
       } else {
-        success(`Imported ${imported} customer${imported !== 1 ? 's' : ''} successfully`);
+        success(`Imported ${imported} customer${imported !== 1 ? 's' : ''} successfully`)
       }
-      setShowImportModal(false);
-      setImportFile(null);
+      setShowImportModal(false)
+      setImportFile(null)
       if (importFileInputRef.current) {
-        importFileInputRef.current.value = '';
+        importFileInputRef.current.value = ''
       }
     } catch (err) {
-      console.error('Error during import:', err);
-      toastError('Failed to import customers');
+      console.error('Error during import:', err)
+      toastError('Failed to import customers')
     } finally {
-      setIsImporting(false);
-      setImportProgress('');
+      setIsImporting(false)
+      setImportProgress('')
     }
-  };
+  }
 
   // Handle export
   const handleExport = async () => {
     try {
       // For now, export without guarantors (would need to fetch them)
-      const guarantorsMap: Record<number, Guarantor[]> = {};
-      const json = exportCustomersToJSON(customers, guarantorsMap);
-      const filename = `byd-crm-customers-${new Date().toISOString().split('T')[0]}.json`;
-      downloadJSON(json, filename);
-      success(`Exported ${customers.length} customers`);
+      const guarantorsMap: Record<number, Guarantor[]> = {}
+      const json = exportCustomersToJSON(customers, guarantorsMap)
+      const filename = `byd-crm-customers-${new Date().toISOString().split('T')[0]}.json`
+      downloadJSON(json, filename)
+      success(`Exported ${customers.length} customers`)
     } catch (err) {
-      console.error('Error exporting customers:', err);
-      toastError('Failed to export customers');
+      console.error('Error exporting customers:', err)
+      toastError('Failed to export customers')
     }
-  };
+  }
 
   // Reset import modal
   const resetImportModal = () => {
-    setImportFile(null);
-    setImportProgress('');
+    setImportFile(null)
+    setImportProgress('')
     if (importFileInputRef.current) {
-      importFileInputRef.current.value = '';
+      importFileInputRef.current.value = ''
     }
-  };
+  }
 
   return (
     <div className={`customer-list ${isMobile ? 'mobile' : ''}`}>
@@ -252,11 +275,7 @@ export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
               >
                 <UploadSimple size={18} />
               </button>
-              <button
-                onClick={handleExport}
-                className="import-export-btn"
-                title="Export Customers"
-              >
+              <button onClick={handleExport} className="import-export-btn" title="Export Customers">
                 <DownloadSimple size={18} />
               </button>
               <button onClick={onAddCustomer} className="add-customer-btn">
@@ -279,11 +298,7 @@ export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
           className="search-input"
         />
         {isMobile && (
-          <button
-            className="mobile-add-btn"
-            onClick={onAddCustomer}
-            aria-label="Add Customer"
-          >
+          <button className="mobile-add-btn" onClick={onAddCustomer} aria-label="Add Customer">
             <Plus size={20} />
           </button>
         )}
@@ -321,9 +336,11 @@ export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
             key={m.id}
             onClick={() => setMilestoneFilter(m.id)}
             className={`milestone-chip ${milestoneFilter === m.id ? 'active' : ''}`}
-            style={{
-              '--milestone-color': m.color,
-            } as React.CSSProperties}
+            style={
+              {
+                '--milestone-color': m.color,
+              } as React.CSSProperties
+            }
           >
             {m.shortName}
           </button>
@@ -360,21 +377,20 @@ export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
         )}
       </div>
 
-
       {/* Import Modal */}
       <Modal
         isOpen={showImportModal}
         onClose={() => {
-          setShowImportModal(false);
-          resetImportModal();
+          setShowImportModal(false)
+          resetImportModal()
         }}
         title="Import Customers from Old CRM"
       >
         <div className="import-modal">
           <div className="import-description">
             <p>
-              Import customer data exported from your old BYD-CRM. Select the JSON file
-              containing your customer data.
+              Import customer data exported from your old BYD-CRM. Select the JSON file containing
+              your customer data.
             </p>
           </div>
 
@@ -407,8 +423,8 @@ export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
                     <button
                       className="import-remove-file"
                       onClick={() => {
-                        setImportFile(null);
-                        if (importFileInputRef.current) importFileInputRef.current.value = '';
+                        setImportFile(null)
+                        if (importFileInputRef.current) importFileInputRef.current.value = ''
                       }}
                     >
                       <X size={16} />
@@ -432,8 +448,8 @@ export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
             <Button
               variant="secondary"
               onClick={() => {
-                setShowImportModal(false);
-                resetImportModal();
+                setShowImportModal(false)
+                resetImportModal()
               }}
               disabled={isImporting}
             >
@@ -446,19 +462,19 @@ export function CustomerList({ onAddCustomer, isMobile }: CustomerListProps) {
         </div>
       </Modal>
     </div>
-  );
+  )
 }
 
 interface CustomerCardProps {
-  customer: Customer;
-  isSelected: boolean;
-  onSelect: () => void;
-  index: number;
+  customer: Customer
+  isSelected: boolean
+  onSelect: () => void
+  index: number
 }
 
 function CustomerCard({ customer, isSelected, onSelect, index }: CustomerCardProps) {
-  const milestone = MILESTONES.find((m) => m.id === customer.current_milestone);
-  const progress = getOverallProgress(customer.checklist);
+  const milestone = MILESTONES.find((m) => m.id === customer.current_milestone)
+  const progress = getOverallProgress(customer.checklist)
 
   return (
     <div
@@ -467,14 +483,10 @@ function CustomerCard({ customer, isSelected, onSelect, index }: CustomerCardPro
       style={{ '--stagger-delay': `${Math.min(index, 12) * 80}ms` } as React.CSSProperties}
     >
       <div className="card-header">
-        <div className="customer-avatar">
-          {customer.name[0]?.toUpperCase()}
-        </div>
+        <div className="customer-avatar">{customer.name[0]?.toUpperCase()}</div>
         <div className="customer-info">
           <h3 className="customer-name">{customer.name}</h3>
-          {customer.vsa_no && (
-            <span className="customer-vsa">VSA: {customer.vsa_no}</span>
-          )}
+          {customer.vsa_no && <span className="customer-vsa">VSA: {customer.vsa_no}</span>}
         </div>
       </div>
 
@@ -499,5 +511,5 @@ function CustomerCard({ customer, isSelected, onSelect, index }: CustomerCardPro
         <span className="progress-text">{progress}%</span>
       </div>
     </div>
-  );
+  )
 }

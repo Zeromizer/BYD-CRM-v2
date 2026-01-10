@@ -1,83 +1,79 @@
-import { useState, useEffect, useRef, useTransition, useMemo } from 'react';
-import { Car, Money, ArrowsClockwise, Gift, FloppyDisk, Note } from '@phosphor-icons/react';
-import { Button, useToast, CollapsibleSection } from '@/components/common';
-import type { Customer, CustomerUpdate } from '@/types';
-import {
-  VEHICLE_MODELS_GROUPED,
-  BANKS,
-  BENEFITS_GROUPED,
-} from '@/constants/vehicleData';
+import { useState, useEffect, useRef, useTransition, useMemo } from 'react'
+import { Car, Money, ArrowsClockwise, Gift, FloppyDisk, Note } from '@phosphor-icons/react'
+import { Button, useToast, CollapsibleSection } from '@/components/common'
+import type { Customer, CustomerUpdate } from '@/types'
+import { VEHICLE_MODELS_GROUPED, BANKS, BENEFITS_GROUPED } from '@/constants/vehicleData'
 
 interface ProposalTabProps {
-  customer: Customer;
-  onUpdate: (id: number, updates: CustomerUpdate) => Promise<void>;
+  customer: Customer
+  onUpdate: (id: number, updates: CustomerUpdate) => Promise<void>
 }
 
 export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
-  const [isPending, startTransition] = useTransition();
-  const { success, error: toastError } = useToast();
-  const loanAmountManuallyEdited = useRef(false);
+  const [isPending, startTransition] = useTransition()
+  const { success, error: toastError } = useToast()
+  const loanAmountManuallyEdited = useRef(false)
   const [formData, setFormData] = useState({
-    proposal_model: customer.proposal_model || '',
-    proposal_variant: customer.proposal_variant || '',
-    proposal_color: customer.proposal_color || '',
-    proposal_bank: customer.proposal_bank || '',
-    proposal_selling_price: customer.proposal_selling_price?.toString() || '',
-    proposal_loan_amount: customer.proposal_loan_amount?.toString() || '',
-    proposal_interest_rate: customer.proposal_interest_rate?.toString() || '',
-    proposal_loan_tenure: customer.proposal_loan_tenure?.toString() || '',
-    proposal_downpayment: customer.proposal_downpayment?.toString() || '',
-    proposal_admin_fee: customer.proposal_admin_fee?.toString() || '',
-    proposal_referral_fee: customer.proposal_referral_fee?.toString() || '',
-    proposal_trade_in_model: customer.proposal_trade_in_model || '',
-    proposal_trade_in_car_plate: customer.proposal_trade_in_car_plate || '',
-    proposal_quoted_trade_in_price: customer.proposal_quoted_trade_in_price?.toString() || '',
-    proposal_low_loan_surcharge: customer.proposal_low_loan_surcharge?.toString() || '',
-    proposal_no_loan_surcharge: customer.proposal_no_loan_surcharge?.toString() || '',
-    proposal_benefit1: customer.proposal_benefit1 || '',
-    proposal_benefit2: customer.proposal_benefit2 || '',
-    proposal_benefit3: customer.proposal_benefit3 || '',
-    proposal_benefit4: customer.proposal_benefit4 || '',
-    proposal_benefit5: customer.proposal_benefit5 || '',
-    proposal_benefit6: customer.proposal_benefit6 || '',
-    proposal_benefit7: customer.proposal_benefit7 || '',
-    proposal_benefit8: customer.proposal_benefit8 || '',
-    proposal_benefit9: customer.proposal_benefit9 || '',
-    proposal_benefits_given: customer.proposal_benefits_given || '',
-    proposal_remarks: customer.proposal_remarks || '',
-  });
+    proposal_model: customer.proposal_model ?? '',
+    proposal_variant: customer.proposal_variant ?? '',
+    proposal_color: customer.proposal_color ?? '',
+    proposal_bank: customer.proposal_bank ?? '',
+    proposal_selling_price: customer.proposal_selling_price?.toString() ?? '',
+    proposal_loan_amount: customer.proposal_loan_amount?.toString() ?? '',
+    proposal_interest_rate: customer.proposal_interest_rate?.toString() ?? '',
+    proposal_loan_tenure: customer.proposal_loan_tenure?.toString() ?? '',
+    proposal_downpayment: customer.proposal_downpayment?.toString() ?? '',
+    proposal_admin_fee: customer.proposal_admin_fee?.toString() ?? '',
+    proposal_referral_fee: customer.proposal_referral_fee?.toString() ?? '',
+    proposal_trade_in_model: customer.proposal_trade_in_model ?? '',
+    proposal_trade_in_car_plate: customer.proposal_trade_in_car_plate ?? '',
+    proposal_quoted_trade_in_price: customer.proposal_quoted_trade_in_price?.toString() ?? '',
+    proposal_low_loan_surcharge: customer.proposal_low_loan_surcharge?.toString() ?? '',
+    proposal_no_loan_surcharge: customer.proposal_no_loan_surcharge?.toString() ?? '',
+    proposal_benefit1: customer.proposal_benefit1 ?? '',
+    proposal_benefit2: customer.proposal_benefit2 ?? '',
+    proposal_benefit3: customer.proposal_benefit3 ?? '',
+    proposal_benefit4: customer.proposal_benefit4 ?? '',
+    proposal_benefit5: customer.proposal_benefit5 ?? '',
+    proposal_benefit6: customer.proposal_benefit6 ?? '',
+    proposal_benefit7: customer.proposal_benefit7 ?? '',
+    proposal_benefit8: customer.proposal_benefit8 ?? '',
+    proposal_benefit9: customer.proposal_benefit9 ?? '',
+    proposal_benefits_given: customer.proposal_benefits_given ?? '',
+    proposal_remarks: customer.proposal_remarks ?? '',
+  })
 
   useEffect(() => {
     setFormData({
-      proposal_model: customer.proposal_model || '',
-      proposal_variant: customer.proposal_variant || '',
-      proposal_color: customer.proposal_color || '',
-      proposal_bank: customer.proposal_bank || '',
-      proposal_selling_price: customer.proposal_selling_price?.toString() || '',
-      proposal_loan_amount: customer.proposal_loan_amount?.toString() || '',
-      proposal_interest_rate: customer.proposal_interest_rate?.toString() || '',
-      proposal_loan_tenure: customer.proposal_loan_tenure?.toString() || '',
-      proposal_downpayment: customer.proposal_downpayment?.toString() || '',
-      proposal_admin_fee: customer.proposal_admin_fee?.toString() || '',
-      proposal_referral_fee: customer.proposal_referral_fee?.toString() || '',
-      proposal_trade_in_model: customer.proposal_trade_in_model || '',
-      proposal_trade_in_car_plate: customer.proposal_trade_in_car_plate || '',
-      proposal_quoted_trade_in_price: customer.proposal_quoted_trade_in_price?.toString() || '',
-      proposal_low_loan_surcharge: customer.proposal_low_loan_surcharge?.toString() || '',
-      proposal_no_loan_surcharge: customer.proposal_no_loan_surcharge?.toString() || '',
-      proposal_benefit1: customer.proposal_benefit1 || '',
-      proposal_benefit2: customer.proposal_benefit2 || '',
-      proposal_benefit3: customer.proposal_benefit3 || '',
-      proposal_benefit4: customer.proposal_benefit4 || '',
-      proposal_benefit5: customer.proposal_benefit5 || '',
-      proposal_benefit6: customer.proposal_benefit6 || '',
-      proposal_benefit7: customer.proposal_benefit7 || '',
-      proposal_benefit8: customer.proposal_benefit8 || '',
-      proposal_benefit9: customer.proposal_benefit9 || '',
-      proposal_benefits_given: customer.proposal_benefits_given || '',
-      proposal_remarks: customer.proposal_remarks || '',
-    });
-  }, [customer]);
+      proposal_model: customer.proposal_model ?? '',
+      proposal_variant: customer.proposal_variant ?? '',
+      proposal_color: customer.proposal_color ?? '',
+      proposal_bank: customer.proposal_bank ?? '',
+      proposal_selling_price: customer.proposal_selling_price?.toString() ?? '',
+      proposal_loan_amount: customer.proposal_loan_amount?.toString() ?? '',
+      proposal_interest_rate: customer.proposal_interest_rate?.toString() ?? '',
+      proposal_loan_tenure: customer.proposal_loan_tenure?.toString() ?? '',
+      proposal_downpayment: customer.proposal_downpayment?.toString() ?? '',
+      proposal_admin_fee: customer.proposal_admin_fee?.toString() ?? '',
+      proposal_referral_fee: customer.proposal_referral_fee?.toString() ?? '',
+      proposal_trade_in_model: customer.proposal_trade_in_model ?? '',
+      proposal_trade_in_car_plate: customer.proposal_trade_in_car_plate ?? '',
+      proposal_quoted_trade_in_price: customer.proposal_quoted_trade_in_price?.toString() ?? '',
+      proposal_low_loan_surcharge: customer.proposal_low_loan_surcharge?.toString() ?? '',
+      proposal_no_loan_surcharge: customer.proposal_no_loan_surcharge?.toString() ?? '',
+      proposal_benefit1: customer.proposal_benefit1 ?? '',
+      proposal_benefit2: customer.proposal_benefit2 ?? '',
+      proposal_benefit3: customer.proposal_benefit3 ?? '',
+      proposal_benefit4: customer.proposal_benefit4 ?? '',
+      proposal_benefit5: customer.proposal_benefit5 ?? '',
+      proposal_benefit6: customer.proposal_benefit6 ?? '',
+      proposal_benefit7: customer.proposal_benefit7 ?? '',
+      proposal_benefit8: customer.proposal_benefit8 ?? '',
+      proposal_benefit9: customer.proposal_benefit9 ?? '',
+      proposal_benefits_given: customer.proposal_benefits_given ?? '',
+      proposal_remarks: customer.proposal_remarks ?? '',
+    })
+  }, [customer])
 
   // Count selected benefits
   const selectedBenefitsCount = useMemo(() => {
@@ -91,84 +87,104 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
       formData.proposal_benefit7,
       formData.proposal_benefit8,
       formData.proposal_benefit9,
-    ].filter(Boolean).length;
-  }, [formData]);
+    ].filter(Boolean).length
+  }, [formData])
 
   // Check if has trade-in
-  const hasTradeIn = Boolean(formData.proposal_trade_in_model || formData.proposal_trade_in_car_plate);
+  const hasTradeIn = Boolean(
+    formData.proposal_trade_in_model || formData.proposal_trade_in_car_plate
+  )
 
   // Auto-calculate loan amount when selling price or downpayment changes
   useEffect(() => {
-    if (loanAmountManuallyEdited.current) return;
+    if (loanAmountManuallyEdited.current) return
 
-    const sellingPrice = parseFloat(formData.proposal_selling_price) || 0;
-    const downpayment = parseFloat(formData.proposal_downpayment) || 0;
+    const sellingPrice = parseFloat(formData.proposal_selling_price) ?? 0
+    const downpayment = parseFloat(formData.proposal_downpayment) ?? 0
 
     if (sellingPrice > 0 && downpayment >= 0) {
-      const calculatedLoanAmount = sellingPrice - downpayment;
+      const calculatedLoanAmount = sellingPrice - downpayment
       if (calculatedLoanAmount >= 0) {
         setFormData((prev) => ({
           ...prev,
           proposal_loan_amount: calculatedLoanAmount.toString(),
-        }));
+        }))
       }
     }
-  }, [formData.proposal_selling_price, formData.proposal_downpayment]);
+  }, [formData.proposal_selling_price, formData.proposal_downpayment])
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
+    const { name, value } = e.target
 
     if (name === 'proposal_loan_amount') {
-      loanAmountManuallyEdited.current = true;
+      loanAmountManuallyEdited.current = true
     }
     if (name === 'proposal_selling_price' || name === 'proposal_downpayment') {
-      loanAmountManuallyEdited.current = false;
+      loanAmountManuallyEdited.current = false
     }
 
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
 
   const handleSave = () => {
     const updates: CustomerUpdate = {
-      proposal_model: formData.proposal_model || null,
-      proposal_variant: formData.proposal_variant || null,
-      proposal_color: formData.proposal_color || null,
-      proposal_bank: formData.proposal_bank || null,
-      proposal_selling_price: formData.proposal_selling_price ? Number(formData.proposal_selling_price) : null,
-      proposal_loan_amount: formData.proposal_loan_amount ? Number(formData.proposal_loan_amount) : null,
-      proposal_interest_rate: formData.proposal_interest_rate ? Number(formData.proposal_interest_rate) : null,
-      proposal_loan_tenure: formData.proposal_loan_tenure ? Number(formData.proposal_loan_tenure) : null,
-      proposal_downpayment: formData.proposal_downpayment ? Number(formData.proposal_downpayment) : null,
+      proposal_model: formData.proposal_model ?? null,
+      proposal_variant: formData.proposal_variant ?? null,
+      proposal_color: formData.proposal_color ?? null,
+      proposal_bank: formData.proposal_bank ?? null,
+      proposal_selling_price: formData.proposal_selling_price
+        ? Number(formData.proposal_selling_price)
+        : null,
+      proposal_loan_amount: formData.proposal_loan_amount
+        ? Number(formData.proposal_loan_amount)
+        : null,
+      proposal_interest_rate: formData.proposal_interest_rate
+        ? Number(formData.proposal_interest_rate)
+        : null,
+      proposal_loan_tenure: formData.proposal_loan_tenure
+        ? Number(formData.proposal_loan_tenure)
+        : null,
+      proposal_downpayment: formData.proposal_downpayment
+        ? Number(formData.proposal_downpayment)
+        : null,
       proposal_admin_fee: formData.proposal_admin_fee ? Number(formData.proposal_admin_fee) : null,
-      proposal_referral_fee: formData.proposal_referral_fee ? Number(formData.proposal_referral_fee) : null,
-      proposal_trade_in_model: formData.proposal_trade_in_model || null,
-      proposal_trade_in_car_plate: formData.proposal_trade_in_car_plate || null,
-      proposal_quoted_trade_in_price: formData.proposal_quoted_trade_in_price ? Number(formData.proposal_quoted_trade_in_price) : null,
-      proposal_low_loan_surcharge: formData.proposal_low_loan_surcharge ? Number(formData.proposal_low_loan_surcharge) : null,
-      proposal_no_loan_surcharge: formData.proposal_no_loan_surcharge ? Number(formData.proposal_no_loan_surcharge) : null,
-      proposal_benefit1: formData.proposal_benefit1 || null,
-      proposal_benefit2: formData.proposal_benefit2 || null,
-      proposal_benefit3: formData.proposal_benefit3 || null,
-      proposal_benefit4: formData.proposal_benefit4 || null,
-      proposal_benefit5: formData.proposal_benefit5 || null,
-      proposal_benefit6: formData.proposal_benefit6 || null,
-      proposal_benefit7: formData.proposal_benefit7 || null,
-      proposal_benefit8: formData.proposal_benefit8 || null,
-      proposal_benefit9: formData.proposal_benefit9 || null,
-      proposal_benefits_given: formData.proposal_benefits_given || null,
-      proposal_remarks: formData.proposal_remarks || null,
-    };
+      proposal_referral_fee: formData.proposal_referral_fee
+        ? Number(formData.proposal_referral_fee)
+        : null,
+      proposal_trade_in_model: formData.proposal_trade_in_model ?? null,
+      proposal_trade_in_car_plate: formData.proposal_trade_in_car_plate ?? null,
+      proposal_quoted_trade_in_price: formData.proposal_quoted_trade_in_price
+        ? Number(formData.proposal_quoted_trade_in_price)
+        : null,
+      proposal_low_loan_surcharge: formData.proposal_low_loan_surcharge
+        ? Number(formData.proposal_low_loan_surcharge)
+        : null,
+      proposal_no_loan_surcharge: formData.proposal_no_loan_surcharge
+        ? Number(formData.proposal_no_loan_surcharge)
+        : null,
+      proposal_benefit1: formData.proposal_benefit1 ?? null,
+      proposal_benefit2: formData.proposal_benefit2 ?? null,
+      proposal_benefit3: formData.proposal_benefit3 ?? null,
+      proposal_benefit4: formData.proposal_benefit4 ?? null,
+      proposal_benefit5: formData.proposal_benefit5 ?? null,
+      proposal_benefit6: formData.proposal_benefit6 ?? null,
+      proposal_benefit7: formData.proposal_benefit7 ?? null,
+      proposal_benefit8: formData.proposal_benefit8 ?? null,
+      proposal_benefit9: formData.proposal_benefit9 ?? null,
+      proposal_benefits_given: formData.proposal_benefits_given ?? null,
+      proposal_remarks: formData.proposal_remarks ?? null,
+    }
     startTransition(async () => {
       try {
-        await onUpdate(customer.id, updates);
-        success('Proposal saved');
+        await onUpdate(customer.id, updates)
+        success('Proposal saved')
       } catch (_err) {
-        toastError('Failed to save proposal');
+        toastError('Failed to save proposal')
       }
-    });
-  };
+    })
+  }
 
   return (
     <div className="proposal-tab">
@@ -193,7 +209,9 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
               {VEHICLE_MODELS_GROUPED.map((group) => (
                 <optgroup key={group.group} label={group.group}>
                   {group.models.map((model) => (
-                    <option key={model} value={model}>{model}</option>
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
                   ))}
                 </optgroup>
               ))}
@@ -233,7 +251,9 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
             >
               <option value="">Select Bank</option>
               {BANKS.map((bank) => (
-                <option key={bank} value={bank}>{bank}</option>
+                <option key={bank} value={bank}>
+                  {bank}
+                </option>
               ))}
             </select>
           </div>
@@ -398,7 +418,7 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
               <select
                 name={`proposal_benefit${num}`}
                 aria-label={`Benefit ${num}`}
-                value={formData[`proposal_benefit${num}` as keyof typeof formData] || ''}
+                value={formData[`proposal_benefit${num}` as keyof typeof formData] ?? ''}
                 onChange={handleChange}
                 className="form-select"
               >
@@ -406,7 +426,9 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
                 {BENEFITS_GROUPED.map((group) => (
                   <optgroup key={group.group} label={group.group}>
                     {group.benefits.map((benefit) => (
-                      <option key={benefit} value={benefit}>{benefit}</option>
+                      <option key={benefit} value={benefit}>
+                        {benefit}
+                      </option>
                     ))}
                   </optgroup>
                 ))}
@@ -455,5 +477,5 @@ export function ProposalTab({ customer, onUpdate }: ProposalTabProps) {
         </Button>
       </div>
     </div>
-  );
+  )
 }

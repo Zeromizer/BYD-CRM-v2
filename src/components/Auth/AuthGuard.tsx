@@ -1,21 +1,21 @@
-import { useEffect, type ReactNode } from 'react';
-import { CircleNotch } from '@phosphor-icons/react';
-import { useAuthStore, useIsAuthenticated, useAuthInitialized } from '@/stores';
-import { AuthPage } from './AuthPage';
-import './Auth.css';
+import { useEffect, type ReactNode } from 'react'
+import { CircleNotch } from '@phosphor-icons/react'
+import { useAuthStore, useIsAuthenticated, useAuthInitialized } from '@/stores'
+import { AuthPage } from './AuthPage'
+import './Auth.css'
 
 interface AuthGuardProps {
-  children: ReactNode;
+  children: ReactNode
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const initialize = useAuthStore((state) => state.initialize);
-  const isAuthenticated = useIsAuthenticated();
-  const isInitialized = useAuthInitialized();
+  const initialize = useAuthStore((state) => state.initialize)
+  const isAuthenticated = useIsAuthenticated()
+  const isInitialized = useAuthInitialized()
 
   useEffect(() => {
-    initialize();
-  }, [initialize]);
+    void initialize()
+  }, [initialize])
 
   if (!isInitialized) {
     return (
@@ -23,12 +23,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
         <CircleNotch size={48} className="spinner large" />
         <p>Loading...</p>
       </div>
-    );
+    )
   }
 
   if (!isAuthenticated) {
-    return <AuthPage />;
+    return <AuthPage />
   }
 
-  return <>{children}</>;
+  return <>{children}</>
 }

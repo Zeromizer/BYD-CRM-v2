@@ -1,48 +1,59 @@
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { House, File, FileXls, CheckSquare, Moon, Sun, Snowflake, SignOut, X, List } from '@phosphor-icons/react';
-import { useAuthStore, useProfile, useTodoStore } from '@/stores';
-import './Layout.css';
+import { useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import {
+  House,
+  File,
+  FileXls,
+  CheckSquare,
+  Moon,
+  Sun,
+  Snowflake,
+  SignOut,
+  X,
+  List,
+} from '@phosphor-icons/react'
+import { useAuthStore, useProfile, useTodoStore } from '@/stores'
+import './Layout.css'
 
 const NAV_ICONS = {
   '/': House,
   '/documents': File,
   '/excel': FileXls,
-};
+}
 
-type Theme = 'light' | 'dark' | 'cool';
+type Theme = 'light' | 'dark' | 'cool'
 
 interface HeaderProps {
-  theme: Theme;
-  onSetTheme: (theme: Theme) => void;
+  theme: Theme
+  onSetTheme: (theme: Theme) => void
 }
 
 const THEME_CONFIG = {
   light: { icon: Sun, label: 'Light', next: 'Dark Mode' },
   dark: { icon: Moon, label: 'Dark', next: 'Cool Mode' },
   cool: { icon: Snowflake, label: 'Cool', next: 'Light Mode' },
-} as const;
+} as const
 
 export function Header({ theme, onSetTheme }: HeaderProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
-  const location = useLocation();
-  const profile = useProfile();
-  const signOut = useAuthStore((state) => state.signOut);
-  const toggleTodoSidebar = useTodoStore((state) => state.toggleSidebar);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false)
+  const location = useLocation()
+  const profile = useProfile()
+  const signOut = useAuthStore((state) => state.signOut)
+  const toggleTodoSidebar = useTodoStore((state) => state.toggleSidebar)
 
   const navItems = [
     { path: '/' as const, label: 'Dashboard' },
     { path: '/documents' as const, label: 'Documents' },
     { path: '/excel' as const, label: 'Excel' },
-  ];
+  ]
 
   const handleSignOut = async () => {
-    await signOut();
-  };
+    await signOut()
+  }
 
-  const ThemeIcon = THEME_CONFIG[theme].icon;
+  const ThemeIcon = THEME_CONFIG[theme].icon
 
   return (
     <header className="header">
@@ -55,7 +66,7 @@ export function Header({ theme, onSetTheme }: HeaderProps) {
         {/* Desktop Navigation */}
         <nav className="header-nav desktop-only">
           {navItems.map((item) => {
-            const Icon = NAV_ICONS[item.path];
+            const Icon = NAV_ICONS[item.path]
             return (
               <Link
                 key={item.path}
@@ -65,18 +76,14 @@ export function Header({ theme, onSetTheme }: HeaderProps) {
                 <Icon size={18} className="nav-icon" />
                 <span>{item.label}</span>
               </Link>
-            );
+            )
           })}
         </nav>
 
         {/* Right Actions */}
         <div className="header-actions">
           {/* Todo Toggle */}
-          <button
-            onClick={toggleTodoSidebar}
-            className="header-icon-button"
-            title="Toggle Tasks"
-          >
+          <button onClick={toggleTodoSidebar} className="header-icon-button" title="Toggle Tasks">
             <CheckSquare size={20} />
           </button>
 
@@ -96,21 +103,21 @@ export function Header({ theme, onSetTheme }: HeaderProps) {
                 <div className="theme-menu">
                   <div className="theme-menu-title">Theme</div>
                   {(Object.keys(THEME_CONFIG) as Theme[]).map((t) => {
-                    const config = THEME_CONFIG[t];
-                    const Icon = config.icon;
+                    const config = THEME_CONFIG[t]
+                    const Icon = config.icon
                     return (
                       <button
                         key={t}
                         onClick={() => {
-                          onSetTheme(t);
-                          setThemeMenuOpen(false);
+                          onSetTheme(t)
+                          setThemeMenuOpen(false)
                         }}
                         className={`theme-menu-item ${theme === t ? 'active' : ''}`}
                       >
                         <Icon size={18} />
                         <span>{config.label}</span>
                       </button>
-                    );
+                    )
                   })}
                 </div>
               </>
@@ -119,16 +126,9 @@ export function Header({ theme, onSetTheme }: HeaderProps) {
 
           {/* User Menu */}
           <div className="user-menu-container">
-            <button
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="user-menu-trigger"
-            >
-              <div className="user-avatar">
-                {profile?.display_name?.[0]?.toUpperCase() || 'U'}
-              </div>
-              <span className="user-name desktop-only">
-                {profile?.display_name || 'User'}
-              </span>
+            <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="user-menu-trigger">
+              <div className="user-avatar">{profile?.display_name?.[0]?.toUpperCase() || 'U'}</div>
+              <span className="user-name desktop-only">{profile?.display_name || 'User'}</span>
             </button>
 
             {userMenuOpen && (
@@ -163,7 +163,7 @@ export function Header({ theme, onSetTheme }: HeaderProps) {
       {mobileMenuOpen && (
         <nav className="mobile-nav">
           {navItems.map((item) => {
-            const Icon = NAV_ICONS[item.path];
+            const Icon = NAV_ICONS[item.path]
             return (
               <Link
                 key={item.path}
@@ -174,10 +174,10 @@ export function Header({ theme, onSetTheme }: HeaderProps) {
                 <Icon size={18} className="nav-icon" />
                 <span>{item.label}</span>
               </Link>
-            );
+            )
           })}
         </nav>
       )}
     </header>
-  );
+  )
 }

@@ -1,44 +1,44 @@
-import { useState } from 'react';
-import { User, Envelope, Lock, Eye, EyeSlash, CircleNotch } from '@phosphor-icons/react';
-import { useAuthStore } from '@/stores';
-import './Auth.css';
+import { useState } from 'react'
+import { User, Envelope, Lock, Eye, EyeSlash, CircleNotch } from '@phosphor-icons/react'
+import { useAuthStore } from '@/stores'
+import './Auth.css'
 
 interface SignupFormProps {
-  onSwitchToLogin: () => void;
+  onSwitchToLogin: () => void
 }
 
 export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [localError, setLocalError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const { signUp, isLoading, error, clearError } = useAuthStore();
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [localError, setLocalError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+  const { signUp, isLoading, error, clearError } = useAuthStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    clearError();
-    setLocalError(null);
+    e.preventDefault()
+    clearError()
+    setLocalError(null)
 
     if (password !== confirmPassword) {
-      setLocalError('Passwords do not match');
-      return;
+      setLocalError('Passwords do not match')
+      return
     }
 
     if (password.length < 6) {
-      setLocalError('Password must be at least 6 characters');
-      return;
+      setLocalError('Password must be at least 6 characters')
+      return
     }
 
     try {
-      await signUp({ email, password, displayName });
-      setSuccess(true);
+      await signUp({ email, password, displayName })
+      setSuccess(true)
     } catch {
       // Error is handled by the store
     }
-  };
+  }
 
   if (success) {
     return (
@@ -60,7 +60,7 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -72,14 +72,12 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
-          {(error || localError) && (
-            <div className="auth-error">
-              {error || localError}
-            </div>
-          )}
+          {(error ?? localError) && <div className="auth-error">{error ?? localError}</div>}
 
           <div className="form-group">
-            <label htmlFor="displayName" className="form-label">Name</label>
+            <label htmlFor="displayName" className="form-label">
+              Name
+            </label>
             <div className="input-wrapper">
               <User size={18} className="input-icon" />
               <input
@@ -95,7 +93,9 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
           </div>
 
           <div className="form-group">
-            <label htmlFor="email" className="form-label">Email</label>
+            <label htmlFor="email" className="form-label">
+              Email
+            </label>
             <div className="input-wrapper">
               <Envelope size={18} className="input-icon" />
               <input
@@ -112,7 +112,9 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password" className="form-label">Password</label>
+            <label htmlFor="password" className="form-label">
+              Password
+            </label>
             <div className="input-wrapper">
               <Lock size={18} className="input-icon" />
               <input
@@ -136,7 +138,9 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
           </div>
 
           <div className="form-group">
-            <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
+            <label htmlFor="confirmPassword" className="form-label">
+              Confirm Password
+            </label>
             <div className="input-wrapper">
               <Lock size={18} className="input-icon" />
               <input
@@ -152,11 +156,7 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="auth-button"
-          >
+          <button type="submit" disabled={isLoading} className="auth-button">
             {isLoading ? (
               <>
                 <CircleNotch size={18} className="spinner" />
@@ -178,5 +178,5 @@ export function SignupForm({ onSwitchToLogin }: SignupFormProps) {
         </div>
       </div>
     </div>
-  );
+  )
 }

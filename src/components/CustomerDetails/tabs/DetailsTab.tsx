@@ -1,4 +1,4 @@
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition } from 'react'
 import {
   Phone,
   Envelope,
@@ -13,137 +13,141 @@ import {
   Users,
   Note,
   IdentificationCard,
-} from '@phosphor-icons/react';
-import { Button, useToast, CollapsibleSection } from '@/components/common';
-import { useCustomerStore } from '@/stores/useCustomerStore';
-import type { Customer, Guarantor, CustomerUpdate } from '@/types';
+} from '@phosphor-icons/react'
+import { Button, useToast, CollapsibleSection } from '@/components/common'
+import { useCustomerStore } from '@/stores/useCustomerStore'
+import type { Customer, Guarantor, CustomerUpdate } from '@/types'
 
 interface DetailsTabProps {
-  customer: Customer;
-  onUpdate: (id: number, updates: CustomerUpdate) => Promise<void>;
+  customer: Customer
+  onUpdate: (id: number, updates: CustomerUpdate) => Promise<void>
 }
 
 export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
-  const { fetchGuarantors, saveGuarantors } = useCustomerStore();
-  const { success, error: toastError } = useToast();
-  const [isPending, startTransition] = useTransition();
-  const [guarantors, setGuarantors] = useState<Partial<Guarantor>[]>([]);
+  const { fetchGuarantors, saveGuarantors } = useCustomerStore()
+  const { success, error: toastError } = useToast()
+  const [isPending, startTransition] = useTransition()
+  const [guarantors, setGuarantors] = useState<Partial<Guarantor>[]>([])
   const [formData, setFormData] = useState({
-    phone: customer.phone || '',
-    email: customer.email || '',
-    nric: customer.nric || '',
-    occupation: customer.occupation || '',
-    dob: customer.dob || '',
-    license_start_date: customer.license_start_date || '',
-    address: customer.address || '',
-    address_continue: customer.address_continue || '',
-    sales_consultant: customer.sales_consultant || '',
-    vsa_no: customer.vsa_no || '',
-    notes: customer.notes || '',
-  });
+    phone: customer.phone ?? '',
+    email: customer.email ?? '',
+    nric: customer.nric ?? '',
+    occupation: customer.occupation ?? '',
+    dob: customer.dob ?? '',
+    license_start_date: customer.license_start_date ?? '',
+    address: customer.address ?? '',
+    address_continue: customer.address_continue ?? '',
+    sales_consultant: customer.sales_consultant ?? '',
+    vsa_no: customer.vsa_no ?? '',
+    notes: customer.notes ?? '',
+  })
 
   useEffect(() => {
-    loadGuarantors();
-  }, [customer.id]);
+    void loadGuarantors()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customer.id])
 
   useEffect(() => {
     setFormData({
-      phone: customer.phone || '',
-      email: customer.email || '',
-      nric: customer.nric || '',
-      occupation: customer.occupation || '',
-      dob: customer.dob || '',
-      license_start_date: customer.license_start_date || '',
-      address: customer.address || '',
-      address_continue: customer.address_continue || '',
-      sales_consultant: customer.sales_consultant || '',
-      vsa_no: customer.vsa_no || '',
-      notes: customer.notes || '',
-    });
-  }, [customer]);
+      phone: customer.phone ?? '',
+      email: customer.email ?? '',
+      nric: customer.nric ?? '',
+      occupation: customer.occupation ?? '',
+      dob: customer.dob ?? '',
+      license_start_date: customer.license_start_date ?? '',
+      address: customer.address ?? '',
+      address_continue: customer.address_continue ?? '',
+      sales_consultant: customer.sales_consultant ?? '',
+      vsa_no: customer.vsa_no ?? '',
+      notes: customer.notes ?? '',
+    })
+  }, [customer])
 
   // Pre-fill DOB with 30 years ago if empty (for easier date selection)
   useEffect(() => {
     if (!formData.dob && !customer.dob) {
-      const defaultYear = new Date().getFullYear() - 30;
-      setFormData((prev) => ({ ...prev, dob: `${defaultYear}-01-01` }));
+      const defaultYear = new Date().getFullYear() - 30
+      setFormData((prev) => ({ ...prev, dob: `${defaultYear}-01-01` }))
     }
-  }, [customer.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customer.id])
 
   // Load last used Sales Consultant from localStorage if field is empty
   useEffect(() => {
     if (!formData.sales_consultant && !customer.sales_consultant) {
-      const lastConsultant = localStorage.getItem('lastSalesConsultant');
+      const lastConsultant = localStorage.getItem('lastSalesConsultant')
       if (lastConsultant) {
-        setFormData((prev) => ({ ...prev, sales_consultant: lastConsultant }));
+        setFormData((prev) => ({ ...prev, sales_consultant: lastConsultant }))
       }
     }
-  }, [customer.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customer.id])
 
   const loadGuarantors = async () => {
-    const data = await fetchGuarantors(customer.id);
-    setGuarantors(data.length > 0 ? data : []);
-  };
+    const data = await fetchGuarantors(customer.id)
+    setGuarantors(data.length > 0 ? data : [])
+  }
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
 
   const handleSave = () => {
     const updates: CustomerUpdate = {
       ...formData,
-      dob: formData.dob || null,
-      license_start_date: formData.license_start_date || null,
-    };
+      dob: formData.dob ?? null,
+      license_start_date: formData.license_start_date ?? null,
+    }
     startTransition(async () => {
       try {
         if (formData.sales_consultant) {
-          localStorage.setItem('lastSalesConsultant', formData.sales_consultant);
+          localStorage.setItem('lastSalesConsultant', formData.sales_consultant)
         }
-        await onUpdate(customer.id, updates);
-        success('Customer details saved');
+        await onUpdate(customer.id, updates)
+        success('Customer details saved')
       } catch (_err) {
-        toastError('Failed to save customer details');
+        toastError('Failed to save customer details')
       }
-    });
-  };
+    })
+  }
 
-  const handleGuarantorChange = (
-    index: number,
-    field: string,
-    value: string
-  ) => {
-    setGuarantors((prev) =>
-      prev.map((g, i) => (i === index ? { ...g, [field]: value } : g))
-    );
-  };
+  const handleGuarantorChange = (index: number, field: string, value: string) => {
+    setGuarantors((prev) => prev.map((g, i) => (i === index ? { ...g, [field]: value } : g)))
+  }
 
   const addGuarantor = () => {
     if (guarantors.length < 5) {
       setGuarantors((prev) => [
         ...prev,
-        { name: '', phone: '', email: '', nric: '', occupation: '', dob: '', address: '', address_continue: '' },
-      ]);
+        {
+          name: '',
+          phone: '',
+          email: '',
+          nric: '',
+          occupation: '',
+          dob: '',
+          address: '',
+          address_continue: '',
+        },
+      ])
     }
-  };
+  }
 
   const removeGuarantor = (index: number) => {
-    setGuarantors((prev) => prev.filter((_, i) => i !== index));
-  };
+    setGuarantors((prev) => prev.filter((_, i) => i !== index))
+  }
 
   const handleSaveGuarantors = () => {
     startTransition(async () => {
       try {
-        await saveGuarantors(customer.id, guarantors);
-        success('Guarantors saved');
+        await saveGuarantors(customer.id, guarantors)
+        success('Guarantors saved')
       } catch (_err) {
-        toastError('Failed to save guarantors');
+        toastError('Failed to save guarantors')
       }
-    });
-  };
+    })
+  }
 
   return (
     <div className="details-tab">
@@ -380,9 +384,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
             {guarantors.map((guarantor, index) => (
               <div key={index} className="guarantor-card">
                 <div className="guarantor-header">
-                  <span className="guarantor-number">
-                    Guarantor {index + 1}
-                  </span>
+                  <span className="guarantor-number">Guarantor {index + 1}</span>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -398,10 +400,8 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
                     <label className="form-label">Name</label>
                     <input
                       type="text"
-                      value={guarantor.name || ''}
-                      onChange={(e) =>
-                        handleGuarantorChange(index, 'name', e.target.value)
-                      }
+                      value={guarantor.name ?? ''}
+                      onChange={(e) => handleGuarantorChange(index, 'name', e.target.value)}
                       placeholder="Full name"
                       className="form-input"
                     />
@@ -411,10 +411,8 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
                     <label className="form-label">Phone</label>
                     <input
                       type="tel"
-                      value={guarantor.phone || ''}
-                      onChange={(e) =>
-                        handleGuarantorChange(index, 'phone', e.target.value)
-                      }
+                      value={guarantor.phone ?? ''}
+                      onChange={(e) => handleGuarantorChange(index, 'phone', e.target.value)}
                       placeholder="+65 9123 4567"
                       className="form-input"
                     />
@@ -424,10 +422,8 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
                     <label className="form-label">Email</label>
                     <input
                       type="email"
-                      value={guarantor.email || ''}
-                      onChange={(e) =>
-                        handleGuarantorChange(index, 'email', e.target.value)
-                      }
+                      value={guarantor.email ?? ''}
+                      onChange={(e) => handleGuarantorChange(index, 'email', e.target.value)}
                       placeholder="email@example.com"
                       className="form-input"
                     />
@@ -437,10 +433,8 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
                     <label className="form-label">NRIC/FIN</label>
                     <input
                       type="text"
-                      value={guarantor.nric || ''}
-                      onChange={(e) =>
-                        handleGuarantorChange(index, 'nric', e.target.value)
-                      }
+                      value={guarantor.nric ?? ''}
+                      onChange={(e) => handleGuarantorChange(index, 'nric', e.target.value)}
                       placeholder="S1234567A"
                       className="form-input data-input"
                     />
@@ -450,10 +444,8 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
                     <label className="form-label">Occupation</label>
                     <input
                       type="text"
-                      value={guarantor.occupation || ''}
-                      onChange={(e) =>
-                        handleGuarantorChange(index, 'occupation', e.target.value)
-                      }
+                      value={guarantor.occupation ?? ''}
+                      onChange={(e) => handleGuarantorChange(index, 'occupation', e.target.value)}
                       placeholder="Occupation"
                       className="form-input"
                     />
@@ -463,10 +455,8 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
                     <label className="form-label">Date of Birth</label>
                     <input
                       type="date"
-                      value={guarantor.dob || ''}
-                      onChange={(e) =>
-                        handleGuarantorChange(index, 'dob', e.target.value)
-                      }
+                      value={guarantor.dob ?? ''}
+                      onChange={(e) => handleGuarantorChange(index, 'dob', e.target.value)}
                       className="form-input"
                     />
                   </div>
@@ -475,10 +465,8 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
                     <label className="form-label">Address</label>
                     <input
                       type="text"
-                      value={guarantor.address || ''}
-                      onChange={(e) =>
-                        handleGuarantorChange(index, 'address', e.target.value)
-                      }
+                      value={guarantor.address ?? ''}
+                      onChange={(e) => handleGuarantorChange(index, 'address', e.target.value)}
                       placeholder="Address"
                       className="form-input"
                     />
@@ -488,7 +476,7 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
                     <label className="form-label">Address (continued)</label>
                     <input
                       type="text"
-                      value={guarantor.address_continue || ''}
+                      value={guarantor.address_continue ?? ''}
                       onChange={(e) =>
                         handleGuarantorChange(index, 'address_continue', e.target.value)
                       }
@@ -512,5 +500,5 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
         )}
       </CollapsibleSection>
     </div>
-  );
+  )
 }

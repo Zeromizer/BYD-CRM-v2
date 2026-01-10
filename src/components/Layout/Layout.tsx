@@ -1,11 +1,11 @@
-import { Outlet } from 'react-router-dom';
-import { Header } from './Header';
-import { TodoSidebar } from './TodoSidebar';
-import { useTheme } from '@/context/ThemeContext';
-import './Layout.css';
+import { Outlet } from 'react-router-dom'
+import { Header } from './Header'
+import { TodoSidebar } from './TodoSidebar'
+import { useTheme } from '@/context/ThemeContext'
+import './Layout.css'
 
 export function Layout() {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme()
 
   return (
     <div className="layout">
@@ -15,5 +15,5 @@ export function Layout() {
       </main>
       <TodoSidebar />
     </div>
-  );
+  )
 }

@@ -39,7 +39,7 @@ export function ProgressSidebar({ customer, isMobile }: ProgressSidebarProps) {
 
   // Fetch todos on mount
   useEffect(() => {
-    fetchTodos()
+    void fetchTodos()
   }, [fetchTodos])
 
   // Close milestone dropdown when clicking outside
@@ -63,7 +63,7 @@ export function ProgressSidebar({ customer, isMobile }: ProgressSidebarProps) {
 
   // Get next steps (uncompleted items from current milestone)
   const nextSteps = useMemo(() => {
-    const items = CHECKLISTS[currentMilestone] || []
+    const items = CHECKLISTS[currentMilestone] ?? []
     return items.filter((item) => !localChecklist[currentMilestone]?.[item.id])
   }, [currentMilestone, localChecklist])
 

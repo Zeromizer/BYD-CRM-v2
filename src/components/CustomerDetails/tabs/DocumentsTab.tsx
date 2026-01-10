@@ -232,8 +232,8 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
       }
     }
 
-    loadDocs()
-    fetchTemplates()
+    void loadDocs()
+    void fetchTemplates()
 
     return () => {
       isCancelled = true
@@ -278,7 +278,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
     }
     // Fallback to document checklist
     if (!documentChecklist) return false
-    const idsToCheck = [docId, ...(alternateIds || [])]
+    const idsToCheck = [docId, ...(alternateIds ?? [])]
     for (const milestone of Object.values(documentChecklist)) {
       if (milestone && typeof milestone === 'object') {
         for (const checkId of idsToCheck) {
@@ -296,8 +296,8 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
     const category = DOCUMENT_CATEGORIES.find((c) => c.id === categoryId)
     if (!category) return { completed: 0, total: 0 }
 
-    const completed = category.documents.filter((doc: any) =>
-      getDocumentStatus(doc.id, doc.alternateIds)
+    const completed = category.documents.filter((doc) =>
+      getDocumentStatus(doc.id, (doc as { alternateIds?: string[] }).alternateIds)
     ).length
     return { completed, total: category.documents.length }
   }
@@ -328,7 +328,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
       // Update local state
       setUploadedDocs((prev) => ({
         ...prev,
-        [docId]: [...(prev[docId] || []), uploadedDoc],
+        [docId]: [...(prev[docId] ?? []), uploadedDoc],
       }))
 
       // Update document checklist in customer record
@@ -337,7 +337,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
       const currentChecklist =
         customer.document_checklist ||
         ({} as Record<MilestoneId, Record<string, DocumentChecklistItem>>)
-      const milestoneChecklist = currentChecklist[milestoneId] || {}
+      const milestoneChecklist = currentChecklist[milestoneId] ?? {}
 
       const updatedChecklist = {
         ...currentChecklist,
@@ -372,7 +372,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
     }
   }
 
-  const handleView = async (docId: string) => {
+  const handleView = (docId: string) => {
     const docs = uploadedDocs[docId]
     if (!docs || docs.length === 0) return
 
@@ -449,7 +449,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
       const currentChecklist =
         customer.document_checklist ||
         ({} as Record<MilestoneId, Record<string, DocumentChecklistItem>>)
-      const milestoneChecklist = currentChecklist[milestoneId] || {}
+      const milestoneChecklist = currentChecklist[milestoneId] ?? {}
       if (milestoneChecklist[docId]) {
         const updatedChecklist = {
           ...currentChecklist,
@@ -523,7 +523,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
     }
   }
 
-  const activeDocuments = DOCUMENT_CATEGORIES.find((c) => c.id === activeCategory)?.documents || []
+  const activeDocuments = DOCUMENT_CATEGORIES.find((c) => c.id === activeCategory)?.documents ?? []
 
   const isImageFile = (mimeType: string): boolean => {
     return mimeType.startsWith('image/')
@@ -547,7 +547,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
     // Fallback to extension check
     if (fileName) {
       const ext = fileName.split('.').pop()?.toLowerCase()
-      return ['xls', 'xlsx', 'xlsm', 'ods'].includes(ext || '')
+      return ['xls', 'xlsx', 'xlsm', 'ods'].includes(ext ?? '')
     }
     return false
   }
@@ -983,9 +983,9 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
             ) : (
               /* Mobile Category View - 2-column grid */
               <div className="mobile-documents-list">
-                {activeDocuments.map((doc: any) => {
+                {activeDocuments.map((doc) => {
                   const isUploaded = getDocumentStatus(doc.id, doc.alternateIds)
-                  let docs = uploadedDocs[doc.id] || []
+                  let docs = uploadedDocs[doc.id] ?? []
                   if (docs.length === 0 && doc.alternateIds) {
                     for (const altId of doc.alternateIds) {
                       if (uploadedDocs[altId] && uploadedDocs[altId].length > 0) {
@@ -1015,7 +1015,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                       onClick={() => {
                         setSelectedDocForAction({
                           docId: doc.id,
-                          doc: docs[0] || null,
+                          doc: docs[0] ?? null,
                           label: doc.label,
                           isUploaded,
                         })
@@ -1066,7 +1066,7 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
                     className="mobile-action-item"
                     onClick={() => {
                       setShowAddDocSheet(false)
-                      handleGenerateDocument()
+                      void handleGenerateDocument()
                     }}
                   >
                     <Export size={20} />
@@ -1452,11 +1452,11 @@ export function DocumentsTab({ customer }: DocumentsTabProps) {
             ) : (
               /* Category View - Card Grid */
               <div className="documents-grid">
-                {activeDocuments.map((doc: any) => {
+                {activeDocuments.map((doc) => {
                   const isUploaded = getDocumentStatus(doc.id, doc.alternateIds)
                   const isUploading = uploadingDocId === doc.id
                   // Get docs from primary ID or alternate IDs
-                  let docs = uploadedDocs[doc.id] || []
+                  let docs = uploadedDocs[doc.id] ?? []
                   if (docs.length === 0 && doc.alternateIds) {
                     for (const altId of doc.alternateIds) {
                       if (uploadedDocs[altId] && uploadedDocs[altId].length > 0) {

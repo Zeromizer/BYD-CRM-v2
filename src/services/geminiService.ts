@@ -4,33 +4,33 @@
  * API key stored in Edge Function Secrets (not client-side)
  */
 
-import { getSupabase } from '@/lib/supabase';
-import { debug } from '@/utils/debug';
+import { getSupabase } from '@/lib/supabase'
+import { debug } from '@/utils/debug'
 
 export interface ExtractedIDData {
-  name: string;
-  nric: string;
-  dob: string;
-  address: string;
-  addressContinue: string;
-  confidence: number;
+  name: string
+  nric: string
+  dob: string
+  address: string
+  addressContinue: string
+  confidence: number
 }
 
 export interface ExtractedLicenseData {
-  licenseStartDate: string;
-  confidence: number;
+  licenseStartDate: string
+  confidence: number
 }
 
 export interface ProcessingProgress {
-  stage: string;
-  progress: number;
+  stage: string
+  progress: number
 }
 
 /**
  * Check if the service is available (user authenticated and online)
  */
 export function isGeminiAvailable(): boolean {
-  return navigator.onLine;
+  return navigator.onLine
 }
 
 /**
@@ -42,23 +42,25 @@ export async function extractIDWithGemini(
   onProgress?: (progress: ProcessingProgress) => void
 ): Promise<ExtractedIDData> {
   if (!navigator.onLine) {
-    throw new Error('No internet connection. Please check your network and try again.');
+    throw new Error('No internet connection. Please check your network and try again.')
   }
 
-  onProgress?.({ stage: 'Analyzing ID with AI...', progress: 10 });
+  onProgress?.({ stage: 'Analyzing ID with AI...', progress: 10 })
 
   // Verify user is authenticated
-  const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const supabase = getSupabase()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
-    throw new Error('Please sign in to use the scanner.');
+    throw new Error('Please sign in to use the scanner.')
   }
 
-  onProgress?.({ stage: 'Processing with AI...', progress: 30 });
+  onProgress?.({ stage: 'Processing with AI...', progress: 30 })
 
-  debug.log('Calling extract-id Edge Function...');
-  debug.log('Front image size:', frontImageData.length, 'chars');
-  debug.log('Back image size:', backImageData?.length || 0, 'chars');
+  debug.log('Calling extract-id Edge Function...')
+  debug.log('Front image size:', frontImageData.length, 'chars')
+  debug.log('Back image size:', backImageData?.length ?? 0, 'chars')
 
   const { data, error } = await supabase.functions.invoke('extract-id', {
     body: {
@@ -66,31 +68,31 @@ export async function extractIDWithGemini(
       frontImage: frontImageData,
       backImage: backImageData,
     },
-  });
+  })
 
-  debug.log('Edge Function response:', { data, error });
+  debug.log('Edge Function response:', { data, error })
 
-  onProgress?.({ stage: 'Parsing results...', progress: 80 });
+  onProgress?.({ stage: 'Parsing results...', progress: 80 })
 
   if (error) {
-    debug.error('Edge Function error details:', error);
-    throw new Error(error.message || 'Failed to process ID. Please try again.');
+    debug.error('Edge Function error details:', error)
+    throw new Error(error.message || 'Failed to process ID. Please try again.')
   }
 
   if (data.error) {
-    throw new Error(data.error);
+    throw new Error(data.error)
   }
 
-  onProgress?.({ stage: 'Complete', progress: 100 });
+  onProgress?.({ stage: 'Complete', progress: 100 })
 
   return {
-    name: data.name || '',
-    nric: data.nric || '',
-    dob: data.dob || '',
-    address: data.address || '',
-    addressContinue: data.addressContinue || '',
-    confidence: data.confidence || 0,
-  };
+    name: data.name ?? '',
+    nric: data.nric ?? '',
+    dob: data.dob ?? '',
+    address: data.address ?? '',
+    addressContinue: data.addressContinue ?? '',
+    confidence: data.confidence ?? 0,
+  }
 }
 
 /**
@@ -101,47 +103,49 @@ export async function extractLicenseWithGemini(
   onProgress?: (progress: ProcessingProgress) => void
 ): Promise<ExtractedLicenseData> {
   if (!navigator.onLine) {
-    throw new Error('No internet connection.');
+    throw new Error('No internet connection.')
   }
 
-  onProgress?.({ stage: 'Analyzing license with AI...', progress: 10 });
+  onProgress?.({ stage: 'Analyzing license with AI...', progress: 10 })
 
-  const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const supabase = getSupabase()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
-    throw new Error('Please sign in to use the scanner.');
+    throw new Error('Please sign in to use the scanner.')
   }
 
-  onProgress?.({ stage: 'Processing license data...', progress: 50 });
+  onProgress?.({ stage: 'Processing license data...', progress: 50 })
 
   const { data, error } = await supabase.functions.invoke('extract-id', {
     body: {
       type: 'license',
       frontImage: licenseFrontImageData,
     },
-  });
+  })
 
   if (error) {
-    debug.error('License extraction error:', error);
-    return { licenseStartDate: '', confidence: 0 };
+    debug.error('License extraction error:', error)
+    return { licenseStartDate: '', confidence: 0 }
   }
 
   if (data.error) {
-    debug.error('License extraction error:', data.error);
-    return { licenseStartDate: '', confidence: 0 };
+    debug.error('License extraction error:', data.error)
+    return { licenseStartDate: '', confidence: 0 }
   }
 
-  onProgress?.({ stage: 'License data extracted', progress: 100 });
+  onProgress?.({ stage: 'License data extracted', progress: 100 })
 
   return {
-    licenseStartDate: data.licenseStartDate || '',
-    confidence: data.confidence || 0,
-  };
+    licenseStartDate: data.licenseStartDate ?? '',
+    confidence: data.confidence ?? 0,
+  }
 }
 
 // Legacy exports for backward compatibility (no longer needed but kept to avoid breaking imports)
 export function loadGeminiApiKey(): Promise<string | null> {
-  return Promise.resolve(null);
+  return Promise.resolve(null)
 }
 
 export function clearGeminiApiKeyCache(): void {

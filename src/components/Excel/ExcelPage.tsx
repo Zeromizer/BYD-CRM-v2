@@ -3,20 +3,26 @@
  * Main page for managing Excel templates with field mappings
  */
 
-import { useState, useEffect, useRef } from 'react';
-import { DownloadSimple, Plus, MagnifyingGlass, FileXls, DotsThreeVertical, Gear, UploadSimple, Trash, X } from '@phosphor-icons/react';
-import { Button, Modal } from '@/components/common';
-import { useToast } from '@/components/common';
-import { useExcelStore } from '@/stores/useExcelStore';
-import { parseExcelFile } from '@/services/excelService';
-import { importTemplatesFromFile } from '@/services/templateImportService';
+import { useState, useEffect, useRef } from 'react'
 import {
-  getFieldTypesByCategory,
-  getFieldLabel,
-  CATEGORY_ORDER,
-} from '@/constants/excelFields';
-import type { ExcelTemplate, ExcelFieldMappings } from '@/types';
-import './ExcelPage.css';
+  DownloadSimple,
+  Plus,
+  MagnifyingGlass,
+  FileXls,
+  DotsThreeVertical,
+  Gear,
+  UploadSimple,
+  Trash,
+  X,
+} from '@phosphor-icons/react'
+import { Button, Modal } from '@/components/common'
+import { useToast } from '@/components/common'
+import { useExcelStore } from '@/stores/useExcelStore'
+import { parseExcelFile } from '@/services/excelService'
+import { importTemplatesFromFile } from '@/services/templateImportService'
+import { getFieldTypesByCategory, getFieldLabel, CATEGORY_ORDER } from '@/constants/excelFields'
+import type { ExcelTemplate, ExcelFieldMappings } from '@/types'
+import './ExcelPage.css'
 
 export function ExcelPage() {
   const {
@@ -32,136 +38,135 @@ export function ExcelPage() {
     downloadExcelFile,
     subscribeToChanges,
     clearError,
-  } = useExcelStore();
+  } = useExcelStore()
 
-  const { success, error: toastError } = useToast();
+  const { success, error: toastError } = useToast()
 
   // UI state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showMappingModal, setShowMappingModal] = useState(false);
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<ExcelTemplate | null>(null);
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showMappingModal, setShowMappingModal] = useState(false)
+  const [showUploadModal, setShowUploadModal] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<ExcelTemplate | null>(null)
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Create template form state
-  const [newTemplateName, setNewTemplateName] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
 
   // Field mapping state
-  const [tempMappings, setTempMappings] = useState<ExcelFieldMappings>({});
-  const [availableSheets, setAvailableSheets] = useState<string[]>([]);
-  const [selectedSheet, setSelectedSheet] = useState('');
-  const [selectedFieldType, setSelectedFieldType] = useState('name');
-  const [cellRef, setCellRef] = useState('');
-  const [customValue, setCustomValue] = useState('');
-  const [fieldSearch, setFieldSearch] = useState('');
-  const [loadingSheets, setLoadingSheets] = useState(false);
+  const [tempMappings, setTempMappings] = useState<ExcelFieldMappings>({})
+  const [availableSheets, setAvailableSheets] = useState<string[]>([])
+  const [selectedSheet, setSelectedSheet] = useState('')
+  const [selectedFieldType, setSelectedFieldType] = useState('name')
+  const [cellRef, setCellRef] = useState('')
+  const [customValue, setCustomValue] = useState('')
+  const [fieldSearch, setFieldSearch] = useState('')
+  const [loadingSheets, setLoadingSheets] = useState(false)
 
   // Upload master file state
-  const [masterFile, setMasterFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [masterFile, setMasterFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   // Import modal state
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [isImporting, setIsImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState<string>('');
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [isImporting, setIsImporting] = useState(false)
+  const [importProgress, setImportProgress] = useState<string>('')
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const masterFileInputRef = useRef<HTMLInputElement>(null);
-  const importFileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const masterFileInputRef = useRef<HTMLInputElement>(null)
+  const importFileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    fetchTemplates();
-    const unsubscribe = subscribeToChanges();
-    return () => unsubscribe();
-  }, [fetchTemplates, subscribeToChanges]);
+    void fetchTemplates()
+    const unsubscribe = subscribeToChanges()
+    return () => unsubscribe()
+  }, [fetchTemplates, subscribeToChanges])
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setOpenDropdownId(null);
+        setOpenDropdownId(null)
       }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Filter templates
   const filteredTemplates = templates.filter((template) =>
     template.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  )
 
   // Get field types grouped by category
-  const fieldTypesByCategory = getFieldTypesByCategory();
+  const fieldTypesByCategory = getFieldTypesByCategory()
 
   // Filter fields by search
   const getFilteredFields = () => {
-    if (!fieldSearch) return fieldTypesByCategory;
+    if (!fieldSearch) return fieldTypesByCategory
 
-    const filtered: Record<string, { key: string; label: string }[]> = {};
-    const searchLower = fieldSearch.toLowerCase();
+    const filtered: Record<string, { key: string; label: string }[]> = {}
+    const searchLower = fieldSearch.toLowerCase()
 
     for (const [category, fields] of Object.entries(fieldTypesByCategory)) {
       const matchingFields = fields.filter(
         (f) =>
-          f.label.toLowerCase().includes(searchLower) ||
-          f.key.toLowerCase().includes(searchLower)
-      );
+          f.label.toLowerCase().includes(searchLower) || f.key.toLowerCase().includes(searchLower)
+      )
       if (matchingFields.length > 0) {
-        filtered[category] = matchingFields;
+        filtered[category] = matchingFields
       }
     }
 
-    return filtered;
-  };
+    return filtered
+  }
 
   // Count total mappings for a template
   const getMappingCount = (template: ExcelTemplate): number => {
-    let count = 0;
-    for (const sheetMappings of Object.values(template.field_mappings || {})) {
-      count += Object.keys(sheetMappings).length;
+    let count = 0
+    for (const sheetMappings of Object.values(template.field_mappings ?? {})) {
+      count += Object.keys(sheetMappings).length
     }
-    return count;
-  };
+    return count
+  }
 
   // Handle file selection for new template
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const file = event.target.files?.[0]
     if (file) {
-      setSelectedFile(file);
+      setSelectedFile(file)
     }
-  };
+  }
 
   // Handle master file selection
   const handleMasterFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const file = event.target.files?.[0]
     if (file) {
-      setMasterFile(file);
+      setMasterFile(file)
     }
-  };
+  }
 
   // Create new template
   const handleCreateTemplate = async () => {
     if (!newTemplateName.trim()) {
-      toastError('Please enter a template name');
-      return;
+      toastError('Please enter a template name')
+      return
     }
 
-    setIsCreating(true);
+    setIsCreating(true)
     try {
-      let filePath: string | null = null;
-      let sheetNames: string[] = [];
+      let filePath: string | null = null
+      let sheetNames: string[] = []
 
       if (selectedFile) {
-        const result = await uploadExcelFile(selectedFile);
-        filePath = result.path;
-        sheetNames = result.sheetNames;
+        const result = await uploadExcelFile(selectedFile)
+        filePath = result.path
+        sheetNames = result.sheetNames
       }
 
       await createTemplate({
@@ -169,98 +174,98 @@ export function ExcelPage() {
         file_path: filePath,
         sheet_names: sheetNames,
         field_mappings: {},
-      });
+      })
 
-      success('Template created successfully');
-      setShowCreateModal(false);
-      resetCreateForm();
+      success('Template created successfully')
+      setShowCreateModal(false)
+      resetCreateForm()
     } catch (err) {
-      console.error('Error creating template:', err);
-      toastError('Failed to create template');
+      console.error('Error creating template:', err)
+      toastError('Failed to create template')
     } finally {
-      setIsCreating(false);
+      setIsCreating(false)
     }
-  };
+  }
 
   const resetCreateForm = () => {
-    setNewTemplateName('');
-    setSelectedFile(null);
+    setNewTemplateName('')
+    setSelectedFile(null)
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = ''
     }
-  };
+  }
 
   // Delete template
   const handleDeleteTemplate = async () => {
-    if (!selectedTemplate) return;
+    if (!selectedTemplate) return
 
     try {
-      await deleteTemplate(selectedTemplate.id);
-      success('Template deleted successfully');
-      setShowDeleteModal(false);
-      setSelectedTemplate(null);
+      await deleteTemplate(selectedTemplate.id)
+      success('Template deleted successfully')
+      setShowDeleteModal(false)
+      setSelectedTemplate(null)
     } catch (err) {
-      console.error('Error deleting template:', err);
-      toastError('Failed to delete template');
+      console.error('Error deleting template:', err)
+      toastError('Failed to delete template')
     }
-  };
+  }
 
   // Open mapping modal
   const openMappingModal = async (template: ExcelTemplate) => {
-    setSelectedTemplate(template);
-    setTempMappings(template.field_mappings || {});
-    setAvailableSheets(template.sheet_names || []);
-    setSelectedSheet(template.sheet_names?.[0] || '');
-    setCellRef('');
-    setCustomValue('');
-    setSelectedFieldType('name');
-    setFieldSearch('');
-    setShowMappingModal(true);
+    setSelectedTemplate(template)
+    setTempMappings(template.field_mappings ?? {})
+    setAvailableSheets(template.sheet_names ?? [])
+    setSelectedSheet(template.sheet_names?.[0] ?? '')
+    setCellRef('')
+    setCustomValue('')
+    setSelectedFieldType('name')
+    setFieldSearch('')
+    setShowMappingModal(true)
 
     // If template has a file but no sheets, try to parse it
     if (template.file_path && (!template.sheet_names || template.sheet_names.length === 0)) {
-      setLoadingSheets(true);
+      setLoadingSheets(true)
       try {
-        const blob = await downloadExcelFile(template.file_path);
-        const sheets = await parseExcelFile(blob);
-        setAvailableSheets(sheets);
-        setSelectedSheet(sheets[0] || '');
+        const blob = await downloadExcelFile(template.file_path)
+        const sheets = await parseExcelFile(blob)
+        setAvailableSheets(sheets)
+        setSelectedSheet(sheets[0] ?? '')
         // Update template with sheet names
-        await updateTemplate(template.id, { sheet_names: sheets });
+        await updateTemplate(template.id, { sheet_names: sheets })
       } catch (err) {
-        console.error('Error parsing Excel file:', err);
+        console.error('Error parsing Excel file:', err)
       } finally {
-        setLoadingSheets(false);
+        setLoadingSheets(false)
       }
     }
-  };
+  }
 
   // Add field mapping
   const handleAddMapping = () => {
     if (!selectedSheet) {
-      toastError('Please select a sheet');
-      return;
+      toastError('Please select a sheet')
+      return
     }
     if (!cellRef.trim()) {
-      toastError('Please enter a cell reference (e.g., A1)');
-      return;
+      toastError('Please enter a cell reference (e.g., A1)')
+      return
     }
 
     // Validate cell reference format
-    const cellRefUpper = cellRef.trim().toUpperCase();
+    const cellRefUpper = cellRef.trim().toUpperCase()
     if (!/^[A-Z]+[0-9]+$/.test(cellRefUpper)) {
-      toastError('Invalid cell reference format. Use format like A1, B2, etc.');
-      return;
+      toastError('Invalid cell reference format. Use format like A1, B2, etc.')
+      return
     }
 
     // Check for custom value
-    let fieldValue = selectedFieldType;
+    let fieldValue = selectedFieldType
     if (selectedFieldType === '_custom') {
       if (!customValue.trim()) {
-        toastError('Please enter a custom value');
-        return;
+        toastError('Please enter a custom value')
+        return
       }
-      fieldValue = `_custom:${customValue.trim()}`;
+      fieldValue = `_custom:${customValue.trim()}`
     }
 
     // Add to temp mappings
@@ -270,130 +275,132 @@ export function ExcelPage() {
         ...prev[selectedSheet],
         [cellRefUpper]: fieldValue,
       },
-    }));
+    }))
 
     // Reset inputs
-    setCellRef('');
-    setCustomValue('');
-  };
+    setCellRef('')
+    setCustomValue('')
+  }
 
   // Remove field mapping
   const handleRemoveMapping = (sheetName: string, cell: string) => {
     setTempMappings((prev) => {
-      const updated = { ...prev };
+      const updated = { ...prev }
       if (updated[sheetName]) {
-        const { [cell]: _, ...rest } = updated[sheetName];
+        const { [cell]: _, ...rest } = updated[sheetName]
         if (Object.keys(rest).length === 0) {
-          delete updated[sheetName];
+          delete updated[sheetName]
         } else {
-          updated[sheetName] = rest;
+          updated[sheetName] = rest
         }
       }
-      return updated;
-    });
-  };
+      return updated
+    })
+  }
 
   // Save field mappings
   const handleSaveMappings = async () => {
-    if (!selectedTemplate) return;
+    if (!selectedTemplate) return
 
     try {
-      await updateTemplate(selectedTemplate.id, { field_mappings: tempMappings });
-      success('Mappings saved successfully');
-      setShowMappingModal(false);
+      await updateTemplate(selectedTemplate.id, { field_mappings: tempMappings })
+      success('Mappings saved successfully')
+      setShowMappingModal(false)
     } catch (err) {
-      console.error('Error saving mappings:', err);
-      toastError('Failed to save mappings');
+      console.error('Error saving mappings:', err)
+      toastError('Failed to save mappings')
     }
-  };
+  }
 
   // Open upload master modal
   const openUploadModal = (template: ExcelTemplate) => {
-    setSelectedTemplate(template);
-    setMasterFile(null);
+    setSelectedTemplate(template)
+    setMasterFile(null)
     if (masterFileInputRef.current) {
-      masterFileInputRef.current.value = '';
+      masterFileInputRef.current.value = ''
     }
-    setShowUploadModal(true);
-  };
+    setShowUploadModal(true)
+  }
 
   // Upload/replace master file
   const handleUploadMaster = async () => {
-    if (!selectedTemplate || !masterFile) return;
+    if (!selectedTemplate || !masterFile) return
 
-    setIsUploading(true);
+    setIsUploading(true)
     try {
-      const result = await uploadExcelFile(masterFile);
+      const result = await uploadExcelFile(masterFile)
       await updateTemplate(selectedTemplate.id, {
         file_path: result.path,
         sheet_names: result.sheetNames,
-      });
-      success('Master file uploaded successfully');
-      setShowUploadModal(false);
+      })
+      success('Master file uploaded successfully')
+      setShowUploadModal(false)
     } catch (err) {
-      console.error('Error uploading master file:', err);
-      toastError('Failed to upload master file');
+      console.error('Error uploading master file:', err)
+      toastError('Failed to upload master file')
     } finally {
-      setIsUploading(false);
+      setIsUploading(false)
     }
-  };
+  }
 
   // Get display value for a field mapping
   const getFieldDisplayValue = (fieldValue: string): string => {
     if (fieldValue.startsWith('_custom:')) {
-      return `Custom: "${fieldValue.substring(8)}"`;
+      return `Custom: "${fieldValue.substring(8)}"`
     }
-    return getFieldLabel(fieldValue);
-  };
+    return getFieldLabel(fieldValue)
+  }
 
   // Handle import file selection
   const handleImportFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const file = event.target.files?.[0]
     if (file) {
       if (!file.name.endsWith('.json') && !file.name.endsWith('.zip')) {
-        toastError('Please select a JSON or ZIP file');
-        return;
+        toastError('Please select a JSON or ZIP file')
+        return
       }
-      setImportFile(file);
+      setImportFile(file)
     }
-  };
+  }
 
   // Handle import
   const handleImport = async () => {
     if (!importFile) {
-      toastError('Please select a file to import');
-      return;
+      toastError('Please select a file to import')
+      return
     }
 
-    setIsImporting(true);
-    setImportProgress('Reading file...');
+    setIsImporting(true)
+    setImportProgress('Reading file...')
 
     try {
-      const result = await importTemplatesFromFile(importFile);
+      const result = await importTemplatesFromFile(importFile)
 
       if (!result.success) {
-        toastError(result.errors.join(', '));
-        setIsImporting(false);
-        return;
+        toastError(result.errors.join(', '))
+        setIsImporting(false)
+        return
       }
 
       // Import each template
-      let imported = 0;
+      let imported = 0
       for (const template of result.templates) {
-        setImportProgress(`Importing "${template.name}" (${imported + 1}/${result.templates.length})...`);
+        setImportProgress(
+          `Importing "${template.name}" (${imported + 1}/${result.templates.length})...`
+        )
 
         try {
-          let filePath: string | null = null;
-          const sheetNames = template.sheet_names;
+          let filePath: string | null = null
+          const sheetNames = template.sheet_names
 
           // Upload master file if available (skip parsing since we already have sheet names from mappings)
           if (template.masterFileBlob && template.masterFileName) {
-            setImportProgress(`Uploading master file for "${template.name}"...`);
+            setImportProgress(`Uploading master file for "${template.name}"...`)
             const file = new File([template.masterFileBlob], template.masterFileName, {
               type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            });
-            const uploadResult = await uploadExcelFile(file, true); // skipParsing = true
-            filePath = uploadResult.path;
+            })
+            const uploadResult = await uploadExcelFile(file, true) // skipParsing = true
+            filePath = uploadResult.path
             // Keep sheet names from the converted template (derived from field mappings)
           }
 
@@ -403,38 +410,38 @@ export function ExcelPage() {
             file_path: filePath,
             sheet_names: sheetNames,
             field_mappings: template.field_mappings,
-          });
+          })
 
-          imported++;
+          imported++
         } catch (err) {
-          console.error(`Error importing template "${template.name}":`, err);
-          result.errors.push(`Failed to import "${template.name}"`);
+          console.error(`Error importing template "${template.name}":`, err)
+          result.errors.push(`Failed to import "${template.name}"`)
         }
       }
 
-      success(`Imported ${imported} template${imported !== 1 ? 's' : ''} successfully`);
-      setShowImportModal(false);
-      setImportFile(null);
+      success(`Imported ${imported} template${imported !== 1 ? 's' : ''} successfully`)
+      setShowImportModal(false)
+      setImportFile(null)
       if (importFileInputRef.current) {
-        importFileInputRef.current.value = '';
+        importFileInputRef.current.value = ''
       }
     } catch (err) {
-      console.error('Error during import:', err);
-      toastError('Failed to import templates');
+      console.error('Error during import:', err)
+      toastError('Failed to import templates')
     } finally {
-      setIsImporting(false);
-      setImportProgress('');
+      setIsImporting(false)
+      setImportProgress('')
     }
-  };
+  }
 
   // Reset import modal
   const resetImportModal = () => {
-    setImportFile(null);
-    setImportProgress('');
+    setImportFile(null)
+    setImportProgress('')
     if (importFileInputRef.current) {
-      importFileInputRef.current.value = '';
+      importFileInputRef.current.value = ''
     }
-  };
+  }
 
   return (
     <div className="excel-page">
@@ -457,7 +464,9 @@ export function ExcelPage() {
       {error && (
         <div className="ep-error">
           <span>{error}</span>
-          <button onClick={clearError}><X size={14} /></button>
+          <button onClick={clearError}>
+            <X size={14} />
+          </button>
         </div>
       )}
 
@@ -538,9 +547,9 @@ export function ExcelPage() {
                         <button
                           className="danger"
                           onClick={() => {
-                            setSelectedTemplate(template);
-                            setShowDeleteModal(true);
-                            setOpenDropdownId(null);
+                            setSelectedTemplate(template)
+                            setShowDeleteModal(true)
+                            setOpenDropdownId(null)
                           }}
                         >
                           <Trash size={14} className="menu-icon" />
@@ -552,11 +561,10 @@ export function ExcelPage() {
                 </div>
                 <div className="excel-card-meta">
                   <span className="mapping-count">
-                    {getMappingCount(template)} field{getMappingCount(template) !== 1 ? 's' : ''} mapped
+                    {getMappingCount(template)} field{getMappingCount(template) !== 1 ? 's' : ''}{' '}
+                    mapped
                   </span>
-                  {template.file_path && (
-                    <span className="has-file">Master file attached</span>
-                  )}
+                  {template.file_path && <span className="has-file">Master file attached</span>}
                 </div>
               </div>
             </div>
@@ -568,8 +576,8 @@ export function ExcelPage() {
       <Modal
         isOpen={showCreateModal}
         onClose={() => {
-          setShowCreateModal(false);
-          resetCreateForm();
+          setShowCreateModal(false)
+          resetCreateForm()
         }}
         title="Create Excel Template"
       >
@@ -595,10 +603,7 @@ export function ExcelPage() {
                 style={{ display: 'none' }}
               />
               {!selectedFile ? (
-                <div
-                  className="upload-placeholder"
-                  onClick={() => fileInputRef.current?.click()}
-                >
+                <div className="upload-placeholder" onClick={() => fileInputRef.current?.click()}>
                   <UploadSimple size={24} className="upload-icon" />
                   <span>Click to upload Excel file</span>
                   <small>.xlsx or .xls</small>
@@ -610,8 +615,8 @@ export function ExcelPage() {
                   <button
                     className="remove-file"
                     onClick={() => {
-                      setSelectedFile(null);
-                      if (fileInputRef.current) fileInputRef.current.value = '';
+                      setSelectedFile(null)
+                      if (fileInputRef.current) fileInputRef.current.value = ''
                     }}
                   >
                     <X size={14} className="remove-icon" />
@@ -625,8 +630,8 @@ export function ExcelPage() {
             <Button
               variant="secondary"
               onClick={() => {
-                setShowCreateModal(false);
-                resetCreateForm();
+                setShowCreateModal(false)
+                resetCreateForm()
               }}
             >
               Cancel
@@ -691,8 +696,8 @@ export function ExcelPage() {
                   <button
                     className="remove-file"
                     onClick={() => {
-                      setMasterFile(null);
-                      if (masterFileInputRef.current) masterFileInputRef.current.value = '';
+                      setMasterFile(null)
+                      if (masterFileInputRef.current) masterFileInputRef.current.value = ''
                     }}
                   >
                     <X size={14} className="remove-icon" />
@@ -717,7 +722,7 @@ export function ExcelPage() {
       <Modal
         isOpen={showMappingModal}
         onClose={() => setShowMappingModal(false)}
-        title={`Edit Mappings: ${selectedTemplate?.name || ''}`}
+        title={`Edit Mappings: ${selectedTemplate?.name ?? ''}`}
         size="lg"
       >
         <div className="mapping-modal">
@@ -733,8 +738,8 @@ export function ExcelPage() {
                 <Button
                   variant="secondary"
                   onClick={() => {
-                    setShowMappingModal(false);
-                    if (selectedTemplate) openUploadModal(selectedTemplate);
+                    setShowMappingModal(false)
+                    if (selectedTemplate) openUploadModal(selectedTemplate)
                   }}
                 >
                   <UploadSimple size={16} className="btn-icon" />
@@ -783,8 +788,8 @@ export function ExcelPage() {
 
                   <div className="field-list">
                     {CATEGORY_ORDER.map((category) => {
-                      const fields = getFilteredFields()[category];
-                      if (!fields || fields.length === 0) return null;
+                      const fields = getFilteredFields()[category]
+                      if (!fields || fields.length === 0) return null
 
                       return (
                         <div key={category} className="field-category">
@@ -799,7 +804,7 @@ export function ExcelPage() {
                             </button>
                           ))}
                         </div>
-                      );
+                      )
                     })}
                   </div>
                 </div>
@@ -869,8 +874,8 @@ export function ExcelPage() {
       <Modal
         isOpen={showImportModal}
         onClose={() => {
-          setShowImportModal(false);
-          resetImportModal();
+          setShowImportModal(false)
+          resetImportModal()
         }}
         title="Import Templates from Old CRM"
       >
@@ -911,8 +916,8 @@ export function ExcelPage() {
                     <button
                       className="remove-file"
                       onClick={() => {
-                        setImportFile(null);
-                        if (importFileInputRef.current) importFileInputRef.current.value = '';
+                        setImportFile(null)
+                        if (importFileInputRef.current) importFileInputRef.current.value = ''
                       }}
                     >
                       <X size={14} className="remove-icon" />
@@ -936,8 +941,8 @@ export function ExcelPage() {
             <Button
               variant="secondary"
               onClick={() => {
-                setShowImportModal(false);
-                resetImportModal();
+                setShowImportModal(false)
+                resetImportModal()
               }}
               disabled={isImporting}
             >
@@ -950,5 +955,5 @@ export function ExcelPage() {
         </div>
       </Modal>
     </div>
-  );
+  )
 }

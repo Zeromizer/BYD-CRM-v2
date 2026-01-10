@@ -7,28 +7,28 @@
  *  - Automated workflow triggers
  */
 
-import type { MilestoneId, DocumentChecklistState, DocumentChecklistItem } from '@/types';
+import type { MilestoneId, DocumentChecklistState, DocumentChecklistItem } from '@/types'
 
 /**
  * Document type definition for AI classification
  */
 export interface DocumentType {
-  id: string;
-  name: string;
-  folder: string;
-  keywords: string[];
-  milestone: MilestoneId | null;
+  id: string
+  name: string
+  folder: string
+  keywords: string[]
+  milestone: MilestoneId | null
 }
 
 /**
  * Required document definition per milestone
  */
 export interface RequiredDocument {
-  id: string;
-  name: string;
-  description: string;
-  documentTypes: string[];
-  required: boolean;
+  id: string
+  name: string
+  description: string
+  documentTypes: string[]
+  required: boolean
 }
 
 /**
@@ -214,7 +214,7 @@ export const DOCUMENT_TYPES: Record<string, DocumentType> = {
     keywords: [],
     milestone: null,
   },
-};
+}
 
 /**
  * Required documents for each milestone
@@ -226,7 +226,11 @@ export const REQUIRED_DOCUMENTS: Record<MilestoneId, RequiredDocument[]> = {
       id: 'nric',
       name: 'NRIC / ID',
       description: 'Front and back of Singapore NRIC or FIN card',
-      documentTypes: [DOCUMENT_TYPES.ID_DOCUMENTS.id, DOCUMENT_TYPES.NRIC_FRONT.id, DOCUMENT_TYPES.NRIC_BACK.id],
+      documentTypes: [
+        DOCUMENT_TYPES.ID_DOCUMENTS.id,
+        DOCUMENT_TYPES.NRIC_FRONT.id,
+        DOCUMENT_TYPES.NRIC_BACK.id,
+      ],
       required: true,
     },
     {
@@ -334,7 +338,7 @@ export const REQUIRED_DOCUMENTS: Record<MilestoneId, RequiredDocument[]> = {
   nps: [
     // NPS milestone typically doesn't require documents
   ],
-};
+}
 
 /**
  * Document status values
@@ -346,9 +350,9 @@ export const DOCUMENT_STATUS = {
   REJECTED: 'rejected',
   EXPIRED: 'expired',
   NOT_APPLICABLE: 'not_applicable',
-} as const;
+} as const
 
-export type DocumentStatusType = typeof DOCUMENT_STATUS[keyof typeof DOCUMENT_STATUS];
+export type DocumentStatusType = (typeof DOCUMENT_STATUS)[keyof typeof DOCUMENT_STATUS]
 
 /**
  * Get default document checklist state for a new customer
@@ -360,75 +364,83 @@ export function getDefaultDocumentChecklist(): DocumentChecklistState {
     registration: {},
     delivery: {},
     nps: {},
-  };
+  }
 
-  (Object.entries(REQUIRED_DOCUMENTS) as [MilestoneId, RequiredDocument[]][]).forEach(([milestoneId, documents]) => {
-    documents.forEach((doc) => {
-      state[milestoneId][doc.id] = {
-        status: DOCUMENT_STATUS.PENDING,
-        uploadedAt: null,
-        uploadedFiles: [],
-        reviewedAt: null,
-        reviewedBy: null,
-        notes: '',
-      };
-    });
-  });
+  ;(Object.entries(REQUIRED_DOCUMENTS) as [MilestoneId, RequiredDocument[]][]).forEach(
+    ([milestoneId, documents]) => {
+      documents.forEach((doc) => {
+        state[milestoneId][doc.id] = {
+          status: DOCUMENT_STATUS.PENDING,
+          uploadedAt: null,
+          uploadedFiles: [],
+          reviewedAt: null,
+          reviewedBy: null,
+          notes: '',
+        }
+      })
+    }
+  )
 
-  return state;
+  return state
 }
 
 /**
  * Calculate document completion percentage for a milestone
  */
-export function getDocumentProgress(milestoneId: MilestoneId, documentChecklist: DocumentChecklistState | null): number {
+export function getDocumentProgress(
+  milestoneId: MilestoneId,
+  documentChecklist: DocumentChecklistState | null
+): number {
   if (!documentChecklist?.[milestoneId]) {
-    return 0;
+    return 0
   }
 
-  const requiredDocs = REQUIRED_DOCUMENTS[milestoneId];
+  const requiredDocs = REQUIRED_DOCUMENTS[milestoneId]
   if (!requiredDocs || requiredDocs.length === 0) {
-    return 100; // No documents required
+    return 100 // No documents required
   }
 
-  const required = requiredDocs.filter((doc) => doc.required);
+  const required = requiredDocs.filter((doc) => doc.required)
   if (required.length === 0) {
-    return 100; // No required documents
+    return 100 // No required documents
   }
 
   const completed = required.filter((doc) => {
-    const docItem = documentChecklist[milestoneId][doc.id] as DocumentChecklistItem | undefined;
-    const status = docItem?.status;
-    return status === DOCUMENT_STATUS.APPROVED || status === DOCUMENT_STATUS.NOT_APPLICABLE;
-  }).length;
+    const docItem = documentChecklist[milestoneId][doc.id] as DocumentChecklistItem | undefined
+    const status = docItem?.status
+    return status === DOCUMENT_STATUS.APPROVED || status === DOCUMENT_STATUS.NOT_APPLICABLE
+  }).length
 
-  return Math.round((completed / required.length) * 100);
+  return Math.round((completed / required.length) * 100)
 }
 
 /**
  * Check if all required documents are complete for a milestone
  */
-export function isDocumentChecklistComplete(milestoneId: MilestoneId, documentChecklist: DocumentChecklistState | null): boolean {
-  return getDocumentProgress(milestoneId, documentChecklist) === 100;
+export function isDocumentChecklistComplete(
+  milestoneId: MilestoneId,
+  documentChecklist: DocumentChecklistState | null
+): boolean {
+  return getDocumentProgress(milestoneId, documentChecklist) === 100
 }
 
 /**
  * Get folder name for a document type
  */
 export function getDocumentFolder(documentTypeId: string): string {
-  const docType = Object.values(DOCUMENT_TYPES).find((dt) => dt.id === documentTypeId);
-  return docType?.folder || 'Other';
+  const docType = Object.values(DOCUMENT_TYPES).find((dt) => dt.id === documentTypeId)
+  return docType?.folder || 'Other'
 }
 
 /**
  * Get all document types as an array for AI classification
  */
 export function getDocumentTypesForClassification(): {
-  id: string;
-  name: string;
-  keywords: string[];
-  folder: string;
-  milestone: MilestoneId | null;
+  id: string
+  name: string
+  keywords: string[]
+  folder: string
+  milestone: MilestoneId | null
 }[] {
   return Object.values(DOCUMENT_TYPES).map((dt) => ({
     id: dt.id,
@@ -436,19 +448,19 @@ export function getDocumentTypesForClassification(): {
     keywords: dt.keywords,
     folder: dt.folder,
     milestone: dt.milestone,
-  }));
+  }))
 }
 
 /**
  * Get document type by ID
  */
 export function getDocumentTypeById(id: string): DocumentType | undefined {
-  return Object.values(DOCUMENT_TYPES).find((dt) => dt.id === id);
+  return Object.values(DOCUMENT_TYPES).find((dt) => dt.id === id)
 }
 
 /**
  * Get required documents for a milestone
  */
 export function getRequiredDocumentsForMilestone(milestoneId: MilestoneId): RequiredDocument[] {
-  return REQUIRED_DOCUMENTS[milestoneId] || [];
+  return REQUIRED_DOCUMENTS[milestoneId] ?? []
 }

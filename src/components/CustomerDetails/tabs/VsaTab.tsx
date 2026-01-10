@@ -1,221 +1,237 @@
-import { useState, useEffect, useRef, useTransition, type ReactElement } from 'react';
-import { Car, Package, ArrowsClockwise, Truck, Shield, Money, FloppyDisk } from '@phosphor-icons/react';
-import { Button } from '@/components/common';
-import type { Customer, CustomerUpdate } from '@/types';
+import { useState, useEffect, useRef, useTransition, type ReactElement } from 'react'
+import {
+  Car,
+  Package,
+  ArrowsClockwise,
+  Truck,
+  Shield,
+  Money,
+  FloppyDisk,
+} from '@phosphor-icons/react'
+import { Button } from '@/components/common'
+import type { Customer, CustomerUpdate } from '@/types'
 import {
   VEHICLE_MODELS_GROUPED,
   BODY_COLOURS,
   INSURANCE_COMPANIES,
   PRZ_TYPES,
-} from '@/constants/vehicleData';
+} from '@/constants/vehicleData'
 
 interface VsaTabProps {
-  customer: Customer;
-  onUpdate: (id: number, updates: CustomerUpdate) => Promise<void>;
+  customer: Customer
+  onUpdate: (id: number, updates: CustomerUpdate) => Promise<void>
 }
 
-type VsaSection =
-  | 'vehicle'
-  | 'package'
-  | 'tradeIn'
-  | 'delivery'
-  | 'insurance'
-  | 'loan';
+type VsaSection = 'vehicle' | 'package' | 'tradeIn' | 'delivery' | 'insurance' | 'loan'
 
 export function VsaTab({ customer, onUpdate }: VsaTabProps) {
-  const [isPending, startTransition] = useTransition();
-  const [activeSection, setActiveSection] = useState<VsaSection>('vehicle');
+  const [isPending, startTransition] = useTransition()
+  const [activeSection, setActiveSection] = useState<VsaSection>('vehicle')
   // Track if monthly repayment was manually edited
-  const monthlyRepaymentManuallyEdited = useRef(false);
+  const monthlyRepaymentManuallyEdited = useRef(false)
   const [formData, setFormData] = useState({
     // Vehicle
-    vsa_make_model: customer.vsa_make_model || '',
-    vsa_variant: customer.vsa_variant || '',
-    vsa_yom: customer.vsa_yom || '',
-    vsa_body_colour: customer.vsa_body_colour || '',
-    vsa_upholstery: customer.vsa_upholstery || '',
-    vsa_prz_type: customer.vsa_prz_type || '',
+    vsa_make_model: customer.vsa_make_model ?? '',
+    vsa_variant: customer.vsa_variant ?? '',
+    vsa_yom: customer.vsa_yom ?? '',
+    vsa_body_colour: customer.vsa_body_colour ?? '',
+    vsa_upholstery: customer.vsa_upholstery ?? '',
+    vsa_prz_type: customer.vsa_prz_type ?? '',
     // Package
-    vsa_package: customer.vsa_package || '',
-    vsa_selling_price_list: customer.vsa_selling_price_list?.toString() || '',
-    vsa_purchase_price_with_coe: customer.vsa_purchase_price_with_coe?.toString() || '',
-    vsa_coe_rebate_level: customer.vsa_coe_rebate_level || '',
-    vsa_deposit: customer.vsa_deposit?.toString() || '',
-    vsa_less_others: customer.vsa_less_others?.toString() || '',
-    vsa_add_others: customer.vsa_add_others?.toString() || '',
-    vsa_delivery_date: customer.vsa_delivery_date || '',
+    vsa_package: customer.vsa_package ?? '',
+    vsa_selling_price_list: customer.vsa_selling_price_list?.toString() ?? '',
+    vsa_purchase_price_with_coe: customer.vsa_purchase_price_with_coe?.toString() ?? '',
+    vsa_coe_rebate_level: customer.vsa_coe_rebate_level ?? '',
+    vsa_deposit: customer.vsa_deposit?.toString() ?? '',
+    vsa_less_others: customer.vsa_less_others?.toString() ?? '',
+    vsa_add_others: customer.vsa_add_others?.toString() ?? '',
+    vsa_delivery_date: customer.vsa_delivery_date ?? '',
     // Trade-In
-    vsa_trade_in_car_no: customer.vsa_trade_in_car_no || '',
-    vsa_trade_in_car_model: customer.vsa_trade_in_car_model || '',
-    vsa_trade_in_amount: customer.vsa_trade_in_amount?.toString() || '',
-    vsa_trade_in_settlement_cost: customer.vsa_trade_in_settlement_cost?.toString() || '',
-    vsa_number_retention: customer.vsa_number_retention || false,
-    vsa_number_retention_fee: customer.vsa_number_retention_fee?.toString() || '',
-    vsa_trade_in_owner_not_customer: customer.vsa_trade_in_owner_not_customer || false,
-    vsa_trade_in_owner_name: customer.vsa_trade_in_owner_name || '',
-    vsa_trade_in_owner_nric: customer.vsa_trade_in_owner_nric || '',
-    vsa_trade_in_owner_mobile: customer.vsa_trade_in_owner_mobile || '',
-    vsa_trade_in_insurance_company: customer.vsa_trade_in_insurance_company || '',
-    vsa_trade_in_policy_number: customer.vsa_trade_in_policy_number || '',
+    vsa_trade_in_car_no: customer.vsa_trade_in_car_no ?? '',
+    vsa_trade_in_car_model: customer.vsa_trade_in_car_model ?? '',
+    vsa_trade_in_amount: customer.vsa_trade_in_amount?.toString() ?? '',
+    vsa_trade_in_settlement_cost: customer.vsa_trade_in_settlement_cost?.toString() ?? '',
+    vsa_number_retention: customer.vsa_number_retention ?? false,
+    vsa_number_retention_fee: customer.vsa_number_retention_fee?.toString() ?? '',
+    vsa_trade_in_owner_not_customer: customer.vsa_trade_in_owner_not_customer ?? false,
+    vsa_trade_in_owner_name: customer.vsa_trade_in_owner_name ?? '',
+    vsa_trade_in_owner_nric: customer.vsa_trade_in_owner_nric ?? '',
+    vsa_trade_in_owner_mobile: customer.vsa_trade_in_owner_mobile ?? '',
+    vsa_trade_in_insurance_company: customer.vsa_trade_in_insurance_company ?? '',
+    vsa_trade_in_policy_number: customer.vsa_trade_in_policy_number ?? '',
     // Delivery
-    vsa_date_of_registration: customer.vsa_date_of_registration || '',
-    vsa_registration_no: customer.vsa_registration_no || '',
-    vsa_chassis_no: customer.vsa_chassis_no || '',
-    vsa_engine_no: customer.vsa_engine_no || '',
-    vsa_motor_no: customer.vsa_motor_no || '',
+    vsa_date_of_registration: customer.vsa_date_of_registration ?? '',
+    vsa_registration_no: customer.vsa_registration_no ?? '',
+    vsa_chassis_no: customer.vsa_chassis_no ?? '',
+    vsa_engine_no: customer.vsa_engine_no ?? '',
+    vsa_motor_no: customer.vsa_motor_no ?? '',
     // Insurance
-    vsa_insurance_company: customer.vsa_insurance_company || '',
-    vsa_insurance_fee: customer.vsa_insurance_fee?.toString() || '',
-    vsa_insurance_subsidy: customer.vsa_insurance_subsidy?.toString() || '',
+    vsa_insurance_company: customer.vsa_insurance_company ?? '',
+    vsa_insurance_fee: customer.vsa_insurance_fee?.toString() ?? '',
+    vsa_insurance_subsidy: customer.vsa_insurance_subsidy?.toString() ?? '',
     // Loan & Remarks
-    vsa_remarks1: customer.vsa_remarks1 || '',
-    vsa_remarks2: customer.vsa_remarks2 || '',
-    vsa_loan_amount: customer.vsa_loan_amount?.toString() || '',
-    vsa_interest: customer.vsa_interest?.toString() || '',
-    vsa_tenure: customer.vsa_tenure?.toString() || '',
-    vsa_admin_fee: customer.vsa_admin_fee?.toString() || '',
-    vsa_monthly_repayment: customer.vsa_monthly_repayment?.toString() || '',
-  });
+    vsa_remarks1: customer.vsa_remarks1 ?? '',
+    vsa_remarks2: customer.vsa_remarks2 ?? '',
+    vsa_loan_amount: customer.vsa_loan_amount?.toString() ?? '',
+    vsa_interest: customer.vsa_interest?.toString() ?? '',
+    vsa_tenure: customer.vsa_tenure?.toString() ?? '',
+    vsa_admin_fee: customer.vsa_admin_fee?.toString() ?? '',
+    vsa_monthly_repayment: customer.vsa_monthly_repayment?.toString() ?? '',
+  })
 
   useEffect(() => {
     setFormData({
-      vsa_make_model: customer.vsa_make_model || '',
-      vsa_variant: customer.vsa_variant || '',
-      vsa_yom: customer.vsa_yom || '',
-      vsa_body_colour: customer.vsa_body_colour || '',
-      vsa_upholstery: customer.vsa_upholstery || '',
-      vsa_prz_type: customer.vsa_prz_type || '',
-      vsa_package: customer.vsa_package || '',
-      vsa_selling_price_list: customer.vsa_selling_price_list?.toString() || '',
-      vsa_purchase_price_with_coe: customer.vsa_purchase_price_with_coe?.toString() || '',
-      vsa_coe_rebate_level: customer.vsa_coe_rebate_level || '',
-      vsa_deposit: customer.vsa_deposit?.toString() || '',
-      vsa_less_others: customer.vsa_less_others?.toString() || '',
-      vsa_add_others: customer.vsa_add_others?.toString() || '',
-      vsa_delivery_date: customer.vsa_delivery_date || '',
-      vsa_trade_in_car_no: customer.vsa_trade_in_car_no || '',
-      vsa_trade_in_car_model: customer.vsa_trade_in_car_model || '',
-      vsa_trade_in_amount: customer.vsa_trade_in_amount?.toString() || '',
-      vsa_trade_in_settlement_cost: customer.vsa_trade_in_settlement_cost?.toString() || '',
-      vsa_number_retention: customer.vsa_number_retention || false,
-      vsa_number_retention_fee: customer.vsa_number_retention_fee?.toString() || '',
-      vsa_trade_in_owner_not_customer: customer.vsa_trade_in_owner_not_customer || false,
-      vsa_trade_in_owner_name: customer.vsa_trade_in_owner_name || '',
-      vsa_trade_in_owner_nric: customer.vsa_trade_in_owner_nric || '',
-      vsa_trade_in_owner_mobile: customer.vsa_trade_in_owner_mobile || '',
-      vsa_trade_in_insurance_company: customer.vsa_trade_in_insurance_company || '',
-      vsa_trade_in_policy_number: customer.vsa_trade_in_policy_number || '',
-      vsa_date_of_registration: customer.vsa_date_of_registration || '',
-      vsa_registration_no: customer.vsa_registration_no || '',
-      vsa_chassis_no: customer.vsa_chassis_no || '',
-      vsa_engine_no: customer.vsa_engine_no || '',
-      vsa_motor_no: customer.vsa_motor_no || '',
-      vsa_insurance_company: customer.vsa_insurance_company || '',
-      vsa_insurance_fee: customer.vsa_insurance_fee?.toString() || '',
-      vsa_insurance_subsidy: customer.vsa_insurance_subsidy?.toString() || '',
-      vsa_remarks1: customer.vsa_remarks1 || '',
-      vsa_remarks2: customer.vsa_remarks2 || '',
-      vsa_loan_amount: customer.vsa_loan_amount?.toString() || '',
-      vsa_interest: customer.vsa_interest?.toString() || '',
-      vsa_tenure: customer.vsa_tenure?.toString() || '',
-      vsa_admin_fee: customer.vsa_admin_fee?.toString() || '',
-      vsa_monthly_repayment: customer.vsa_monthly_repayment?.toString() || '',
-    });
-  }, [customer]);
+      vsa_make_model: customer.vsa_make_model ?? '',
+      vsa_variant: customer.vsa_variant ?? '',
+      vsa_yom: customer.vsa_yom ?? '',
+      vsa_body_colour: customer.vsa_body_colour ?? '',
+      vsa_upholstery: customer.vsa_upholstery ?? '',
+      vsa_prz_type: customer.vsa_prz_type ?? '',
+      vsa_package: customer.vsa_package ?? '',
+      vsa_selling_price_list: customer.vsa_selling_price_list?.toString() ?? '',
+      vsa_purchase_price_with_coe: customer.vsa_purchase_price_with_coe?.toString() ?? '',
+      vsa_coe_rebate_level: customer.vsa_coe_rebate_level ?? '',
+      vsa_deposit: customer.vsa_deposit?.toString() ?? '',
+      vsa_less_others: customer.vsa_less_others?.toString() ?? '',
+      vsa_add_others: customer.vsa_add_others?.toString() ?? '',
+      vsa_delivery_date: customer.vsa_delivery_date ?? '',
+      vsa_trade_in_car_no: customer.vsa_trade_in_car_no ?? '',
+      vsa_trade_in_car_model: customer.vsa_trade_in_car_model ?? '',
+      vsa_trade_in_amount: customer.vsa_trade_in_amount?.toString() ?? '',
+      vsa_trade_in_settlement_cost: customer.vsa_trade_in_settlement_cost?.toString() ?? '',
+      vsa_number_retention: customer.vsa_number_retention ?? false,
+      vsa_number_retention_fee: customer.vsa_number_retention_fee?.toString() ?? '',
+      vsa_trade_in_owner_not_customer: customer.vsa_trade_in_owner_not_customer ?? false,
+      vsa_trade_in_owner_name: customer.vsa_trade_in_owner_name ?? '',
+      vsa_trade_in_owner_nric: customer.vsa_trade_in_owner_nric ?? '',
+      vsa_trade_in_owner_mobile: customer.vsa_trade_in_owner_mobile ?? '',
+      vsa_trade_in_insurance_company: customer.vsa_trade_in_insurance_company ?? '',
+      vsa_trade_in_policy_number: customer.vsa_trade_in_policy_number ?? '',
+      vsa_date_of_registration: customer.vsa_date_of_registration ?? '',
+      vsa_registration_no: customer.vsa_registration_no ?? '',
+      vsa_chassis_no: customer.vsa_chassis_no ?? '',
+      vsa_engine_no: customer.vsa_engine_no ?? '',
+      vsa_motor_no: customer.vsa_motor_no ?? '',
+      vsa_insurance_company: customer.vsa_insurance_company ?? '',
+      vsa_insurance_fee: customer.vsa_insurance_fee?.toString() ?? '',
+      vsa_insurance_subsidy: customer.vsa_insurance_subsidy?.toString() ?? '',
+      vsa_remarks1: customer.vsa_remarks1 ?? '',
+      vsa_remarks2: customer.vsa_remarks2 ?? '',
+      vsa_loan_amount: customer.vsa_loan_amount?.toString() ?? '',
+      vsa_interest: customer.vsa_interest?.toString() ?? '',
+      vsa_tenure: customer.vsa_tenure?.toString() ?? '',
+      vsa_admin_fee: customer.vsa_admin_fee?.toString() ?? '',
+      vsa_monthly_repayment: customer.vsa_monthly_repayment?.toString() ?? '',
+    })
+  }, [customer])
 
   // Auto-calculate monthly repayment when loan details change
   // Flat Rate Formula: Monthly = (Principal + (Principal × Rate × Years)) / Months
   // This is the standard car loan calculation in Singapore
   useEffect(() => {
-    if (monthlyRepaymentManuallyEdited.current) return;
+    if (monthlyRepaymentManuallyEdited.current) return
 
-    const loanAmount = parseFloat(formData.vsa_loan_amount) || 0;
-    const annualInterestRate = parseFloat(formData.vsa_interest) || 0;
-    const tenure = parseFloat(formData.vsa_tenure) || 0;
+    const loanAmount = parseFloat(formData.vsa_loan_amount) ?? 0
+    const annualInterestRate = parseFloat(formData.vsa_interest) ?? 0
+    const tenure = parseFloat(formData.vsa_tenure) ?? 0
 
     if (loanAmount > 0 && tenure > 0) {
-      const years = tenure / 12;
-      const totalInterest = loanAmount * (annualInterestRate / 100) * years;
-      const totalAmount = loanAmount + totalInterest;
-      const monthlyPayment = totalAmount / tenure;
+      const years = tenure / 12
+      const totalInterest = loanAmount * (annualInterestRate / 100) * years
+      const totalAmount = loanAmount + totalInterest
+      const monthlyPayment = totalAmount / tenure
 
       setFormData((prev) => ({
         ...prev,
         vsa_monthly_repayment: monthlyPayment.toFixed(2),
-      }));
+      }))
     }
-  }, [formData.vsa_loan_amount, formData.vsa_interest, formData.vsa_tenure]);
+  }, [formData.vsa_loan_amount, formData.vsa_interest, formData.vsa_tenure])
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const { name, value, type } = e.target;
+    const { name, value, type } = e.target
 
     // Track if user manually edits monthly repayment
     if (name === 'vsa_monthly_repayment') {
-      monthlyRepaymentManuallyEdited.current = true;
+      monthlyRepaymentManuallyEdited.current = true
     }
     // Reset manual edit flag if user changes loan-related fields
     if (name === 'vsa_loan_amount' || name === 'vsa_interest' || name === 'vsa_tenure') {
-      monthlyRepaymentManuallyEdited.current = false;
+      monthlyRepaymentManuallyEdited.current = false
     }
 
     if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      setFormData((prev) => ({ ...prev, [name]: checked }));
+      const checked = (e.target as HTMLInputElement).checked
+      setFormData((prev) => ({ ...prev, [name]: checked }))
     } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [name]: value }))
     }
-  };
+  }
 
   const handleSave = () => {
     const updates: CustomerUpdate = {
-      vsa_make_model: formData.vsa_make_model || null,
-      vsa_variant: formData.vsa_variant || null,
-      vsa_yom: formData.vsa_yom || null,
-      vsa_body_colour: formData.vsa_body_colour || null,
-      vsa_upholstery: formData.vsa_upholstery || null,
-      vsa_prz_type: (formData.vsa_prz_type as 'P' | 'R' | 'Z') || null,
-      vsa_package: formData.vsa_package || null,
-      vsa_selling_price_list: formData.vsa_selling_price_list ? Number(formData.vsa_selling_price_list) : null,
-      vsa_purchase_price_with_coe: formData.vsa_purchase_price_with_coe ? Number(formData.vsa_purchase_price_with_coe) : null,
-      vsa_coe_rebate_level: formData.vsa_coe_rebate_level || null,
+      vsa_make_model: formData.vsa_make_model ?? null,
+      vsa_variant: formData.vsa_variant ?? null,
+      vsa_yom: formData.vsa_yom ?? null,
+      vsa_body_colour: formData.vsa_body_colour ?? null,
+      vsa_upholstery: formData.vsa_upholstery ?? null,
+      vsa_prz_type: (formData.vsa_prz_type as 'P' | 'R' | 'Z') ?? null,
+      vsa_package: formData.vsa_package ?? null,
+      vsa_selling_price_list: formData.vsa_selling_price_list
+        ? Number(formData.vsa_selling_price_list)
+        : null,
+      vsa_purchase_price_with_coe: formData.vsa_purchase_price_with_coe
+        ? Number(formData.vsa_purchase_price_with_coe)
+        : null,
+      vsa_coe_rebate_level: formData.vsa_coe_rebate_level ?? null,
       vsa_deposit: formData.vsa_deposit ? Number(formData.vsa_deposit) : null,
       vsa_less_others: formData.vsa_less_others ? Number(formData.vsa_less_others) : null,
       vsa_add_others: formData.vsa_add_others ? Number(formData.vsa_add_others) : null,
-      vsa_delivery_date: formData.vsa_delivery_date || null,
-      vsa_trade_in_car_no: formData.vsa_trade_in_car_no || null,
-      vsa_trade_in_car_model: formData.vsa_trade_in_car_model || null,
-      vsa_trade_in_amount: formData.vsa_trade_in_amount ? Number(formData.vsa_trade_in_amount) : null,
-      vsa_trade_in_settlement_cost: formData.vsa_trade_in_settlement_cost ? Number(formData.vsa_trade_in_settlement_cost) : null,
+      vsa_delivery_date: formData.vsa_delivery_date ?? null,
+      vsa_trade_in_car_no: formData.vsa_trade_in_car_no ?? null,
+      vsa_trade_in_car_model: formData.vsa_trade_in_car_model ?? null,
+      vsa_trade_in_amount: formData.vsa_trade_in_amount
+        ? Number(formData.vsa_trade_in_amount)
+        : null,
+      vsa_trade_in_settlement_cost: formData.vsa_trade_in_settlement_cost
+        ? Number(formData.vsa_trade_in_settlement_cost)
+        : null,
       vsa_number_retention: formData.vsa_number_retention,
-      vsa_number_retention_fee: formData.vsa_number_retention_fee ? Number(formData.vsa_number_retention_fee) : null,
+      vsa_number_retention_fee: formData.vsa_number_retention_fee
+        ? Number(formData.vsa_number_retention_fee)
+        : null,
       vsa_trade_in_owner_not_customer: formData.vsa_trade_in_owner_not_customer,
-      vsa_trade_in_owner_name: formData.vsa_trade_in_owner_name || null,
-      vsa_trade_in_owner_nric: formData.vsa_trade_in_owner_nric || null,
-      vsa_trade_in_owner_mobile: formData.vsa_trade_in_owner_mobile || null,
-      vsa_trade_in_insurance_company: formData.vsa_trade_in_insurance_company || null,
-      vsa_trade_in_policy_number: formData.vsa_trade_in_policy_number || null,
-      vsa_date_of_registration: formData.vsa_date_of_registration || null,
-      vsa_registration_no: formData.vsa_registration_no || null,
-      vsa_chassis_no: formData.vsa_chassis_no || null,
-      vsa_engine_no: formData.vsa_engine_no || null,
-      vsa_motor_no: formData.vsa_motor_no || null,
-      vsa_insurance_company: formData.vsa_insurance_company || null,
+      vsa_trade_in_owner_name: formData.vsa_trade_in_owner_name ?? null,
+      vsa_trade_in_owner_nric: formData.vsa_trade_in_owner_nric ?? null,
+      vsa_trade_in_owner_mobile: formData.vsa_trade_in_owner_mobile ?? null,
+      vsa_trade_in_insurance_company: formData.vsa_trade_in_insurance_company ?? null,
+      vsa_trade_in_policy_number: formData.vsa_trade_in_policy_number ?? null,
+      vsa_date_of_registration: formData.vsa_date_of_registration ?? null,
+      vsa_registration_no: formData.vsa_registration_no ?? null,
+      vsa_chassis_no: formData.vsa_chassis_no ?? null,
+      vsa_engine_no: formData.vsa_engine_no ?? null,
+      vsa_motor_no: formData.vsa_motor_no ?? null,
+      vsa_insurance_company: formData.vsa_insurance_company ?? null,
       vsa_insurance_fee: formData.vsa_insurance_fee ? Number(formData.vsa_insurance_fee) : null,
-      vsa_insurance_subsidy: formData.vsa_insurance_subsidy ? Number(formData.vsa_insurance_subsidy) : null,
-      vsa_remarks1: formData.vsa_remarks1 || null,
-      vsa_remarks2: formData.vsa_remarks2 || null,
+      vsa_insurance_subsidy: formData.vsa_insurance_subsidy
+        ? Number(formData.vsa_insurance_subsidy)
+        : null,
+      vsa_remarks1: formData.vsa_remarks1 ?? null,
+      vsa_remarks2: formData.vsa_remarks2 ?? null,
       vsa_loan_amount: formData.vsa_loan_amount ? Number(formData.vsa_loan_amount) : null,
       vsa_interest: formData.vsa_interest ? Number(formData.vsa_interest) : null,
       vsa_tenure: formData.vsa_tenure ? Number(formData.vsa_tenure) : null,
       vsa_admin_fee: formData.vsa_admin_fee ? Number(formData.vsa_admin_fee) : null,
-      vsa_monthly_repayment: formData.vsa_monthly_repayment ? Number(formData.vsa_monthly_repayment) : null,
-    };
+      vsa_monthly_repayment: formData.vsa_monthly_repayment
+        ? Number(formData.vsa_monthly_repayment)
+        : null,
+    }
     startTransition(async () => {
-      await onUpdate(customer.id, updates);
-    });
-  };
+      await onUpdate(customer.id, updates)
+    })
+  }
 
   const sections: { id: VsaSection; label: string; icon: ReactElement }[] = [
     { id: 'vehicle', label: 'Vehicle', icon: <Car size={16} /> },
@@ -224,7 +240,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
     { id: 'delivery', label: 'Delivery', icon: <Truck size={16} /> },
     { id: 'insurance', label: 'Insurance', icon: <Shield size={16} /> },
     { id: 'loan', label: 'Loan', icon: <Money size={16} /> },
-  ];
+  ]
 
   const renderSectionContent = () => {
     switch (activeSection) {
@@ -244,7 +260,9 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
                 {VEHICLE_MODELS_GROUPED.map((group) => (
                   <optgroup key={group.group} label={group.group}>
                     {group.models.map((model) => (
-                      <option key={model} value={model}>{model}</option>
+                      <option key={model} value={model}>
+                        {model}
+                      </option>
                     ))}
                   </optgroup>
                 ))}
@@ -283,7 +301,9 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               >
                 <option value="">Select Colour</option>
                 {BODY_COLOURS.map((colour) => (
-                  <option key={colour} value={colour}>{colour}</option>
+                  <option key={colour} value={colour}>
+                    {colour}
+                  </option>
                 ))}
               </select>
             </div>
@@ -309,12 +329,14 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               >
                 <option value="">Select Type</option>
                 {PRZ_TYPES.map((type) => (
-                  <option key={type.value} value={type.value}>{type.label}</option>
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
-        );
+        )
 
       case 'package':
         return (
@@ -407,25 +429,31 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               >
                 <option value="">Select delivery month</option>
                 {(() => {
-                  const options = [];
-                  const currentDate = new Date();
+                  const options = []
+                  const currentDate = new Date()
                   for (let i = 0; i < 24; i++) {
-                    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
-                    const monthName = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+                    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1)
+                    const monthName = date.toLocaleString('en-US', { month: 'short' }).toUpperCase()
                     // Get next month for the display format "JAN/FEB 2026"
-                    const nextDate = new Date(date.getFullYear(), date.getMonth() + 1, 1);
-                    const nextMonthName = nextDate.toLocaleString('en-US', { month: 'short' }).toUpperCase();
-                    const nextYear = nextDate.getFullYear();
+                    const nextDate = new Date(date.getFullYear(), date.getMonth() + 1, 1)
+                    const nextMonthName = nextDate
+                      .toLocaleString('en-US', { month: 'short' })
+                      .toUpperCase()
+                    const nextYear = nextDate.getFullYear()
                     // Value is the full format that gets saved
-                    const value = `${monthName}/${nextMonthName} ${nextYear}`;
-                    options.push(<option key={value} value={value}>{value}</option>);
+                    const value = `${monthName}/${nextMonthName} ${nextYear}`
+                    options.push(
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    )
                   }
-                  return options;
+                  return options
                 })()}
               </select>
             </div>
           </div>
-        );
+        )
 
       case 'tradeIn':
         return (
@@ -565,7 +593,9 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               >
                 <option value="">Select Company</option>
                 {INSURANCE_COMPANIES.map((company) => (
-                  <option key={company} value={company}>{company}</option>
+                  <option key={company} value={company}>
+                    {company}
+                  </option>
                 ))}
               </select>
             </div>
@@ -581,7 +611,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               />
             </div>
           </div>
-        );
+        )
 
       case 'delivery':
         return (
@@ -641,7 +671,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               />
             </div>
           </div>
-        );
+        )
 
       case 'insurance':
         return (
@@ -657,7 +687,9 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               >
                 <option value="">Select Company</option>
                 {INSURANCE_COMPANIES.map((company) => (
-                  <option key={company} value={company}>{company}</option>
+                  <option key={company} value={company}>
+                    {company}
+                  </option>
                 ))}
               </select>
             </div>
@@ -684,7 +716,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               />
             </div>
           </div>
-        );
+        )
 
       case 'loan':
         return (
@@ -771,12 +803,12 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
               />
             </div>
           </div>
-        );
+        )
 
       default:
-        return null;
+        return null
     }
-  };
+  }
 
   return (
     <div className="vsa-tab">
@@ -804,5 +836,5 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
         </Button>
       </div>
     </div>
-  );
+  )
 }

@@ -3,48 +3,48 @@
  * Handles importing Excel templates from old CRM format to new format
  */
 
-import type { ExcelFieldMappings } from '@/types';
+import type { ExcelFieldMappings } from '@/types'
 
 // Old CRM export format types
 interface OldFieldMapping {
-  fieldType: string;
-  cellRef: string;
-  customValue?: string;  // For _custom field types
+  fieldType: string
+  cellRef: string
+  customValue?: string // For _custom field types
 }
 
 interface OldExcelTemplate {
-  id: string;
-  name: string;
-  fieldMappings: Record<string, OldFieldMapping>;
-  hasMasterFile?: boolean;
-  masterFileName?: string | null;
-  driveFileId?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
+  id: string
+  name: string
+  fieldMappings: Record<string, OldFieldMapping>
+  hasMasterFile?: boolean
+  masterFileName?: string | null
+  driveFileId?: string | null
+  createdAt?: string
+  updatedAt?: string
 }
 
 interface OldExportData {
-  version: string;
-  exportDate: string;
-  type: 'excel_templates' | 'all_templates' | 'document_templates';
-  templates?: OldExcelTemplate[];
-  excelTemplates?: OldExcelTemplate[];
+  version: string
+  exportDate: string
+  type: 'excel_templates' | 'all_templates' | 'document_templates'
+  templates?: OldExcelTemplate[]
+  excelTemplates?: OldExcelTemplate[]
 }
 
 // Converted template for new CRM
 export interface ConvertedTemplate {
-  name: string;
-  field_mappings: ExcelFieldMappings;
-  sheet_names: string[];
-  masterFileBlob?: Blob;
-  masterFileName?: string;
+  name: string
+  field_mappings: ExcelFieldMappings
+  sheet_names: string[]
+  masterFileBlob?: Blob
+  masterFileName?: string
 }
 
 export interface ImportResult {
-  success: boolean;
-  templates: ConvertedTemplate[];
-  errors: string[];
-  skipped: string[];
+  success: boolean
+  templates: ConvertedTemplate[]
+  errors: string[]
+  skipped: string[]
 }
 
 /**
@@ -53,11 +53,11 @@ export interface ImportResult {
  */
 function parseCellRef(cellRef: string): { sheet: string; cell: string } {
   if (cellRef.includes('!')) {
-    const [sheet, cell] = cellRef.split('!');
-    return { sheet, cell: cell.toUpperCase() };
+    const [sheet, cell] = cellRef.split('!')
+    return { sheet, cell: cell.toUpperCase() }
   }
   // Default to "Sheet1" if no sheet specified
-  return { sheet: 'Sheet1', cell: cellRef.toUpperCase() };
+  return { sheet: 'Sheet1', cell: cellRef.toUpperCase() }
 }
 
 /**
@@ -70,33 +70,33 @@ function parseCellRef(cellRef: string): { sheet: string; cell: string } {
  * New: { "Sheet1": { "A1": "_custom:Some Text" } }
  */
 function convertFieldMappings(oldMappings: Record<string, OldFieldMapping>): ExcelFieldMappings {
-  const newMappings: ExcelFieldMappings = {};
+  const newMappings: ExcelFieldMappings = {}
 
   for (const mapping of Object.values(oldMappings)) {
-    if (!mapping.fieldType || !mapping.cellRef) continue;
+    if (!mapping.fieldType || !mapping.cellRef) continue
 
-    const { sheet, cell } = parseCellRef(mapping.cellRef);
+    const { sheet, cell } = parseCellRef(mapping.cellRef)
 
     if (!newMappings[sheet]) {
-      newMappings[sheet] = {};
+      newMappings[sheet] = {}
     }
 
     // Handle custom values
     if (mapping.fieldType === '_custom' && mapping.customValue) {
-      newMappings[sheet][cell] = `_custom:${mapping.customValue}`;
+      newMappings[sheet][cell] = `_custom:${mapping.customValue}`
     } else {
-      newMappings[sheet][cell] = mapping.fieldType;
+      newMappings[sheet][cell] = mapping.fieldType
     }
   }
 
-  return newMappings;
+  return newMappings
 }
 
 /**
  * Extract unique sheet names from field mappings
  */
 function extractSheetNames(mappings: ExcelFieldMappings): string[] {
-  return Object.keys(mappings);
+  return Object.keys(mappings)
 }
 
 /**
@@ -104,63 +104,65 @@ function extractSheetNames(mappings: ExcelFieldMappings): string[] {
  */
 export async function parseImportFile(file: File): Promise<OldExportData> {
   if (file.name.endsWith('.zip')) {
-    return parseZipFile(file);
+    return parseZipFile(file)
   }
 
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+    const reader = new FileReader()
 
     reader.onload = (e) => {
       try {
-        const data = JSON.parse(e.target?.result as string);
-        resolve(data);
+        const data = JSON.parse(e.target?.result as string)
+        resolve(data)
       } catch {
-        reject(new Error('Invalid JSON file'));
+        reject(new Error('Invalid JSON file'))
       }
-    };
+    }
 
     reader.onerror = () => {
-      reject(new Error('Failed to read file'));
-    };
+      reject(new Error('Failed to read file'))
+    }
 
-    reader.readAsText(file);
-  });
+    reader.readAsText(file)
+  })
 }
 
 /**
  * Parse ZIP file containing templates and master files
  */
-async function parseZipFile(file: File): Promise<OldExportData & { _masterFiles?: Record<string, { blob: Blob; filename: string }> }> {
+async function parseZipFile(
+  file: File
+): Promise<OldExportData & { _masterFiles?: Record<string, { blob: Blob; filename: string }> }> {
   // Dynamically import JSZip
-  const JSZip = (await import('jszip')).default;
-  const zip = new JSZip();
-  const zipContent = await zip.loadAsync(file);
+  const JSZip = (await import('jszip')).default
+  const zip = new JSZip()
+  const zipContent = await zip.loadAsync(file)
 
-  let manifest: OldExportData | null = null;
-  const masterFiles: Record<string, { blob: Blob; filename: string }> = {};
+  let manifest: OldExportData | null = null
+  const masterFiles: Record<string, { blob: Blob; filename: string }> = {}
 
   // Try to read manifest.json
   if (zipContent.files['manifest.json']) {
-    const manifestContent = await zipContent.files['manifest.json'].async('text');
-    manifest = JSON.parse(manifestContent);
+    const manifestContent = await zipContent.files['manifest.json'].async('text')
+    manifest = JSON.parse(manifestContent)
   }
 
   // Extract Excel master files
   const excelFiles = Object.keys(zipContent.files).filter(
     (f) => f.startsWith('excel_master_files/') && !zipContent.files[f].dir
-  );
+  )
 
   for (const filepath of excelFiles) {
-    const filename = filepath.replace('excel_master_files/', '');
+    const filename = filepath.replace('excel_master_files/', '')
     // Extract template ID from filename (format: templateId__originalFileName)
-    const separatorIndex = filename.indexOf('__');
+    const separatorIndex = filename.indexOf('__')
     if (separatorIndex > 0) {
-      const templateId = filename.substring(0, separatorIndex);
-      const blob = await zipContent.files[filepath].async('blob');
+      const templateId = filename.substring(0, separatorIndex)
+      const blob = await zipContent.files[filepath].async('blob')
       masterFiles[templateId] = {
         blob,
         filename: filename.substring(separatorIndex + 2),
-      };
+      }
     }
   }
 
@@ -168,22 +170,22 @@ async function parseZipFile(file: File): Promise<OldExportData & { _masterFiles?
   if (!manifest) {
     const jsonFiles = Object.keys(zipContent.files).filter(
       (f) => f.endsWith('.json') && !f.includes('/') && !zipContent.files[f].dir
-    );
+    )
 
     if (jsonFiles.length > 0) {
-      const firstJson = await zipContent.files[jsonFiles[0]].async('text');
-      manifest = JSON.parse(firstJson);
+      const firstJson = await zipContent.files[jsonFiles[0]].async('text')
+      manifest = JSON.parse(firstJson)
     }
   }
 
   if (!manifest) {
-    throw new Error('No valid template manifest found in ZIP file');
+    throw new Error('No valid template manifest found in ZIP file')
   }
 
   return {
     ...manifest,
     _masterFiles: masterFiles,
-  };
+  }
 }
 
 /**
@@ -191,14 +193,14 @@ async function parseZipFile(file: File): Promise<OldExportData & { _masterFiles?
  */
 export function validateImportData(data: OldExportData): boolean {
   if (!data.version || !data.type) {
-    throw new Error('Invalid template file: Missing version or type');
+    throw new Error('Invalid template file: Missing version or type')
   }
 
   if (!['document_templates', 'excel_templates', 'all_templates'].includes(data.type)) {
-    throw new Error('Invalid template file: Unknown type');
+    throw new Error('Invalid template file: Unknown type')
   }
 
-  return true;
+  return true
 }
 
 /**
@@ -212,50 +214,50 @@ export function convertTemplates(
     templates: [],
     errors: [],
     skipped: [],
-  };
+  }
 
   // Get Excel templates from the data
-  let oldTemplates: OldExcelTemplate[] = [];
+  let oldTemplates: OldExcelTemplate[] = []
 
   if (data.type === 'excel_templates' && data.templates) {
-    oldTemplates = data.templates;
+    oldTemplates = data.templates
   } else if (data.type === 'all_templates' && data.excelTemplates) {
-    oldTemplates = data.excelTemplates;
+    oldTemplates = data.excelTemplates
   } else {
-    result.errors.push('No Excel templates found in import file');
-    result.success = false;
-    return result;
+    result.errors.push('No Excel templates found in import file')
+    result.success = false
+    return result
   }
 
   for (const oldTemplate of oldTemplates) {
     try {
       // Convert field mappings
-      const fieldMappings = convertFieldMappings(oldTemplate.fieldMappings || {});
-      const sheetNames = extractSheetNames(fieldMappings);
+      const fieldMappings = convertFieldMappings(oldTemplate.fieldMappings ?? {})
+      const sheetNames = extractSheetNames(fieldMappings)
 
       const convertedTemplate: ConvertedTemplate = {
         name: oldTemplate.name,
         field_mappings: fieldMappings,
         sheet_names: sheetNames,
-      };
+      }
 
       // Attach master file if available
       if (data._masterFiles?.[oldTemplate.id]) {
-        convertedTemplate.masterFileBlob = data._masterFiles[oldTemplate.id].blob;
-        convertedTemplate.masterFileName = data._masterFiles[oldTemplate.id].filename;
+        convertedTemplate.masterFileBlob = data._masterFiles[oldTemplate.id].blob
+        convertedTemplate.masterFileName = data._masterFiles[oldTemplate.id].filename
       }
 
-      result.templates.push(convertedTemplate);
+      result.templates.push(convertedTemplate)
     } catch (err) {
-      result.errors.push(`Failed to convert "${oldTemplate.name}": ${(err as Error).message}`);
+      result.errors.push(`Failed to convert "${oldTemplate.name}": ${(err as Error).message}`)
     }
   }
 
   if (result.templates.length === 0 && result.errors.length > 0) {
-    result.success = false;
+    result.success = false
   }
 
-  return result;
+  return result
 }
 
 /**
@@ -263,15 +265,15 @@ export function convertTemplates(
  */
 export async function importTemplatesFromFile(file: File): Promise<ImportResult> {
   try {
-    const data = await parseImportFile(file);
-    validateImportData(data);
-    return convertTemplates(data);
+    const data = await parseImportFile(file)
+    validateImportData(data)
+    return convertTemplates(data)
   } catch (err) {
     return {
       success: false,
       templates: [],
       errors: [(err as Error).message],
       skipped: [],
-    };
+    }
   }
 }

@@ -1,5 +1,16 @@
-import { useEffect } from 'react';
-import { X, FloppyDisk, Calendar, Clock, CheckSquare, CaretDown, File, UploadSimple, Check, Warning } from '@phosphor-icons/react';
+import { useEffect } from 'react'
+import {
+  X,
+  FloppyDisk,
+  Calendar,
+  Clock,
+  CheckSquare,
+  CaretDown,
+  File,
+  UploadSimple,
+  Check,
+  Warning,
+} from '@phosphor-icons/react'
 import {
   MILESTONES,
   CHECKLISTS,
@@ -7,11 +18,11 @@ import {
   isMilestoneComplete,
   getDaysUntilMilestone,
   getMilestoneUrgency,
-} from '@/constants/milestones';
-import { REQUIRED_DOCUMENTS, DOCUMENT_STATUS } from '@/constants/documentRequirements';
-import { useMilestoneChecklist } from '@/hooks';
-import { getMilestoneIcon, CheckmarkIcon } from '@/utils';
-import type { Customer, DocumentChecklistItem } from '@/types';
+} from '@/constants/milestones'
+import { REQUIRED_DOCUMENTS, DOCUMENT_STATUS } from '@/constants/documentRequirements'
+import { useMilestoneChecklist } from '@/hooks'
+import { getMilestoneIcon, CheckmarkIcon } from '@/utils'
+import type { Customer, DocumentChecklistItem } from '@/types'
 
 /**
  * MilestoneTracker - Status Checklist Component
@@ -24,7 +35,7 @@ import type { Customer, DocumentChecklistItem } from '@/types';
  */
 
 interface MilestoneTrackerProps {
-  customer: Customer;
+  customer: Customer
 }
 
 export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
@@ -44,14 +55,14 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
     handleCreateTodosFromChecklist,
     handleSaveChanges,
     handleCancel,
-  } = useMilestoneChecklist({ customer });
+  } = useMilestoneChecklist({ customer })
 
   // Auto-expand current milestone on first render
   useEffect(() => {
     if (!expandedMilestone) {
-      setExpandedMilestone(currentMilestone);
+      setExpandedMilestone(currentMilestone)
     }
-  }, [currentMilestone, expandedMilestone, setExpandedMilestone]);
+  }, [currentMilestone, expandedMilestone, setExpandedMilestone])
 
   return (
     <div className="milestone-tracker-full">
@@ -77,26 +88,30 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
         <label>Current Stage:</label>
         <div className="stage-buttons">
           {MILESTONES.map((milestone) => {
-            const isCurrent = milestone.id === currentMilestone;
-            const isComplete = isMilestoneComplete(milestone.id, localChecklist);
+            const isCurrent = milestone.id === currentMilestone
+            const isComplete = isMilestoneComplete(milestone.id, localChecklist)
 
             return (
               <button
                 key={milestone.id}
                 className={`stage-button ${isCurrent ? 'active' : ''} ${isComplete ? 'complete' : ''}`}
-                style={{
-                  '--stage-color': milestone.color,
-                  borderColor: isCurrent ? milestone.color : 'var(--color-border-light)',
-                  background: isCurrent ? milestone.color : 'transparent',
-                  color: isCurrent ? 'white' : milestone.color,
-                } as React.CSSProperties}
+                style={
+                  {
+                    '--stage-color': milestone.color,
+                    borderColor: isCurrent ? milestone.color : 'var(--color-border-light)',
+                    background: isCurrent ? milestone.color : 'transparent',
+                    color: isCurrent ? 'white' : milestone.color,
+                  } as React.CSSProperties
+                }
                 onClick={() => handleSetCurrentMilestone(milestone.id)}
               >
                 {getMilestoneIcon(milestone.iconName, 16, isCurrent ? 'white' : milestone.color)}
                 <span className="stage-name-full">{milestone.name}</span>
-                <span className="stage-name-short">{isCurrent ? milestone.name : milestone.shortName}</span>
+                <span className="stage-name-short">
+                  {isCurrent ? milestone.name : milestone.shortName}
+                </span>
               </button>
-            );
+            )
           })}
         </div>
       </div>
@@ -104,11 +119,11 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
       {/* Expandable Checklists */}
       <div className="milestone-checklists">
         {MILESTONES.map((milestone) => {
-          const isExpanded = expandedMilestone === milestone.id;
-          const items = CHECKLISTS[milestone.id] || [];
-          const progress = getMilestoneProgress(milestone.id, localChecklist);
-          const isComplete = isMilestoneComplete(milestone.id, localChecklist);
-          const isCurrent = milestone.id === currentMilestone;
+          const isExpanded = expandedMilestone === milestone.id
+          const items = CHECKLISTS[milestone.id] ?? []
+          const progress = getMilestoneProgress(milestone.id, localChecklist)
+          const isComplete = isMilestoneComplete(milestone.id, localChecklist)
+          const isCurrent = milestone.id === currentMilestone
 
           return (
             <div
@@ -134,7 +149,10 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
                       getMilestoneIcon(milestone.iconName, 14, milestone.color)
                     )}
                   </div>
-                  <span className="checklist-title" style={{ color: isCurrent ? milestone.color : undefined }}>
+                  <span
+                    className="checklist-title"
+                    style={{ color: isCurrent ? milestone.color : undefined }}
+                  >
                     {milestone.name}
                   </span>
                   {isCurrent && (
@@ -167,19 +185,23 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
                       <input
                         type="date"
                         className="milestone-date-input"
-                        value={localMilestoneDates[milestone.id] || ''}
+                        value={localMilestoneDates[milestone.id] ?? ''}
                         onChange={(e) => handleMilestoneDateChange(milestone.id, e.target.value)}
                       />
                       {(() => {
-                        const days = getDaysUntilMilestone(localMilestoneDates[milestone.id]);
-                        const urgency = getMilestoneUrgency(localMilestoneDates[milestone.id]);
-                        if (days === null) return null;
+                        const days = getDaysUntilMilestone(localMilestoneDates[milestone.id])
+                        const urgency = getMilestoneUrgency(localMilestoneDates[milestone.id])
+                        if (days === null) return null
                         return (
                           <span className={`days-remaining ${urgency}`}>
                             <Clock size={14} className="clock-icon" />
-                            {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'Today' : `${days}d left`}
+                            {days < 0
+                              ? `${Math.abs(days)}d overdue`
+                              : days === 0
+                                ? 'Today'
+                                : `${days}d left`}
                           </span>
-                        );
+                        )
                       })()}
                     </div>
                     <button
@@ -196,14 +218,19 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
 
                   {/* Checklist Items */}
                   {items.map((item) => {
-                    const isChecked = localChecklist[milestone.id]?.[item.id] || false;
+                    const isChecked = localChecklist[milestone.id]?.[item.id] ?? false
 
                     return (
-                      <label key={item.id} className={`checklist-item ${isChecked ? 'checked' : ''}`}>
+                      <label
+                        key={item.id}
+                        className={`checklist-item ${isChecked ? 'checked' : ''}`}
+                      >
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={(e) => handleChecklistToggle(milestone.id, item.id, e.target.checked)}
+                          onChange={(e) =>
+                            handleChecklistToggle(milestone.id, item.id, e.target.checked)
+                          }
                         />
                         <span
                           className="custom-checkbox"
@@ -216,7 +243,7 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
                         </span>
                         <span className="checklist-item-label">{item.label}</span>
                       </label>
-                    );
+                    )
                   })}
 
                   {/* Document Status Section */}
@@ -228,24 +255,34 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
                       </div>
                       <div className="milestone-documents-list">
                         {REQUIRED_DOCUMENTS[milestone.id].map((doc) => {
-                          const docState = customer?.document_checklist?.[milestone.id]?.[doc.id] as DocumentChecklistItem | undefined;
-                          const status = docState?.status || DOCUMENT_STATUS.PENDING;
-                          const uploadedFiles = docState?.uploadedFiles || [];
+                          const docState = customer?.document_checklist?.[milestone.id]?.[
+                            doc.id
+                          ] as DocumentChecklistItem | undefined
+                          const status = docState?.status ?? DOCUMENT_STATUS.PENDING
+                          const uploadedFiles = docState?.uploadedFiles ?? []
 
                           const getStatusIcon = () => {
                             switch (status) {
                               case DOCUMENT_STATUS.UPLOADED:
-                                return <UploadSimple size={14} className="doc-status-icon uploaded" />;
+                                return (
+                                  <UploadSimple size={14} className="doc-status-icon uploaded" />
+                                )
                               case DOCUMENT_STATUS.APPROVED:
-                                return <Check size={14} weight="bold" className="doc-status-icon approved" />;
+                                return (
+                                  <Check
+                                    size={14}
+                                    weight="bold"
+                                    className="doc-status-icon approved"
+                                  />
+                                )
                               case DOCUMENT_STATUS.REJECTED:
-                                return <X size={14} className="doc-status-icon rejected" />;
+                                return <X size={14} className="doc-status-icon rejected" />
                               case DOCUMENT_STATUS.EXPIRED:
-                                return <Warning size={14} className="doc-status-icon expired" />;
+                                return <Warning size={14} className="doc-status-icon expired" />
                               default:
-                                return <Clock size={14} className="doc-status-icon pending" />;
+                                return <Clock size={14} className="doc-status-icon pending" />
                             }
-                          };
+                          }
 
                           return (
                             <div key={doc.id} className={`milestone-doc-item ${status}`}>
@@ -262,7 +299,7 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
                                 </span>
                               )}
                             </div>
-                          );
+                          )
                         })}
                       </div>
                     </div>
@@ -270,9 +307,9 @@ export function MilestoneTracker({ customer }: MilestoneTrackerProps) {
                 </div>
               )}
             </div>
-          );
+          )
         })}
       </div>
     </div>
-  );
+  )
 }

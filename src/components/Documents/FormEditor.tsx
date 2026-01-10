@@ -4,7 +4,15 @@
  */
 
 import { useState, useRef, useEffect } from 'react'
-import { ArrowLeft, UploadSimple, FloppyDisk, Trash, TextT, CaretLeft, CaretRight } from '@phosphor-icons/react'
+import {
+  ArrowLeft,
+  UploadSimple,
+  FloppyDisk,
+  Trash,
+  TextT,
+  CaretLeft,
+  CaretRight,
+} from '@phosphor-icons/react'
 import { Button, Modal } from '@/components/common'
 import { useDocumentStore } from '@/stores/useDocumentStore'
 import {
@@ -70,7 +78,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
 
   // Field state - initialized from current page
   const currentPage = pages[currentPageIndex]
-  const [fields, setFields] = useState<FieldMappings>(currentPage?.fields || {})
+  const [fields, setFields] = useState<FieldMappings>(currentPage?.fields ?? {})
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
@@ -125,16 +133,14 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
   // Sync fields when page changes
   useEffect(() => {
     if (currentPage) {
-      setFields(currentPage.fields || {})
+      setFields(currentPage.fields ?? {})
       setSelectedFieldId(null)
     }
   }, [currentPageIndex])
 
   // Save current page fields to pages array before switching
   const saveCurrentPageFields = () => {
-    setPages((prev) =>
-      prev.map((p, i) => (i === currentPageIndex ? { ...p, fields } : p))
-    )
+    setPages((prev) => prev.map((p, i) => (i === currentPageIndex ? { ...p, fields } : p)))
   }
 
   // Handle page change - save current fields first
@@ -187,7 +193,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
         }
       } else if (e.ctrlKey && e.key === 's') {
         e.preventDefault()
-        handleSave()
+        void handleSave()
       }
     }
 
@@ -433,9 +439,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
     try {
       if (isMultiPage || pages.length > 1) {
         // Multi-page: update the current page fields first, then save all pages
-        const updatedPages = pages.map((p, i) =>
-          i === currentPageIndex ? { ...p, fields } : p
-        )
+        const updatedPages = pages.map((p, i) => (i === currentPageIndex ? { ...p, fields } : p))
         await updateTemplate(template.id, { pages: updatedPages })
         setPages(updatedPages)
       } else {
@@ -456,9 +460,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
       if (isMultiPage || pages.length > 1) {
         // Multi-page: update current page's image
         const updatedPages = pages.map((p, i) =>
-          i === currentPageIndex
-            ? { ...p, image_path: result.path, image_url: result.url }
-            : p
+          i === currentPageIndex ? { ...p, image_path: result.path, image_url: result.url } : p
         )
         await updateTemplate(template.id, { pages: updatedPages })
         setPages(updatedPages)
@@ -634,7 +636,10 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 onClick={() => setShowImageUpload(true)}
               >
                 <UploadSimple size={48} className="upload-icon" />
-                <p>Click to upload template image{pages.length > 1 ? ` for Page ${currentPageIndex + 1}` : ''}</p>
+                <p>
+                  Click to upload template image
+                  {pages.length > 1 ? ` for Page ${currentPageIndex + 1}` : ''}
+                </p>
               </div>
             )}
 
@@ -759,7 +764,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
                 <label>Custom Value</label>
                 <input
                   type="text"
-                  value={selectedField.customValue || ''}
+                  value={selectedField.customValue ?? ''}
                   onChange={(e) => updateField(selectedFieldId!, { customValue: e.target.value })}
                   placeholder="Enter custom text..."
                 />
@@ -920,7 +925,7 @@ export function FormEditor({ template, onClose, onSave }: FormEditorProps) {
             hidden
             onChange={(e) => {
               const file = e.target.files?.[0]
-              if (file) handleImageUpload(file)
+              if (file) void handleImageUpload(file)
             }}
           />
         </div>

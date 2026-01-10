@@ -1,14 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
-import { X, Clock, Warning, Funnel, Plus, Check, Trash } from '@phosphor-icons/react';
-import {
-  useTodoStore,
-  useTodoSidebarOpen,
-  useTodoActiveFilter,
-  useTodos,
-} from '@/stores';
-import { InlineTaskForm } from '@/components/common';
-import type { TodoFilter, Priority } from '@/types';
-import './Layout.css';
+import { useState, useEffect, useMemo } from 'react'
+import { X, Clock, Warning, Funnel, Plus, Check, Trash } from '@phosphor-icons/react'
+import { useTodoStore, useTodoSidebarOpen, useTodoActiveFilter, useTodos } from '@/stores'
+import { InlineTaskForm } from '@/components/common'
+import type { TodoFilter, Priority } from '@/types'
+import './Layout.css'
 
 const FILTER_OPTIONS: { value: TodoFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -16,19 +11,19 @@ const FILTER_OPTIONS: { value: TodoFilter; label: string }[] = [
   { value: 'overdue', label: 'Overdue' },
   { value: 'high_priority', label: 'High Priority' },
   { value: 'completed', label: 'Completed' },
-];
+]
 
 const PRIORITY_COLORS: Record<Priority, string> = {
   low: '#10b981',
   medium: '#f59e0b',
   high: '#ef4444',
   urgent: '#dc2626',
-};
+}
 
 export function TodoSidebar() {
-  const isOpen = useTodoSidebarOpen();
-  const activeFilter = useTodoActiveFilter();
-  const todos = useTodos();
+  const isOpen = useTodoSidebarOpen()
+  const activeFilter = useTodoActiveFilter()
+  const todos = useTodos()
   const {
     fetchTodos,
     toggleTodo,
@@ -36,44 +31,46 @@ export function TodoSidebar() {
     setSidebarOpen,
     setActiveFilter,
     subscribeToChanges,
-  } = useTodoStore();
-  const [showAddForm, setShowAddForm] = useState(false);
+  } = useTodoStore()
+  const [showAddForm, setShowAddForm] = useState(false)
 
   // Memoize filtered todos to prevent infinite loops
-  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const today = useMemo(() => new Date().toISOString().split('T')[0], [])
 
   const todayTodos = useMemo(
     () => todos.filter((t) => t.due_date === today && !t.completed),
     [todos, today]
-  );
+  )
 
   const overdueTodos = useMemo(
     () => todos.filter((t) => t.due_date && t.due_date < today && !t.completed),
     [todos, today]
-  );
+  )
 
   const filteredTodos = useMemo(() => {
     switch (activeFilter) {
       case 'today':
-        return todayTodos;
+        return todayTodos
       case 'overdue':
-        return overdueTodos;
+        return overdueTodos
       case 'completed':
-        return todos.filter((t) => t.completed);
+        return todos.filter((t) => t.completed)
       case 'high_priority':
-        return todos.filter((t) => (t.priority === 'high' || t.priority === 'urgent') && !t.completed);
+        return todos.filter(
+          (t) => (t.priority === 'high' || t.priority === 'urgent') && !t.completed
+        )
       default:
-        return todos;
+        return todos
     }
-  }, [todos, activeFilter, todayTodos, overdueTodos]);
+  }, [todos, activeFilter, todayTodos, overdueTodos])
 
   useEffect(() => {
-    fetchTodos();
-    const unsubscribe = subscribeToChanges();
-    return unsubscribe;
-  }, [fetchTodos, subscribeToChanges]);
+    void fetchTodos()
+    const unsubscribe = subscribeToChanges()
+    return unsubscribe
+  }, [fetchTodos, subscribeToChanges])
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
     <>
@@ -81,10 +78,7 @@ export function TodoSidebar() {
       <aside className="todo-sidebar">
         <div className="sidebar-header">
           <h2 className="sidebar-title">Tasks</h2>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="sidebar-close"
-          >
+          <button onClick={() => setSidebarOpen(false)} className="sidebar-close">
             <X size={20} />
           </button>
         </div>
@@ -135,10 +129,7 @@ export function TodoSidebar() {
             </div>
           ) : (
             filteredTodos.map((todo) => (
-              <div
-                key={todo.id}
-                className={`todo-item ${todo.completed ? 'completed' : ''}`}
-              >
+              <div key={todo.id} className={`todo-item ${todo.completed ? 'completed' : ''}`}>
                 <button
                   onClick={() => toggleTodo(todo.id)}
                   className="todo-checkbox"
@@ -159,10 +150,7 @@ export function TodoSidebar() {
                     </span>
                   )}
                 </div>
-                <button
-                  onClick={() => deleteTodo(todo.id)}
-                  className="todo-delete"
-                >
+                <button onClick={() => deleteTodo(todo.id)} className="todo-delete">
                   <Trash size={16} className="delete-icon" />
                 </button>
               </div>
@@ -171,5 +159,5 @@ export function TodoSidebar() {
         </div>
       </aside>
     </>
-  );
+  )
 }

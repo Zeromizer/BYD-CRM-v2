@@ -3,19 +3,33 @@
  * Manages document templates with CRUD operations and category filtering
  */
 
-import { useState, useEffect, useRef } from 'react';
-import { CircleNotch, Cloud, Plus, MagnifyingGlass, File, Image, DotsThreeVertical, PencilSimple, Printer, Copy, Trash, X, DotsSixVertical } from '@phosphor-icons/react';
-import { Button, Modal } from '@/components/common';
-import { useToast } from '@/components/common';
-import { useDocumentStore } from '@/stores/useDocumentStore';
-import { getSupabase } from '@/lib/supabase';
-import type { DocumentTemplate, DocumentCategory, TemplatePage } from '@/types';
-import { getTotalFieldCount, getPageCount, isMultiPageTemplate, getTemplatePages } from '@/types';
-import './DocumentManager.css';
+import { useState, useEffect, useRef } from 'react'
+import {
+  CircleNotch,
+  Cloud,
+  Plus,
+  MagnifyingGlass,
+  File,
+  Image,
+  DotsThreeVertical,
+  PencilSimple,
+  Printer,
+  Copy,
+  Trash,
+  X,
+  DotsSixVertical,
+} from '@phosphor-icons/react'
+import { Button, Modal } from '@/components/common'
+import { useToast } from '@/components/common'
+import { useDocumentStore } from '@/stores/useDocumentStore'
+import { getSupabase } from '@/lib/supabase'
+import type { DocumentTemplate, DocumentCategory, TemplatePage } from '@/types'
+import { getTotalFieldCount, getPageCount, isMultiPageTemplate, getTemplatePages } from '@/types'
+import './DocumentManager.css'
 
 interface DocumentManagerProps {
-  onEditTemplate?: (template: DocumentTemplate) => void;
-  onPrintTemplate?: (template: DocumentTemplate) => void;
+  onEditTemplate?: (template: DocumentTemplate) => void
+  onPrintTemplate?: (template: DocumentTemplate) => void
 }
 
 const CATEGORIES: { id: DocumentCategory | 'all'; label: string }[] = [
@@ -26,7 +40,7 @@ const CATEGORIES: { id: DocumentCategory | 'all'; label: string }[] = [
   { id: 'test_drive', label: 'Test Drive' },
   { id: 'finance', label: 'Finance' },
   { id: 'other', label: 'Other' },
-];
+]
 
 export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentManagerProps) {
   const {
@@ -40,114 +54,114 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
     uploadTemplateImages,
     subscribeToChanges,
     clearError,
-  } = useDocumentStore();
+  } = useDocumentStore()
 
-  const { success, error: toastError } = useToast();
+  const { success, error: toastError } = useToast()
 
-  const [activeCategory, setActiveCategory] = useState<DocumentCategory | 'all'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showSyncResultModal, setShowSyncResultModal] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<DocumentCategory | 'all'>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showSyncResultModal, setShowSyncResultModal] = useState(false)
   const [syncResult, setSyncResult] = useState<{
-    processed: number;
-    pending: number;
-    failed: number;
-    message: string;
-  } | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null);
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+    processed: number
+    pending: number
+    failed: number
+    message: string
+  } | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null)
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // New template form state
-  const [newTemplateName, setNewTemplateName] = useState('');
-  const [newTemplateCategory, setNewTemplateCategory] = useState<DocumentCategory>('other');
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [newTemplateName, setNewTemplateName] = useState('')
+  const [newTemplateCategory, setNewTemplateCategory] = useState<DocumentCategory>('other')
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [previewUrls, setPreviewUrls] = useState<string[]>([])
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    fetchTemplates();
-    const unsubscribe = subscribeToChanges();
-    return () => unsubscribe();
-  }, [fetchTemplates, subscribeToChanges]);
+    void fetchTemplates()
+    const unsubscribe = subscribeToChanges()
+    return () => unsubscribe()
+  }, [fetchTemplates, subscribeToChanges])
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setOpenDropdownId(null);
+        setOpenDropdownId(null)
       }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Filter templates
   const filteredTemplates = templates.filter((template) => {
-    const matchesCategory = activeCategory === 'all' || template.category === activeCategory;
-    const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+    const matchesCategory = activeCategory === 'all' || template.category === activeCategory
+    const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesCategory && matchesSearch
+  })
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
+    const files = Array.from(event.target.files ?? [])
     if (files.length > 0) {
-      const newUrls = files.map((file) => URL.createObjectURL(file));
-      setSelectedFiles((prev) => [...prev, ...files]);
-      setPreviewUrls((prev) => [...prev, ...newUrls]);
+      const newUrls = files.map((file) => URL.createObjectURL(file))
+      setSelectedFiles((prev) => [...prev, ...files])
+      setPreviewUrls((prev) => [...prev, ...newUrls])
     }
     // Reset input so same files can be selected again
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = ''
     }
-  };
+  }
 
   const handleRemovePage = (index: number) => {
     // Revoke the URL to free memory
-    URL.revokeObjectURL(previewUrls[index]);
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
-  };
+    URL.revokeObjectURL(previewUrls[index])
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index))
+    setPreviewUrls((prev) => prev.filter((_, i) => i !== index))
+  }
 
   const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
-  };
+    setDraggedIndex(index)
+  }
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
+    e.preventDefault()
+    if (draggedIndex === null || draggedIndex === index) return
 
     // Reorder files and previews
-    const newFiles = [...selectedFiles];
-    const newUrls = [...previewUrls];
+    const newFiles = [...selectedFiles]
+    const newUrls = [...previewUrls]
 
-    const [draggedFile] = newFiles.splice(draggedIndex, 1);
-    const [draggedUrl] = newUrls.splice(draggedIndex, 1);
+    const [draggedFile] = newFiles.splice(draggedIndex, 1)
+    const [draggedUrl] = newUrls.splice(draggedIndex, 1)
 
-    newFiles.splice(index, 0, draggedFile);
-    newUrls.splice(index, 0, draggedUrl);
+    newFiles.splice(index, 0, draggedFile)
+    newUrls.splice(index, 0, draggedUrl)
 
-    setSelectedFiles(newFiles);
-    setPreviewUrls(newUrls);
-    setDraggedIndex(index);
-  };
+    setSelectedFiles(newFiles)
+    setPreviewUrls(newUrls)
+    setDraggedIndex(index)
+  }
 
   const handleDragEnd = () => {
-    setDraggedIndex(null);
-  };
+    setDraggedIndex(null)
+  }
 
   const handleCreateTemplate = async () => {
-    if (!newTemplateName.trim()) return;
+    if (!newTemplateName.trim()) return
 
     try {
-      let templateData: Parameters<typeof createTemplate>[0];
+      let templateData: Parameters<typeof createTemplate>[0]
 
       if (selectedFiles.length > 0) {
         // Multi-page template: upload all images and create pages array
-        const uploadResults = await uploadTemplateImages(selectedFiles);
+        const uploadResults = await uploadTemplateImages(selectedFiles)
 
         const pages: TemplatePage[] = uploadResults.map((result, index) => ({
           id: `page_${Date.now()}_${index}`,
@@ -157,46 +171,46 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
           width: null,
           height: null,
           fields: {},
-        }));
+        }))
 
         templateData = {
           name: newTemplateName.trim(),
           category: newTemplateCategory,
           pages,
-        };
+        }
       } else {
         // No images - create template without pages
         templateData = {
           name: newTemplateName.trim(),
           category: newTemplateCategory,
-        };
+        }
       }
 
-      const newTemplate = await createTemplate(templateData);
+      const newTemplate = await createTemplate(templateData)
 
-      setShowCreateModal(false);
-      resetCreateForm();
+      setShowCreateModal(false)
+      resetCreateForm()
 
       // Open editor for new template
       if (onEditTemplate && newTemplate) {
-        onEditTemplate(newTemplate);
+        onEditTemplate(newTemplate)
       }
     } catch (err) {
-      console.error('Error creating template:', err);
+      console.error('Error creating template:', err)
     }
-  };
+  }
 
   const handleDeleteTemplate = async () => {
-    if (!selectedTemplate) return;
+    if (!selectedTemplate) return
 
     try {
-      await deleteTemplate(selectedTemplate.id);
-      setShowDeleteModal(false);
-      setSelectedTemplate(null);
+      await deleteTemplate(selectedTemplate.id)
+      setShowDeleteModal(false)
+      setSelectedTemplate(null)
     } catch (err) {
-      console.error('Error deleting template:', err);
+      console.error('Error deleting template:', err)
     }
-  };
+  }
 
   const handleDuplicateTemplate = async (template: DocumentTemplate) => {
     try {
@@ -206,14 +220,14 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
           ...page,
           id: `page_${Date.now()}_${page.page_number}`,
           fields: { ...page.fields },
-        }));
+        }))
 
         await createTemplate({
           name: `${template.name} (Copy)`,
           category: template.category,
           dpi: template.dpi,
           pages: duplicatedPages,
-        });
+        })
       } else {
         // Duplicate legacy single-page template
         await createTemplate({
@@ -225,36 +239,36 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
           width: template.width,
           height: template.height,
           fields: { ...template.fields },
-        });
+        })
       }
-      setOpenDropdownId(null);
+      setOpenDropdownId(null)
     } catch (err) {
-      console.error('Error duplicating template:', err);
+      console.error('Error duplicating template:', err)
     }
-  };
+  }
 
   const resetCreateForm = () => {
-    setNewTemplateName('');
-    setNewTemplateCategory('other');
+    setNewTemplateName('')
+    setNewTemplateCategory('other')
     // Revoke all preview URLs to free memory
-    previewUrls.forEach((url) => URL.revokeObjectURL(url));
-    setSelectedFiles([]);
-    setPreviewUrls([]);
-    setDraggedIndex(null);
+    previewUrls.forEach((url) => URL.revokeObjectURL(url))
+    setSelectedFiles([])
+    setPreviewUrls([])
+    setDraggedIndex(null)
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = ''
     }
-  };
+  }
 
   // Use the helper from types that handles multi-page templates
   const getFieldCountDisplay = (template: DocumentTemplate): string => {
-    const fieldCount = getTotalFieldCount(template);
-    const pageCount = getPageCount(template);
+    const fieldCount = getTotalFieldCount(template)
+    const pageCount = getPageCount(template)
     if (pageCount > 1) {
-      return `${fieldCount} fields (${pageCount} pages)`;
+      return `${fieldCount} fields (${pageCount} pages)`
     }
-    return `${fieldCount} fields`;
-  };
+    return `${fieldCount} fields`
+  }
 
   const getCategoryColor = (category: DocumentCategory): string => {
     const colors: Record<DocumentCategory, string> = {
@@ -264,45 +278,45 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
       test_drive: '#64748b',
       finance: '#d97706',
       other: '#8b5cf6',
-    };
-    return colors[category] || '#64748b';
-  };
+    }
+    return colors[category] || '#64748b'
+  }
 
   const handleSyncOneDrive = async () => {
-    setIsSyncing(true);
+    setIsSyncing(true)
     try {
-      const { data, error } = await getSupabase().functions.invoke('sync-onedrive');
+      const { data, error } = await getSupabase().functions.invoke('sync-onedrive')
 
       if (error) {
-        throw new Error(error.message || 'Sync failed');
+        throw new Error(error.message || 'Sync failed')
       }
 
       if (data.success) {
         setSyncResult({
-          processed: data.processed || 0,
-          pending: data.pending || 0,
-          failed: data.failed || 0,
+          processed: data.processed ?? 0,
+          pending: data.pending ?? 0,
+          failed: data.failed ?? 0,
           message: data.message || 'Sync completed',
-        });
-        setShowSyncResultModal(true);
+        })
+        setShowSyncResultModal(true)
 
         if (data.processed > 0) {
-          success(`${data.processed} document(s) synced successfully`);
+          success(`${data.processed} document(s) synced successfully`)
         } else if (data.pending > 0) {
-          success(`${data.pending} document(s) need review`);
+          success(`${data.pending} document(s) need review`)
         } else {
-          success('No new documents to sync');
+          success('No new documents to sync')
         }
       } else {
-        throw new Error(data.error || 'Sync failed');
+        throw new Error(data.error || 'Sync failed')
       }
     } catch (err) {
-      console.error('Sync error:', err);
-      toastError(err instanceof Error ? err.message : 'Failed to sync OneDrive');
+      console.error('Sync error:', err)
+      toastError(err instanceof Error ? err.message : 'Failed to sync OneDrive')
     } finally {
-      setIsSyncing(false);
+      setIsSyncing(false)
     }
-  };
+  }
 
   return (
     <div className="document-manager">
@@ -314,7 +328,9 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
             variant="outline"
             onClick={handleSyncOneDrive}
             isLoading={isSyncing}
-            leftIcon={isSyncing ? <CircleNotch size={16} className="spinning" /> : <Cloud size={16} />}
+            leftIcon={
+              isSyncing ? <CircleNotch size={16} className="spinning" /> : <Cloud size={16} />
+            }
           >
             {isSyncing ? 'Syncing...' : 'Sync OneDrive'}
           </Button>
@@ -328,7 +344,9 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
       {error && (
         <div className="dm-error">
           <span>{error}</span>
-          <button onClick={clearError}><X size={14} /></button>
+          <button onClick={clearError}>
+            <X size={14} />
+          </button>
         </div>
       )}
 
@@ -383,26 +401,24 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
               <div className="template-preview" onClick={() => onEditTemplate?.(template)}>
                 {(() => {
                   // Get first page image URL (handles both multi-page and legacy templates)
-                  const pages = getTemplatePages(template);
-                  const firstPageUrl = pages[0]?.image_url;
-                  const pageCount = pages.length;
+                  const pages = getTemplatePages(template)
+                  const firstPageUrl = pages[0]?.image_url
+                  const pageCount = pages.length
 
                   if (firstPageUrl) {
                     return (
                       <>
                         <img src={firstPageUrl} alt={template.name} />
-                        {pageCount > 1 && (
-                          <div className="page-count-badge">{pageCount} pages</div>
-                        )}
+                        {pageCount > 1 && <div className="page-count-badge">{pageCount} pages</div>}
                       </>
-                    );
+                    )
                   }
                   return (
                     <div className="template-preview-placeholder">
                       <Image size={32} className="placeholder-icon" />
                       <span>No image</span>
                     </div>
-                  );
+                  )
                 })()}
               </div>
 
@@ -412,22 +428,35 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
                   <h4 className="template-name" title={template.name}>
                     {template.name}
                   </h4>
-                  <div className="template-actions" ref={openDropdownId === template.id ? dropdownRef : null}>
+                  <div
+                    className="template-actions"
+                    ref={openDropdownId === template.id ? dropdownRef : null}
+                  >
                     <button
                       className="action-trigger"
                       onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenDropdownId(openDropdownId === template.id ? null : template.id);
+                        e.stopPropagation()
+                        setOpenDropdownId(openDropdownId === template.id ? null : template.id)
                       }}
                     >
                       <DotsThreeVertical size={18} className="more-icon" />
                     </button>
                     {openDropdownId === template.id && (
                       <div className="action-dropdown">
-                        <button onClick={() => { onEditTemplate?.(template); setOpenDropdownId(null); }}>
+                        <button
+                          onClick={() => {
+                            onEditTemplate?.(template)
+                            setOpenDropdownId(null)
+                          }}
+                        >
                           <PencilSimple size={14} className="menu-icon" /> Edit Fields
                         </button>
-                        <button onClick={() => { onPrintTemplate?.(template); setOpenDropdownId(null); }}>
+                        <button
+                          onClick={() => {
+                            onPrintTemplate?.(template)
+                            setOpenDropdownId(null)
+                          }}
+                        >
                           <Printer size={14} className="menu-icon" /> Print Preview
                         </button>
                         <button onClick={() => handleDuplicateTemplate(template)}>
@@ -436,9 +465,9 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
                         <button
                           className="danger"
                           onClick={() => {
-                            setSelectedTemplate(template);
-                            setShowDeleteModal(true);
-                            setOpenDropdownId(null);
+                            setSelectedTemplate(template)
+                            setShowDeleteModal(true)
+                            setOpenDropdownId(null)
                           }}
                         >
                           <Trash size={14} className="menu-icon" /> Delete
@@ -467,8 +496,8 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
       <Modal
         isOpen={showCreateModal}
         onClose={() => {
-          setShowCreateModal(false);
-          resetCreateForm();
+          setShowCreateModal(false)
+          resetCreateForm()
         }}
         title="Create New Template"
         size="md"
@@ -553,8 +582,8 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
             <Button
               variant="outline"
               onClick={() => {
-                setShowCreateModal(false);
-                resetCreateForm();
+                setShowCreateModal(false)
+                resetCreateForm()
               }}
             >
               Cancel
@@ -574,8 +603,8 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
       <Modal
         isOpen={showDeleteModal}
         onClose={() => {
-          setShowDeleteModal(false);
-          setSelectedTemplate(null);
+          setShowDeleteModal(false)
+          setSelectedTemplate(null)
         }}
         title="Delete Template"
         size="sm"
@@ -589,8 +618,8 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
             <Button
               variant="outline"
               onClick={() => {
-                setShowDeleteModal(false);
-                setSelectedTemplate(null);
+                setShowDeleteModal(false)
+                setSelectedTemplate(null)
               }}
             >
               Cancel
@@ -629,18 +658,17 @@ export function DocumentManager({ onEditTemplate, onPrintTemplate }: DocumentMan
               <p className="sync-message">{syncResult.message}</p>
               {syncResult.pending > 0 && (
                 <p className="sync-note">
-                  Documents pending review can be found in the customer-documents storage bucket under "pending-review".
+                  Documents pending review can be found in the customer-documents storage bucket
+                  under "pending-review".
                 </p>
               )}
             </>
           )}
           <div className="form-actions">
-            <Button onClick={() => setShowSyncResultModal(false)}>
-              Close
-            </Button>
+            <Button onClick={() => setShowSyncResultModal(false)}>Close</Button>
           </div>
         </div>
       </Modal>
     </div>
-  );
+  )
 }
