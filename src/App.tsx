@@ -1,7 +1,7 @@
 import { useEffect, Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/useAuthStore'
-import { AuthPage, AuthGuard } from '@/components/Auth'
+import { AuthPage, AuthGuard, RoleGuard } from '@/components/Auth'
 import { Layout } from '@/components/Layout'
 import { ToastProvider, ErrorBoundary } from '@/components/common'
 import { ThemeProvider } from '@/context/ThemeContext'
@@ -15,6 +15,9 @@ const DocumentsPage = lazy(() =>
   import('@/components/Documents').then((m) => ({ default: m.DocumentsPage }))
 )
 const ExcelPage = lazy(() => import('@/components/Excel').then((m) => ({ default: m.ExcelPage })))
+const UserManagement = lazy(() =>
+  import('@/components/UserManagement').then((m) => ({ default: m.UserManagement }))
+)
 
 // Loading fallback for lazy-loaded routes
 function RouteLoadingFallback() {
@@ -98,6 +101,16 @@ function App() {
                     <Suspense fallback={<RouteLoadingFallback />}>
                       <ExcelPage />
                     </Suspense>
+                  }
+                />
+                <Route
+                  path="users"
+                  element={
+                    <RoleGuard allowedRoles={['manager']}>
+                      <Suspense fallback={<RouteLoadingFallback />}>
+                        <UserManagement />
+                      </Suspense>
+                    </RoleGuard>
                   }
                 />
               </Route>

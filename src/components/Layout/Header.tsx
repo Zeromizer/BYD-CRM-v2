@@ -11,14 +11,17 @@ import {
   SignOut,
   X,
   List,
+  Users,
 } from '@phosphor-icons/react'
-import { useAuthStore, useProfile, useTodoStore } from '@/stores'
+import { useAuthStore, useProfile, useTodoStore, useIsManager } from '@/stores'
+import { ROLE_LABELS } from '@/types'
 import './Layout.css'
 
 const NAV_ICONS = {
   '/': House,
   '/documents': File,
   '/excel': FileXls,
+  '/users': Users,
 }
 
 type Theme = 'light' | 'dark' | 'cool'
@@ -42,11 +45,13 @@ export function Header({ theme, onSetTheme }: HeaderProps) {
   const profile = useProfile()
   const signOut = useAuthStore((state) => state.signOut)
   const toggleTodoSidebar = useTodoStore((state) => state.toggleSidebar)
+  const isManager = useIsManager()
 
   const navItems = [
     { path: '/' as const, label: 'Dashboard' },
     { path: '/documents' as const, label: 'Documents' },
     { path: '/excel' as const, label: 'Excel' },
+    ...(isManager ? [{ path: '/users' as const, label: 'Users' }] : []),
   ]
 
   const handleSignOut = async () => {
@@ -141,6 +146,7 @@ export function Header({ theme, onSetTheme }: HeaderProps) {
                     {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */}
                     <p className="user-menu-name">{profile?.display_name || 'User'}</p>
                     <p className="user-menu-email">{profile?.email}</p>
+                    {profile?.role && <p className="user-menu-role">{ROLE_LABELS[profile.role]}</p>}
                   </div>
                   <div className="user-menu-divider" />
                   <button onClick={handleSignOut} className="user-menu-item danger">

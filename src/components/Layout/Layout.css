@@ -219,6 +219,19 @@
   font-size: 0.75rem;
 }
 
+.user-menu-role {
+  display: inline-block;
+  margin: 0.5rem 0 0;
+  padding: 0.125rem 0.5rem;
+  background: var(--accent-bg);
+  color: var(--accent-color);
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 4px;
+}
+
 .user-menu-divider {
   height: 1px;
   background: var(--border-color);

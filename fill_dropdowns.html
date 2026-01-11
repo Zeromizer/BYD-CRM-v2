@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fill Dropdowns</title>
+</head>
+<body>
+    <h1>Run this in Browser Console</h1>
+    <pre id="script">
+// Select Model
+document.querySelector('select[name="proposal_model"]').value = 'BYD Atto3 Extended Range 100kw';
+document.querySelector('select[name="proposal_model"]').dispatchEvent(new Event('change', { bubbles: true }));
+
+// Select Bank
+document.querySelector('select[name="proposal_bank"]').value = 'DBS';
+document.querySelector('select[name="proposal_bank"]').dispatchEvent(new Event('change', { bubbles: true }));
+
+// Select Benefits
+document.querySelector('select[name="proposal_benefit1"]').value = '$500 Service Credits';
+document.querySelector('select[name="proposal_benefit1"]').dispatchEvent(new Event('change', { bubbles: true }));
+
+document.querySelector('select[name="proposal_benefit2"]').value = '1x Ceramic Coating';
+document.querySelector('select[name="proposal_benefit2"]').dispatchEvent(new Event('change', { bubbles: true }));
+
+document.querySelector('select[name="proposal_benefit3"]').value = '3M Solar Film (Premium Plus)';
+document.querySelector('select[name="proposal_benefit3"]').dispatchEvent(new Event('change', { bubbles: true }));
+
+console.log('Dropdowns filled successfully!');
+    </pre>
+    <button onclick="copyScript()">Copy to Clipboard</button>
+    <script>
+        function copyScript() {
+            const text = document.getElementById('script').textContent;
+            navigator.clipboard.writeText(text);
+            alert('Script copied! Paste it in the browser console.');
+        }
+    </script>
+</body>
+</html>

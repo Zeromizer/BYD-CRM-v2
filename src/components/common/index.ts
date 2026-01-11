@@ -1,10 +1,11 @@
-export { Modal } from './Modal';
-export { ToastProvider, useToast } from './Toast';
-export { Button, type ButtonProps } from './Button';
-export { InlineTaskForm } from './InlineTaskForm';
-export { PdfViewer } from './PdfViewer';
-export { ImageViewer } from './ImageViewer';
-export { ExcelViewer } from './ExcelViewer';
-export { DocumentThumbnail } from './DocumentThumbnail';
-export { ErrorBoundary, ErrorFallback } from './ErrorBoundary';
-export { CollapsibleSection } from './CollapsibleSection';
+export { Modal } from './Modal'
+export { ToastProvider, useToast } from './Toast'
+export { Button, type ButtonProps } from './Button'
+export { InlineTaskForm } from './InlineTaskForm'
+export { PdfViewer } from './PdfViewer'
+export { ImageViewer } from './ImageViewer'
+export { ExcelViewer } from './ExcelViewer'
+export { DocumentThumbnail } from './DocumentThumbnail'
+export { ErrorBoundary, ErrorFallback } from './ErrorBoundary'
+export { CollapsibleSection } from './CollapsibleSection'
+export { PermissionGate } from './PermissionGate'

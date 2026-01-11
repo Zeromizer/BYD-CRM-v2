@@ -1,0 +1,27 @@
+/c/Users/User/bash_completion.d/*.bash : The term '/c/Users/User/bash_completion.d/*.bash' is not recognized as the 
+name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was 
+included, verify that the path is correct and try again.
+At line:1 char:1
++ /c/Users/User/bash_completion.d/*.bash = Get-Content 'C:\Coding\BYD-C ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (/c/Users/User/bash_completion.d/*.bash:String) [], CommandNotFoundExcep 
+   tion
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+/c/Users/User/bash_completion.d/*.bash : The term '/c/Users/User/bash_completion.d/*.bash' is not recognized as the 
+name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was 
+included, verify that the path is correct and try again.
+At line:1 char:144
++ ... coding]::UTF8.GetBytes(/c/Users/User/bash_completion.d/*.bash); [Syst ...
++                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (/c/Users/User/bash_completion.d/*.bash:String) [], CommandNotFoundExcep 
+   tion
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+Cannot find an overload for "ToBase64String" and the argument count: "0".
+At line:1 char:185
++ ... rs/User/bash_completion.d/*.bash); [System.Convert]::ToBase64String()
++                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], MethodException
+    + FullyQualifiedErrorId : MethodCountCouldNotFindBest
+ 

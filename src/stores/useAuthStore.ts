@@ -13,7 +13,15 @@ import { devtools, persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import { getSupabase } from '@/lib/supabase'
 import { loadGeminiApiKey, clearGeminiApiKeyCache } from '@/services/geminiService'
-import type { Profile, AuthState, SignInCredentials, SignUpCredentials } from '@/types'
+import type {
+  Profile,
+  AuthState,
+  SignInCredentials,
+  SignUpCredentials,
+  UserRole,
+  RolePermissions,
+} from '@/types'
+import { ROLE_PERMISSIONS } from '@/types'
 
 interface AuthActions {
   initialize: () => Promise<void>
@@ -315,3 +323,60 @@ export const useIsAuthenticated = () => useAuthStore((state) => !!state.session)
 export const useAuthLoading = () => useAuthStore((state) => state.isLoading)
 export const useAuthError = () => useAuthStore((state) => state.error)
 export const useAuthInitialized = () => useAuthStore((state) => state.isInitialized)
+
+// Role-based selector hooks
+export const useUserRole = (): UserRole | null =>
+  useAuthStore((state) => state.profile?.role ?? null)
+
+export const usePermissions = (): RolePermissions => {
+  const role = useAuthStore((state) => state.profile?.role)
+  if (!role) {
+    // Return most restrictive permissions when not authenticated
+    return {
+      canViewAllCustomers: false,
+      canEditCustomers: false,
+      canDeleteCustomers: false,
+      canCreateCustomers: false,
+      canManageUsers: false,
+      canInviteUsers: false,
+      canManageTemplates: false,
+    }
+  }
+  return ROLE_PERMISSIONS[role]
+}
+
+// Role check hooks
+export const useIsManager = () => useAuthStore((state) => state.profile?.role === 'manager')
+
+export const useIsAdmin = () => useAuthStore((state) => state.profile?.role === 'admin')
+
+export const useIsSalesConsultant = () =>
+  useAuthStore((state) => state.profile?.role === 'sales_consultant')
+
+// Permission check hooks
+export const useCanViewAllCustomers = () =>
+  useAuthStore((state) =>
+    state.profile?.role ? ROLE_PERMISSIONS[state.profile.role].canViewAllCustomers : false
+  )
+
+export const useCanEditCustomers = () =>
+  useAuthStore((state) =>
+    state.profile?.role ? ROLE_PERMISSIONS[state.profile.role].canEditCustomers : false
+  )
+
+export const useCanDeleteCustomers = () =>
+  useAuthStore((state) =>
+    state.profile?.role ? ROLE_PERMISSIONS[state.profile.role].canDeleteCustomers : false
+  )
+
+export const useCanCreateCustomers = () =>
+  useAuthStore((state) =>
+    state.profile?.role ? ROLE_PERMISSIONS[state.profile.role].canCreateCustomers : false
+  )
+
+export const useCanManageUsers = () =>
+  useAuthStore((state) =>
+    state.profile?.role ? ROLE_PERMISSIONS[state.profile.role].canManageUsers : false
+  )
+
+export const useIsViewOnly = () => useAuthStore((state) => state.profile?.role === 'admin')
