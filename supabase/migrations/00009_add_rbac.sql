@@ -26,13 +26,13 @@ CREATE INDEX idx_profiles_role ON profiles(role);
 -- ============================================
 
 -- Get current user's role
-CREATE OR REPLACE FUNCTION auth.user_role()
+CREATE OR REPLACE FUNCTION public.get_user_role()
 RETURNS user_role AS $$
   SELECT role FROM public.profiles WHERE id = auth.uid()
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
 -- Check if current user is a manager
-CREATE OR REPLACE FUNCTION auth.is_manager()
+CREATE OR REPLACE FUNCTION public.is_manager()
 RETURNS boolean AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.profiles
@@ -41,7 +41,7 @@ RETURNS boolean AS $$
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
 -- Check if current user is admin or manager
-CREATE OR REPLACE FUNCTION auth.is_admin_or_manager()
+CREATE OR REPLACE FUNCTION public.is_admin_or_manager()
 RETURNS boolean AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.profiles
@@ -93,7 +93,7 @@ CREATE POLICY "Users can view own profile" ON profiles
 
 -- Managers can view all profiles (for user management)
 CREATE POLICY "Managers can view all profiles" ON profiles
-  FOR SELECT USING (auth.is_manager());
+  FOR SELECT USING (public.is_manager());
 
 -- Users can update their own profile (but trigger prevents role change)
 CREATE POLICY "Users can update own profile" ON profiles
@@ -101,7 +101,7 @@ CREATE POLICY "Users can update own profile" ON profiles
 
 -- Managers can update any profile (for role assignment)
 CREATE POLICY "Managers can update all profiles" ON profiles
-  FOR UPDATE USING (auth.is_manager());
+  FOR UPDATE USING (public.is_manager());
 
 -- Users can insert their own profile (via trigger)
 CREATE POLICY "Users can insert own profile" ON profiles
@@ -119,7 +119,7 @@ DROP POLICY IF EXISTS "Users can delete own customers" ON customers;
 
 -- Managers: Full CRUD on all customers
 CREATE POLICY "Managers full access to customers" ON customers
-  FOR ALL USING (auth.is_manager());
+  FOR ALL USING (public.is_manager());
 
 -- Admins: View-only on all customers
 CREATE POLICY "Admins can view all customers" ON customers
@@ -161,7 +161,7 @@ DROP POLICY IF EXISTS "Users can access guarantors through customers" ON guarant
 
 -- Managers: Full access to all guarantors
 CREATE POLICY "Managers full access to guarantors" ON guarantors
-  FOR ALL USING (auth.is_manager());
+  FOR ALL USING (public.is_manager());
 
 -- Admins: View-only on all guarantors
 CREATE POLICY "Admins can view all guarantors" ON guarantors
@@ -190,7 +190,7 @@ DROP POLICY IF EXISTS "Users can manage own document templates" ON document_temp
 
 -- Managers: Full access to all templates
 CREATE POLICY "Managers full access to document templates" ON document_templates
-  FOR ALL USING (auth.is_manager());
+  FOR ALL USING (public.is_manager());
 
 -- Admins: View-only on all templates
 CREATE POLICY "Admins can view all document templates" ON document_templates
@@ -214,7 +214,7 @@ DROP POLICY IF EXISTS "Users can manage own excel templates" ON excel_templates;
 
 -- Managers: Full access to all excel templates
 CREATE POLICY "Managers full access to excel templates" ON excel_templates
-  FOR ALL USING (auth.is_manager());
+  FOR ALL USING (public.is_manager());
 
 -- Admins: View-only on all excel templates
 CREATE POLICY "Admins can view all excel templates" ON excel_templates
@@ -238,7 +238,7 @@ DROP POLICY IF EXISTS "Users can manage own todos" ON todos;
 
 -- Managers: Full access to all todos
 CREATE POLICY "Managers full access to todos" ON todos
-  FOR ALL USING (auth.is_manager());
+  FOR ALL USING (public.is_manager());
 
 -- Admins: View-only on all todos
 CREATE POLICY "Admins can view all todos" ON todos
@@ -263,7 +263,7 @@ BEGIN
   -- If role is being changed
   IF OLD.role IS DISTINCT FROM NEW.role THEN
     -- Only allow if current user is a manager
-    IF NOT auth.is_manager() THEN
+    IF NOT public.is_manager() THEN
       RAISE EXCEPTION 'Only managers can change user roles';
     END IF;
   END IF;
