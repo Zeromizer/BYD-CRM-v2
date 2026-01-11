@@ -177,7 +177,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
       vsa_yom: formData.vsa_yom ?? null,
       vsa_body_colour: formData.vsa_body_colour ?? null,
       vsa_upholstery: formData.vsa_upholstery ?? null,
-      vsa_prz_type: (formData.vsa_prz_type as 'P' | 'R' | 'Z') ?? null,
+      vsa_prz_type: (formData.vsa_prz_type as 'P' | 'R' | 'Z') || null,
       vsa_package: formData.vsa_package ?? null,
       vsa_selling_price_list: formData.vsa_selling_price_list
         ? Number(formData.vsa_selling_price_list)
