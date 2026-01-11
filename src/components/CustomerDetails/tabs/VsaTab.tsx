@@ -208,7 +208,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
       vsa_trade_in_owner_mobile: formData.vsa_trade_in_owner_mobile ?? null,
       vsa_trade_in_insurance_company: formData.vsa_trade_in_insurance_company ?? null,
       vsa_trade_in_policy_number: formData.vsa_trade_in_policy_number ?? null,
-      // Convert empty string to null for date field (Supabase rejects empty strings for dates)
+
       vsa_date_of_registration: formData.vsa_date_of_registration || null,
       vsa_registration_no: formData.vsa_registration_no ?? null,
       vsa_chassis_no: formData.vsa_chassis_no ?? null,

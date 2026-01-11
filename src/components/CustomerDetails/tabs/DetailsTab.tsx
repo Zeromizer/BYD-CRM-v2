@@ -96,8 +96,9 @@ export function DetailsTab({ customer, onUpdate }: DetailsTabProps) {
   const handleSave = () => {
     const updates: CustomerUpdate = {
       ...formData,
-      // Convert empty strings to null for date fields (Supabase rejects empty strings for dates)
+
       dob: formData.dob || null,
+
       license_start_date: formData.license_start_date || null,
     }
     startTransition(async () => {

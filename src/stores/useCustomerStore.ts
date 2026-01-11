@@ -478,7 +478,8 @@ export const useCustomerStore = create<CustomerState & CustomerActions>()(
                   email: g.email ?? null,
                   nric: g.nric ?? null,
                   occupation: g.occupation ?? null,
-                  dob: g.dob ?? null,
+                  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty string must become null for date column
+                  dob: g.dob || null,
                   address: g.address ?? null,
                   address_continue: g.address_continue ?? null,
                 }))
