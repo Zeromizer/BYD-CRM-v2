@@ -37,7 +37,12 @@ serve(async (req: Request) => {
   console.log('Edge function called')
 
   try {
-    const body = (await req.json()) as ExtractIDRequest & { type?: string }
+    const rawBody = await req.text()
+    console.log('Raw body length:', rawBody.length)
+    console.log('Raw body preview:', rawBody.substring(0, 500))
+
+    const body = JSON.parse(rawBody) as ExtractIDRequest & { type?: string }
+    console.log('Parsed body keys:', Object.keys(body))
 
     // Handle ping request for pre-warming (eliminates cold start)
     if (body.type === 'ping') {
