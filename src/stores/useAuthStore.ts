@@ -12,7 +12,6 @@ import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import { getSupabase } from '@/lib/supabase'
-import { loadGeminiApiKey, clearGeminiApiKeyCache } from '@/services/geminiService'
 import type {
   Profile,
   AuthState,
@@ -75,9 +74,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
                 console.error('Error fetching profile:', profileError)
               }
 
-              // Preload Gemini API key
-              loadGeminiApiKey().catch(console.error)
-
               set((state) => {
                 state.user = session.user
                 state.session = session
@@ -86,7 +82,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
                 state.isLoading = false
               })
             } else {
-              clearGeminiApiKeyCache()
               set((state) => {
                 state.isInitialized = true
                 state.isLoading = false
@@ -110,8 +105,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
                       .eq('id', session.user.id)
                       .single()
 
-                    loadGeminiApiKey().catch(console.error)
-
                     useAuthStore.setState((state) => {
                       state.user = session.user
                       state.session = session
@@ -120,7 +113,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
                   })()
                 }, 0)
               } else if (event === 'SIGNED_OUT') {
-                clearGeminiApiKeyCache()
                 useAuthStore.setState((state) => {
                   state.user = null
                   state.session = null
@@ -204,7 +196,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           try {
             const { error } = await getSupabase().auth.signOut()
             if (error) throw error
-            clearGeminiApiKeyCache()
             set((state) => {
               state.user = null
               state.session = null
