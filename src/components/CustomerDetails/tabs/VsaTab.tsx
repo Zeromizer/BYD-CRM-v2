@@ -189,7 +189,7 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
       vsa_deposit: formData.vsa_deposit ? Number(formData.vsa_deposit) : null,
       vsa_less_others: formData.vsa_less_others ? Number(formData.vsa_less_others) : null,
       vsa_add_others: formData.vsa_add_others ? Number(formData.vsa_add_others) : null,
-      vsa_delivery_date: formData.vsa_delivery_date ?? null,
+      vsa_delivery_date: formData.vsa_delivery_date || null,
       vsa_trade_in_car_no: formData.vsa_trade_in_car_no ?? null,
       vsa_trade_in_car_model: formData.vsa_trade_in_car_model ?? null,
       vsa_trade_in_amount: formData.vsa_trade_in_amount

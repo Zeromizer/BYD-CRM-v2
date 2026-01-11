@@ -102,7 +102,11 @@
       "Bash(git -C \"c:/Coding/BYD-CRM-v2\" commit -m \"$\\(cat <<''EOF''\nAdd PWA back gesture handler to prevent app exit\n\n- Create usePWABackHandler hook to intercept back gestures in PWA mode\n- Pushes history entries to prevent immediate exit on back gesture\n- When at root, stays in app; otherwise navigates back within app\n- Only activates when running as installed PWA \\(standalone mode\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git -C \"c:/Coding/BYD-CRM-v2\" show 40a31be --name-only --oneline)",
       "Bash(supabase functions deploy:*)",
-      "Bash(git -C:*)"
+      "Bash(git -C:*)",
+      "Skill(browser)",
+      "Skill(browser:*)",
+      "Bash(supabase db execute:*)",
+      "Bash(supabase status:*)"
     ]
   }
 }
