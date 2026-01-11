@@ -10,18 +10,18 @@
 
 ### Tech Stack
 
-| Category   | Technology                                                                                                               |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Frontend   | React 19.2.0, TypeScript 5.9.3                                                                                           |
-| Build      | Vite 7.2.4, vite-plugin-pwa 1.2.0                                                                                        |
-| State      | Zustand 5.0.9 (devtools + persist + subscribeWithSelector + immer)                                                       |
-| Backend    | Supabase (Auth, Database, Storage, Realtime, Edge Functions)                                                             |
-| AI         | Google Gemini 2.5 Flash (document classification), Claude Haiku 4.5 (OCR classification), Claude Sonnet 4 (PDF analysis) |
-| Vision API | Google Cloud Vision (text extraction from images/PDFs)                                                                   |
-| Icons      | @phosphor-icons/react                                                                                                    |
-| Excel      | xlsx-populate (generation), xlsx (preview extraction)                                                                    |
-| PDF        | jsPDF (generation), pdf.js (rendering, thumbnails), pdf-lib (splitting)                                                  |
-| OCR        | Vision+Claude hybrid pipeline (primary), Tesseract.js (fallback)                                                         |
+| Category   | Technology                                                                                                                         |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend   | React 19.2.0, TypeScript 5.9.3                                                                                                     |
+| Build      | Vite 7.2.4, vite-plugin-pwa 1.2.0                                                                                                  |
+| State      | Zustand 5.0.9 (devtools + persist + subscribeWithSelector + immer)                                                                 |
+| Backend    | Supabase (Auth, Database, Storage, Realtime, Edge Functions)                                                                       |
+| AI         | Google Gemini 2.5 Flash (document classification), Claude Haiku 4.5 (ID Scanner OCR, document OCR), Claude Sonnet 4 (PDF analysis) |
+| Vision API | Google Cloud Vision (text extraction from images/PDFs)                                                                             |
+| Icons      | @phosphor-icons/react                                                                                                              |
+| Excel      | xlsx-populate (generation), xlsx (preview extraction)                                                                              |
+| PDF        | jsPDF (generation), pdf.js (rendering, thumbnails), pdf-lib (splitting)                                                            |
+| OCR        | Vision+Claude hybrid pipeline (primary), Tesseract.js (fallback)                                                                   |
 
 ---
 
@@ -57,7 +57,8 @@ byd-crm-v2/
 ├── supabase/
 │   ├── migrations/          # Database migrations
 │   └── functions/           # Edge Functions
-│       └── vision-claude-ocr/  # Vision+Claude OCR pipeline
+│       ├── extract-id/         # ID Scanner - Claude Haiku OCR
+│       └── vision-claude-ocr/  # Vision+Claude document OCR pipeline
 ├── public/                  # Static assets
 └── dist/                    # Build output
 ```
@@ -414,16 +415,16 @@ const results = await processBatch(items, processor, {
 
 ## Key Services
 
-| Service                        | Purpose                                              |
-| ------------------------------ | ---------------------------------------------------- |
-| `excelService.ts`              | Populate Excel templates with 200+ customer fields   |
-| `documentClassifierService.ts` | AI-powered document type classification using Gemini |
-| `intelligentOcrService.ts`     | Vision+Claude hybrid OCR with parallel processing    |
-| `bulkDocumentImportService.ts` | Batch document import and AI classification          |
-| `customerImportService.ts`     | Import/export customers (JSON/CSV)                   |
-| `customerDocumentService.ts`   | Upload documents to Supabase storage                 |
-| `salesPackService.ts`          | Sales pack PDF analysis, splitting, and upload       |
-| `geminiService.ts`             | Google Gemini API configuration                      |
+| Service                        | Purpose                                                   |
+| ------------------------------ | --------------------------------------------------------- |
+| `excelService.ts`              | Populate Excel templates with 200+ customer fields        |
+| `documentClassifierService.ts` | AI-powered document type classification using Gemini      |
+| `intelligentOcrService.ts`     | Vision+Claude hybrid OCR with parallel processing         |
+| `bulkDocumentImportService.ts` | Batch document import and AI classification               |
+| `customerImportService.ts`     | Import/export customers (JSON/CSV)                        |
+| `customerDocumentService.ts`   | Upload documents to Supabase storage                      |
+| `salesPackService.ts`          | Sales pack PDF analysis, splitting, and upload            |
+| `geminiService.ts`             | ID Scanner service - calls Claude Haiku via Edge Function |
 
 ---
 
@@ -1287,13 +1288,13 @@ COMMENT ON COLUMN document_templates.pages IS
 
 ```typescript
 interface TemplatePage {
-  id: string                    // Unique page identifier (e.g., "page_1")
-  page_number: number           // 1-indexed page number
-  image_path: string | null     // Path in Supabase Storage
-  image_url: string | null      // Cached signed URL
-  width: number | null          // Image width in pixels
-  height: number | null         // Image height in pixels
-  fields: FieldMappings         // Fields mapped on this page
+  id: string // Unique page identifier (e.g., "page_1")
+  page_number: number // 1-indexed page number
+  image_path: string | null // Path in Supabase Storage
+  image_url: string | null // Cached signed URL
+  width: number | null // Image width in pixels
+  height: number | null // Image height in pixels
+  fields: FieldMappings // Fields mapped on this page
 }
 ```
 
@@ -1331,6 +1332,7 @@ getPageCount(template: DocumentTemplate): number
 ```
 
 **Backward Compatibility:**
+
 - Legacy single-page templates (with `image_path` and `fields`) continue to work
 - `getTemplatePages()` converts legacy templates to a single-page array
 - New templates use the `pages` array exclusively
@@ -1351,18 +1353,21 @@ uploadTemplateImages(files: File[]): Promise<Array<{ path: string; url: string }
 ### UI Components
 
 **DocumentManager (`src/components/Documents/DocumentManager.tsx`):**
+
 - Multi-file upload modal with drag-and-drop
 - Page thumbnail grid with reorder support
 - Add/remove page buttons
 - Field count shows total across all pages: "8 fields (2 pages)"
 
 **FormEditor (`src/components/Documents/FormEditor.tsx`):**
+
 - Page selector tabs for navigating between pages
 - Current page indicator
 - Page-specific field editing
 - Field mappings saved per-page
 
 **PrintManager (`src/components/Documents/PrintManager.tsx`):**
+
 - Multi-page document preview
 - All pages rendered sequentially for print
 - Back page photo attachment works with multi-page templates
@@ -1392,6 +1397,7 @@ if (template.pages && Array.isArray(template.pages)) {
 ### Template Selection Modal
 
 When selecting templates from CustomerDetails → Documents tab → Generate Document:
+
 - Shows first page thumbnail for multi-page templates
 - Displays total field count: "8 fields"
 - Uses `getTemplatePages()` and `getTotalFieldCount()` helpers
@@ -1400,30 +1406,31 @@ When selecting templates from CustomerDetails → Documents tab → Generate Doc
 
 ## Recent Changes (Reference)
 
-| Commit   | Description                                                                                                                 |
-| -------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Latest   | Multi-page document templates: database migration, type system, store actions, UI for multi-page template management        |
-| Previous | PWA Support: vite-plugin-pwa integration, iOS PNG icons, mobile scroll fixes, installable app with offline caching          |
-| Previous | UI/UX Rework: Three-theme system (Light/Dark/Cool), CollapsibleSection component, form reorganization, design token updates |
-| Previous | Codebase modernization: Zustand middleware stack, React 19 features (useTransition, useOptimistic), shared utilities        |
-| Previous | Sales Pack Upload: AI-powered multi-page PDF splitting with Claude Vision analysis                                          |
-| Previous | Email-to-CRM automation: Make.com + Supabase Edge Function for auto-uploading insurance/registration PDFs                   |
-| Previous | CRM improvements: dropdown accessibility, grouped options, auto-calculations, data entry efficiency                         |
-| Previous | Auto-upload scanned IDs and delete documents on customer delete                                                             |
-| Previous | ID Scanner performance optimization with parallel processing                                                                |
-| Previous | ProgressSidebar right border for proper panel boundary                                                                      |
-| Previous | PrintManager back page photo attachment for double-sided printing                                                           |
-| Previous | Mobile action sheet portal fix for swipe containers                                                                         |
-| Previous | Enterprise optimization: code splitting, pagination, error boundaries                                                       |
-| Previous | Add Generate Document button to CustomerDetails header                                                                      |
-| Previous | Document thumbnail card grid layout with large previews                                                                     |
-| Previous | Mobile documents tab optimization with action sheets                                                                        |
-| Previous | Vision+Claude OCR pipeline with parallel processing                                                                         |
-| Previous | Mobile optimization with swipe-based panel navigation                                                                       |
-| Previous | Task/Todo feature with inline forms, customer-specific tasks                                                                |
-| 4fffb70  | Excel file classification, batch processing                                                                                 |
-| 0faf764  | Excel integration, document management                                                                                      |
-| 5dd6bd2  | OneDrive sync for scanned documents                                                                                         |
+| Commit   | Description                                                                                                                    |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Latest   | ID Scanner rewrite: Switch from Gemini to Claude Haiku 4.5 via Edge Function, simplified single API call for front+back images |
+| Previous | Multi-page document templates: database migration, type system, store actions, UI for multi-page template management           |
+| Previous | PWA Support: vite-plugin-pwa integration, iOS PNG icons, mobile scroll fixes, installable app with offline caching             |
+| Previous | UI/UX Rework: Three-theme system (Light/Dark/Cool), CollapsibleSection component, form reorganization, design token updates    |
+| Previous | Codebase modernization: Zustand middleware stack, React 19 features (useTransition, useOptimistic), shared utilities           |
+| Previous | Sales Pack Upload: AI-powered multi-page PDF splitting with Claude Vision analysis                                             |
+| Previous | Email-to-CRM automation: Make.com + Supabase Edge Function for auto-uploading insurance/registration PDFs                      |
+| Previous | CRM improvements: dropdown accessibility, grouped options, auto-calculations, data entry efficiency                            |
+| Previous | Auto-upload scanned IDs and delete documents on customer delete                                                                |
+| Previous | ID Scanner performance optimization with parallel processing                                                                   |
+| Previous | ProgressSidebar right border for proper panel boundary                                                                         |
+| Previous | PrintManager back page photo attachment for double-sided printing                                                              |
+| Previous | Mobile action sheet portal fix for swipe containers                                                                            |
+| Previous | Enterprise optimization: code splitting, pagination, error boundaries                                                          |
+| Previous | Add Generate Document button to CustomerDetails header                                                                         |
+| Previous | Document thumbnail card grid layout with large previews                                                                        |
+| Previous | Mobile documents tab optimization with action sheets                                                                           |
+| Previous | Vision+Claude OCR pipeline with parallel processing                                                                            |
+| Previous | Mobile optimization with swipe-based panel navigation                                                                          |
+| Previous | Task/Todo feature with inline forms, customer-specific tasks                                                                   |
+| 4fffb70  | Excel file classification, batch processing                                                                                    |
+| 0faf764  | Excel integration, document management                                                                                         |
+| 5dd6bd2  | OneDrive sync for scanned documents                                                                                            |
 
 ### Auto-Upload Scanned IDs & Document Cleanup
 
@@ -1484,36 +1491,61 @@ function dataUrlToFile(dataUrl: string, filename: string): File {
 }
 ```
 
-### ID Scanner Performance Optimization
+### ID Scanner with Claude Haiku
 
-**Modified Files:**
+**Architecture:**
 
-- `src/components/IDScanner/IDScanner.tsx` - Performance optimizations for faster AI extraction
+The ID Scanner uses **Claude Haiku 4.5** via a Supabase Edge Function for OCR extraction from Singapore NRIC/FIN cards and driving licenses.
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   IDScanner     │────▶│   Edge Function │────▶│   Claude Haiku  │
+│   (React)       │     │   extract-id    │     │   4.5 API       │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+**Files:**
+
+- `src/components/IDScanner/IDScanner.tsx` - Scanner UI component
+- `src/services/geminiService.ts` - Client service (calls Edge Function)
+- `supabase/functions/extract-id/index.ts` - Edge Function with Claude API
 
 **Key Features:**
 
+- **Single API call** - Both front and back images sent together to Claude
+- **WebP compression** - Images converted to WebP for 25-35% smaller payloads
 - **Guide frame cropping** - Images cropped to exact guide frame borders (85% width, 1.586 aspect ratio)
-- **Dual image capture** - Full resolution (95% quality) for saving, AI-optimized (1280px, 85% quality) for processing
-- **Pre-warm auth** - Authentication checked on modal open, not during processing
-- **Parallel front processing** - Front image starts processing while user scans back
+- **Dual image capture** - Full resolution (95% quality) for saving, AI-optimized (1024px, 75% quality) for processing
+- **Pre-warm** - Edge function pinged on modal open to eliminate cold start latency
+
+**Edge Function Endpoint:** `extract-id`
+
+```typescript
+// Request
+{ type: 'id' | 'license', frontImage: string, backImage?: string }
+
+// Response (ID)
+{ name, nric, dob, address, addressContinue, confidence }
+
+// Response (License)
+{ licenseStartDate, confidence }
+```
 
 **Performance Constants:**
 
 ```typescript
 const GUIDE_FRAME_WIDTH_PERCENT = 0.85 // 85% of container
 const GUIDE_FRAME_ASPECT_RATIO = 1.586 // Credit card ratio (landscape)
-const GUIDE_FRAME_WIDTH_PERCENT_PORTRAIT = 0.75
-const GUIDE_FRAME_ASPECT_RATIO_PORTRAIT = 0.65
-const AI_IMAGE_MAX_WIDTH = 1280 // Max width for AI processing
-const AI_IMAGE_QUALITY = 0.85 // JPEG quality for AI
+const AI_IMAGE_MAX_WIDTH = 1024 // Max width for AI processing
+const AI_IMAGE_QUALITY = 0.75 // WebP quality for AI
 ```
 
-**Performance Improvement:**
-| Scenario | Before | After |
-|----------|--------|-------|
-| Front only (skip back) | ~10s | ~2-4s |
-| Front + Back | ~10s | ~4-6s |
-| With license scan | ~15s | ~6-8s |
+**Performance:**
+| Scenario | Time |
+|----------|------|
+| Front only (skip back) | ~3-4s |
+| Front + Back | ~3-4s |
+| With license scan | ~5-6s |
 
 ### Vision+Claude OCR Implementation
 

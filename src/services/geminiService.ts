@@ -43,9 +43,9 @@ export interface ProcessingProgress {
 }
 
 /**
- * Check if the service is available (online)
+ * Check if the AI service is available (requires internet)
  */
-export function isGeminiAvailable(): boolean {
+export function isAIServiceAvailable(): boolean {
   return navigator.onLine
 }
 
@@ -191,13 +191,4 @@ export async function extractLicenseWithGemini(
     licenseStartDate: data?.licenseStartDate ?? '',
     confidence: data?.confidence ?? 0,
   }
-}
-
-// Legacy exports for backward compatibility
-export function loadGeminiApiKey(): Promise<string | null> {
-  return Promise.resolve(null)
-}
-
-export function clearGeminiApiKeyCache(): void {
-  // No-op - API key is now server-side
 }

@@ -1,7 +1,7 @@
 /**
  * IDScanner Component
- * Captures front and back of ID card and driving license, extracts details using Gemini AI
- * No fallback - if AI fails, user can retry or enter manually
+ * Captures front and back of ID card and driving license, extracts details using Claude Haiku AI
+ * Calls Supabase Edge Function which processes images with Claude API
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react'
@@ -23,8 +23,7 @@ import { getSupabase } from '@/lib/supabase'
 import {
   extractIDWithGemini,
   extractLicenseWithGemini,
-  loadGeminiApiKey,
-  isGeminiAvailable,
+  isAIServiceAvailable,
   preWarmEdgeFunction,
   type ProcessingProgress,
 } from '@/services/geminiService'
@@ -129,11 +128,6 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
     }
   }, [])
 
-  // Ref to store pending front image processing result (declared early for use in resetScanner)
-  const pendingFrontProcessingRef = useRef<Promise<
-    import('@/services/geminiService').ExtractedIDData
-  > | null>(null)
-
   const resetScanner = () => {
     setStep('front')
     setFrontImage(null)
@@ -155,7 +149,6 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
       licenseStartDate: '',
     })
     setIsPortraitMode(false)
-    pendingFrontProcessingRef.current = null
     stopCamera()
   }
 
@@ -357,15 +350,6 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
     setStep('final-review')
   }
 
-  // Start processing front image immediately after capture (parallel with back scan)
-  useEffect(() => {
-    if (frontImageAI && step === 'back' && !pendingFrontProcessingRef.current) {
-      // Start processing front image in background while user scans back
-      console.log('Starting parallel front image processing...')
-      pendingFrontProcessingRef.current = extractIDWithGemini(frontImageAI, null, () => {})
-    }
-  }, [frontImageAI, step])
-
   const processIDImages = async () => {
     if (!frontImageAI) return
 
@@ -373,18 +357,12 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
     setError(null)
 
     try {
-      // Load API key from Supabase first (should be quick if pre-warmed)
-      await loadGeminiApiKey()
-
-      // Check if service is available
-      if (!isGeminiAvailable()) {
+      // Check if AI service is available (requires internet)
+      if (!isAIServiceAvailable()) {
         setError('AI service is not available. Please check your internet connection.')
         setStep('front')
         return
       }
-
-      // Clear any pending processing
-      pendingFrontProcessingRef.current = null
 
       // Process both front and back images in a single call
       setProcessingStatus({ stage: 'Analyzing ID with AI...', progress: 10 })
@@ -402,7 +380,6 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
       setStep('review')
     } catch (err) {
       console.error('Processing error:', err)
-      pendingFrontProcessingRef.current = null
       setError(err instanceof Error ? err.message : 'Failed to process ID. Please try again.')
       setStep('front')
     }
