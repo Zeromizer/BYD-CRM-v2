@@ -37,6 +37,12 @@ export interface ExtractedLicenseData {
   confidence: number
 }
 
+export interface ExtractedAddressData {
+  address: string
+  addressContinue: string
+  confidence: number
+}
+
 export interface ProcessingProgress {
   stage: string
   progress: number
@@ -67,10 +73,11 @@ export async function preWarmEdgeFunction(): Promise<void> {
 
 /**
  * Extract ID details using Gemini AI via Edge Function
+ * Note: Only processes front image. Use extractAddressFromBack for back image.
  */
 export async function extractIDWithGemini(
   frontImageData: string,
-  backImageData: string | null = null,
+  _backImageData: string | null = null, // Kept for backwards compatibility, not used
   onProgress?: (progress: ProcessingProgress) => void
 ): Promise<ExtractedIDData> {
   const startTime = performance.now()
@@ -95,16 +102,15 @@ export async function extractIDWithGemini(
 
   onProgress?.({ stage: 'Processing with AI...', progress: 30 })
 
-  debug.log('Calling extract-id Edge Function...')
+  debug.log('Calling extract-id Edge Function (front only)...')
   debug.log('Front image size:', frontImageData.length, 'chars')
-  debug.log('Back image size:', backImageData?.length ?? 0, 'chars')
 
   const edgeStart = performance.now()
+  // Only send front image - back image processed separately to avoid timeout
   const response = await supabase.functions.invoke<ExtractIDResponse>('extract-id', {
     body: {
       type: 'id',
       frontImage: frontImageData,
-      backImage: backImageData,
     },
   })
   const edgeTime = performance.now() - edgeStart
@@ -135,6 +141,71 @@ export async function extractIDWithGemini(
     name: data?.name ?? '',
     nric: data?.nric ?? '',
     dob: data?.dob ?? '',
+    address: data?.address ?? '',
+    addressContinue: data?.addressContinue ?? '',
+    confidence: data?.confidence ?? 0,
+  }
+}
+
+/**
+ * Extract address from back of ID using Gemini AI via Edge Function
+ * Separate call to avoid timeout when processing both images together
+ */
+export async function extractAddressFromBack(
+  backImageData: string,
+  onProgress?: (progress: ProcessingProgress) => void
+): Promise<ExtractedAddressData> {
+  const startTime = performance.now()
+
+  if (!navigator.onLine) {
+    throw new Error('No internet connection.')
+  }
+
+  onProgress?.({ stage: 'Extracting address...', progress: 10 })
+
+  const supabase = getSupabase()
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  if (!session) {
+    throw new Error('Please sign in to use the scanner.')
+  }
+
+  onProgress?.({ stage: 'Processing address...', progress: 30 })
+
+  debug.log('Calling extract-id Edge Function for back image...')
+  debug.log('Back image size:', backImageData.length, 'chars')
+
+  const edgeStart = performance.now()
+  const response = await supabase.functions.invoke<ExtractedAddressData>('extract-id', {
+    body: {
+      type: 'id-back',
+      frontImage: backImageData, // Send back image as frontImage (only image needed)
+    },
+  })
+  const edgeTime = performance.now() - edgeStart
+  debug.log('[ID Scan] Address extraction edge function:', Math.round(edgeTime), 'ms')
+
+  const data = response.data
+  const error = response.error as EdgeFunctionError | null
+
+  debug.log('Address extraction response:', { data, error })
+
+  onProgress?.({ stage: 'Address extracted', progress: 100 })
+
+  if (error) {
+    debug.error('Address extraction error:', error)
+    throw new Error(error.message ?? 'Failed to extract address.')
+  }
+
+  if ((data as ExtractIDResponse)?.error) {
+    throw new Error((data as ExtractIDResponse).error)
+  }
+
+  const totalTime = performance.now() - startTime
+  debug.log('[ID Scan] Address extraction total time:', Math.round(totalTime), 'ms')
+
+  return {
     address: data?.address ?? '',
     addressContinue: data?.addressContinue ?? '',
     confidence: data?.confidence ?? 0,

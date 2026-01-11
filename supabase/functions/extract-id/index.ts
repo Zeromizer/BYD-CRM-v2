@@ -15,7 +15,7 @@ const corsHeaders = {
 }
 
 interface ExtractIDRequest {
-  type: 'id' | 'license'
+  type: 'id' | 'license' | 'id-back'
   frontImage: string
   backImage?: string
 }
@@ -73,6 +73,18 @@ serve(async (req: Request) => {
       prompt = `Extract from Singapore driving license. Return JSON only:
 {"licenseStartDate":"YYYY-MM-DD","confidence":0-100}
 Find DATE OF ISSUE or VALID FROM date. Use "" if not found.`
+
+      imageParts.push({
+        inlineData: {
+          mimeType: getMimeType(frontImage),
+          data: dataUrlToBase64(frontImage),
+        },
+      })
+    } else if (type === 'id-back') {
+      // Back of ID - extract address only (faster, single image)
+      prompt = `Extract address from back of Singapore NRIC/FIN card. Return JSON only:
+{"address":"BLK STREET UNIT","addressContinue":"SINGAPORE POSTAL","confidence":0-100}
+Use "" for unreadable fields.`
 
       imageParts.push({
         inlineData: {
@@ -168,6 +180,15 @@ Use "" for unreadable fields. Address from back if available.`
       return new Response(
         JSON.stringify({
           licenseStartDate: result.licenseStartDate || '',
+          confidence: result.confidence || 0,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    } else if (type === 'id-back') {
+      return new Response(
+        JSON.stringify({
+          address: result.address || '',
+          addressContinue: result.addressContinue || '',
           confidence: result.confidence || 0,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

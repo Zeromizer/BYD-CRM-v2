@@ -23,6 +23,7 @@ import { getSupabase } from '@/lib/supabase'
 import {
   extractIDWithGemini,
   extractLicenseWithGemini,
+  extractAddressFromBack,
   loadGeminiApiKey,
   isGeminiAvailable,
   preWarmEdgeFunction,
@@ -387,24 +388,39 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
 
       let result
 
-      if (backImageAI) {
-        // If we have back image, process both together for best accuracy
-        setProcessingStatus({ stage: 'Analyzing ID with AI...', progress: 10 })
-        result = await extractIDWithGemini(frontImageAI, backImageAI, setProcessingStatus)
-      } else if (pendingFrontProcessingRef.current) {
+      // Step 1: Process front image (name, NRIC, DOB)
+      if (pendingFrontProcessingRef.current) {
         // Use the parallel-processed front result if available
-        setProcessingStatus({ stage: 'Finalizing analysis...', progress: 50 })
+        setProcessingStatus({ stage: 'Finalizing analysis...', progress: 30 })
         try {
           result = await pendingFrontProcessingRef.current
-          setProcessingStatus({ stage: 'Complete', progress: 100 })
         } catch {
           // If parallel processing failed, try again
           result = await extractIDWithGemini(frontImageAI, null, setProcessingStatus)
         }
       } else {
         // Process front only
+        setProcessingStatus({ stage: 'Analyzing ID with AI...', progress: 10 })
         result = await extractIDWithGemini(frontImageAI, null, setProcessingStatus)
       }
+
+      // Step 2: If back image exists, extract address separately (avoids timeout)
+      if (backImageAI) {
+        setProcessingStatus({ stage: 'Extracting address from back...', progress: 60 })
+        try {
+          const addressResult = await extractAddressFromBack(backImageAI)
+          // Use address from back image if confidence is reasonable
+          if (addressResult.confidence >= 50) {
+            result.address = addressResult.address
+            result.addressContinue = addressResult.addressContinue
+          }
+        } catch (err) {
+          console.warn('Address extraction from back failed, using front image data:', err)
+          // Continue with whatever address we got from front image
+        }
+      }
+
+      setProcessingStatus({ stage: 'Complete', progress: 100 })
 
       // Clear pending processing ref
       pendingFrontProcessingRef.current = null
