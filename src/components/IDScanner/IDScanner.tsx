@@ -23,7 +23,6 @@ import { getSupabase } from '@/lib/supabase'
 import {
   extractIDWithGemini,
   extractLicenseWithGemini,
-  extractAddressFromBack,
   loadGeminiApiKey,
   isGeminiAvailable,
   preWarmEdgeFunction,
@@ -377,53 +376,19 @@ export function IDScanner({ isOpen, onClose, onDataExtracted }: IDScannerProps) 
       // Load API key from Supabase first (should be quick if pre-warmed)
       await loadGeminiApiKey()
 
-      // Check if Gemini is available
+      // Check if service is available
       if (!isGeminiAvailable()) {
-        setError(
-          'AI service is not available. Please check your API key in Settings or your internet connection.'
-        )
+        setError('AI service is not available. Please check your internet connection.')
         setStep('front')
         return
       }
 
-      let result
-
-      // Step 1: Process front image (name, NRIC, DOB)
-      if (pendingFrontProcessingRef.current) {
-        // Use the parallel-processed front result if available
-        setProcessingStatus({ stage: 'Finalizing analysis...', progress: 30 })
-        try {
-          result = await pendingFrontProcessingRef.current
-        } catch {
-          // If parallel processing failed, try again
-          result = await extractIDWithGemini(frontImageAI, null, setProcessingStatus)
-        }
-      } else {
-        // Process front only
-        setProcessingStatus({ stage: 'Analyzing ID with AI...', progress: 10 })
-        result = await extractIDWithGemini(frontImageAI, null, setProcessingStatus)
-      }
-
-      // Step 2: If back image exists, extract address separately (avoids timeout)
-      if (backImageAI) {
-        setProcessingStatus({ stage: 'Extracting address from back...', progress: 60 })
-        try {
-          const addressResult = await extractAddressFromBack(backImageAI)
-          // Use address from back image if confidence is reasonable
-          if (addressResult.confidence >= 50) {
-            result.address = addressResult.address
-            result.addressContinue = addressResult.addressContinue
-          }
-        } catch (err) {
-          console.warn('Address extraction from back failed, using front image data:', err)
-          // Continue with whatever address we got from front image
-        }
-      }
-
-      setProcessingStatus({ stage: 'Complete', progress: 100 })
-
-      // Clear pending processing ref
+      // Clear any pending processing
       pendingFrontProcessingRef.current = null
+
+      // Process both front and back images in a single call
+      setProcessingStatus({ stage: 'Analyzing ID with AI...', progress: 10 })
+      const result = await extractIDWithGemini(frontImageAI, backImageAI, setProcessingStatus)
 
       setConfidence(result.confidence)
       setEditableData({

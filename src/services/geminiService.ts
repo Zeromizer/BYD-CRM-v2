@@ -1,6 +1,6 @@
 /**
- * Gemini AI Service
- * Calls Supabase Edge Function for ID/license extraction
+ * AI Service for ID/License Extraction
+ * Calls Supabase Edge Function which uses Claude Haiku
  * API key stored in Edge Function Secrets (not client-side)
  */
 
@@ -37,19 +37,13 @@ export interface ExtractedLicenseData {
   confidence: number
 }
 
-export interface ExtractedAddressData {
-  address: string
-  addressContinue: string
-  confidence: number
-}
-
 export interface ProcessingProgress {
   stage: string
   progress: number
 }
 
 /**
- * Check if the service is available (user authenticated and online)
+ * Check if the service is available (online)
  */
 export function isGeminiAvailable(): boolean {
   return navigator.onLine
@@ -72,12 +66,12 @@ export async function preWarmEdgeFunction(): Promise<void> {
 }
 
 /**
- * Extract ID details using Gemini AI via Edge Function
- * Note: Only processes front image. Use extractAddressFromBack for back image.
+ * Extract ID details using Claude AI via Edge Function
+ * Sends both front and back images in a single request
  */
 export async function extractIDWithGemini(
   frontImageData: string,
-  _backImageData: string | null = null, // Kept for backwards compatibility, not used
+  backImageData: string | null = null,
   onProgress?: (progress: ProcessingProgress) => void
 ): Promise<ExtractedIDData> {
   const startTime = performance.now()
@@ -102,15 +96,16 @@ export async function extractIDWithGemini(
 
   onProgress?.({ stage: 'Processing with AI...', progress: 30 })
 
-  debug.log('Calling extract-id Edge Function (front only)...')
+  debug.log('Calling extract-id Edge Function...')
   debug.log('Front image size:', frontImageData.length, 'chars')
+  debug.log('Back image size:', backImageData?.length ?? 0, 'chars')
 
   const edgeStart = performance.now()
-  // Only send front image - back image processed separately to avoid timeout
   const response = await supabase.functions.invoke<ExtractIDResponse>('extract-id', {
     body: {
       type: 'id',
       frontImage: frontImageData,
+      backImage: backImageData,
     },
   })
   const edgeTime = performance.now() - edgeStart
@@ -148,72 +143,7 @@ export async function extractIDWithGemini(
 }
 
 /**
- * Extract address from back of ID using Gemini AI via Edge Function
- * Separate call to avoid timeout when processing both images together
- */
-export async function extractAddressFromBack(
-  backImageData: string,
-  onProgress?: (progress: ProcessingProgress) => void
-): Promise<ExtractedAddressData> {
-  const startTime = performance.now()
-
-  if (!navigator.onLine) {
-    throw new Error('No internet connection.')
-  }
-
-  onProgress?.({ stage: 'Extracting address...', progress: 10 })
-
-  const supabase = getSupabase()
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  if (!session) {
-    throw new Error('Please sign in to use the scanner.')
-  }
-
-  onProgress?.({ stage: 'Processing address...', progress: 30 })
-
-  debug.log('Calling extract-id Edge Function for back image...')
-  debug.log('Back image size:', backImageData.length, 'chars')
-
-  const edgeStart = performance.now()
-  const response = await supabase.functions.invoke<ExtractedAddressData>('extract-id', {
-    body: {
-      type: 'id-back',
-      frontImage: backImageData, // Send back image as frontImage (only image needed)
-    },
-  })
-  const edgeTime = performance.now() - edgeStart
-  debug.log('[ID Scan] Address extraction edge function:', Math.round(edgeTime), 'ms')
-
-  const data = response.data
-  const error = response.error as EdgeFunctionError | null
-
-  debug.log('Address extraction response:', { data, error })
-
-  onProgress?.({ stage: 'Address extracted', progress: 100 })
-
-  if (error) {
-    debug.error('Address extraction error:', error)
-    throw new Error(error.message ?? 'Failed to extract address.')
-  }
-
-  if ((data as ExtractIDResponse)?.error) {
-    throw new Error((data as ExtractIDResponse).error)
-  }
-
-  const totalTime = performance.now() - startTime
-  debug.log('[ID Scan] Address extraction total time:', Math.round(totalTime), 'ms')
-
-  return {
-    address: data?.address ?? '',
-    addressContinue: data?.addressContinue ?? '',
-    confidence: data?.confidence ?? 0,
-  }
-}
-
-/**
- * Extract license start date using Gemini AI via Edge Function
+ * Extract license start date using Claude AI via Edge Function
  */
 export async function extractLicenseWithGemini(
   licenseFrontImageData: string,
@@ -263,7 +193,7 @@ export async function extractLicenseWithGemini(
   }
 }
 
-// Legacy exports for backward compatibility (no longer needed but kept to avoid breaking imports)
+// Legacy exports for backward compatibility
 export function loadGeminiApiKey(): Promise<string | null> {
   return Promise.resolve(null)
 }
