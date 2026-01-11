@@ -8,7 +8,7 @@ import {
   Money,
   FloppyDisk,
 } from '@phosphor-icons/react'
-import { Button } from '@/components/common'
+import { Button, useToast } from '@/components/common'
 import type { Customer, CustomerUpdate } from '@/types'
 import {
   VEHICLE_MODELS_GROUPED,
@@ -27,6 +27,7 @@ type VsaSection = 'vehicle' | 'package' | 'tradeIn' | 'delivery' | 'insurance' |
 export function VsaTab({ customer, onUpdate }: VsaTabProps) {
   const [isPending, startTransition] = useTransition()
   const [activeSection, setActiveSection] = useState<VsaSection>('vehicle')
+  const { success, error: toastError } = useToast()
   // Track if monthly repayment was manually edited
   const monthlyRepaymentManuallyEdited = useRef(false)
   const [formData, setFormData] = useState({
@@ -230,7 +231,12 @@ export function VsaTab({ customer, onUpdate }: VsaTabProps) {
         : null,
     }
     startTransition(async () => {
-      await onUpdate(customer.id, updates)
+      try {
+        await onUpdate(customer.id, updates)
+        success('VSA details saved')
+      } catch {
+        toastError('Failed to save VSA details')
+      }
     })
   }
 
